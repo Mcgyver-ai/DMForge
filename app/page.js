@@ -291,6 +291,27 @@ function WhyBetter() {
 }
 
 function Pricing({ onTry }) {
+  const [busy, setBusy] = useState(null)
+  async function checkout(planKey) {
+    const email = window.prompt('Enter your email to start your subscription (test mode — use Stripe test card 4242 4242 4242 4242):')
+    if (!email) return
+    setBusy(planKey)
+    try {
+      const res = await fetch('/api/billing/checkout', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email, planKey }) })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+      else toast.error(data.error || 'Checkout failed')
+    } catch (e) { toast.error('Network error') }
+    finally { setBusy(null) }
+  }
+  async function portal() {
+    const email = window.prompt('Enter the email you used at checkout to manage billing:')
+    if (!email) return
+    const res = await fetch('/api/billing/portal', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email }) })
+    const data = await res.json()
+    if (data.url) window.location.href = data.url
+    else toast.error(data.error || 'Could not open portal')
+  }
   return (
     <section id="pricing" className="max-w-6xl mx-auto px-5 py-24">
       <div className="text-center mb-12">
@@ -313,7 +334,8 @@ function Pricing({ onTry }) {
           <p className="text-[#A0A0C8] mb-5">For coaches running real ads.</p>
           <div className="text-4xl font-display font-bold mb-1">$39<span className="text-base text-[#A0A0C8] font-normal">/mo</span></div>
           <div className="text-[#A0A0C8] mb-6">or $390/yr (save $78)</div>
-          <Button onClick={onTry} className="btn-primary border-0 w-full font-semibold">Get Pro</Button>
+          <Button onClick={() => checkout('pro_monthly')} disabled={busy==='pro_monthly'} className="btn-primary border-0 w-full font-semibold">{busy==='pro_monthly' ? 'Loading…' : 'Get Pro monthly'}</Button>
+          <Button onClick={() => checkout('pro_annual')} disabled={busy==='pro_annual'} variant="outline" className="bg-transparent border-[#FF4D6D]/50 hover:bg-[#FF4D6D]/10 w-full font-semibold mt-2">{busy==='pro_annual' ? 'Loading…' : 'Pay annually — save $78'}</Button>
           <ul className="mt-6 space-y-2 text-sm"><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />Unlimited AI setters</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />5,000 real conversations / mo</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />Instagram, WhatsApp, Messenger</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />Web widget + SMS + email</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />Calendly / Cal.com / GHL booking</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />ElevenLabs voice clone</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />REST API + webhooks + MCP</li></ul>
         </Card>
         <Card className="bg-[#161630] border-[#2A2A55] p-7">
@@ -321,11 +343,11 @@ function Pricing({ onTry }) {
           <p className="text-[#A0A0C8] mb-5">For running it for clients.</p>
           <div className="text-4xl font-display font-bold mb-1">$199<span className="text-base text-[#A0A0C8] font-normal">/mo</span></div>
           <div className="text-[#A0A0C8] mb-6">10 client workspaces</div>
-          <Button onClick={onTry} className="w-full bg-[#1F1F42] hover:bg-[#2A2A55] border-0">Talk to us</Button>
+          <Button onClick={() => checkout('agency')} disabled={busy==='agency'} className="w-full bg-[#1F1F42] hover:bg-[#2A2A55] border-0">{busy==='agency' ? 'Loading…' : 'Get Agency'}</Button>
           <ul className="mt-6 space-y-2 text-sm text-[#A0A0C8]"><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />10 full client workspaces</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />Whitelabel + custom domain</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />Impersonate any client</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />Bring your own keys (BYOK)</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />Priority onboarding</li></ul>
         </Card>
       </div>
-      <p className="text-center mt-6 text-xs text-[#A0A0C8]">No commitment • Cancel any time • 30-day money-back guarantee</p>
+      <p className="text-center mt-6 text-xs text-[#A0A0C8]">No commitment • Cancel any time • 30-day money-back guarantee • <button onClick={portal} className="underline hover:text-white">Manage existing subscription →</button></p>
     </section>
   )
 }

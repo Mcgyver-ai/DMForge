@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { getDb } from '@/lib/mongo'
 import { chat, chatJSON } from '@/lib/llm'
 import { competitors } from '@/lib/competitors'
+import { PLANS, ensurePrice, getOrCreateCustomer, getStripe } from '@/lib/stripe'
 
 function handleCORS(response) {
   response.headers.set('Access-Control-Allow-Origin', '*')
@@ -138,6 +139,90 @@ Rules:
     // GET /api/competitors
     if (route === '/competitors' && method === 'GET') {
       return handleCORS(NextResponse.json({ competitors }))
+    }
+
+    // GET /api/me?email=foo
+    if (route === '/me' && method === 'GET') {
+      const url = new URL(request.url)
+      const email = url.searchParams.get('email')
+      if (!email) return handleCORS(NextResponse.json({ user: null }))
+      const user = await db.collection('users').findOne({ email })
+      if (!user) return handleCORS(NextResponse.json({ user: null }))
+      const { _id, stripeCustomerId, ...safe } = user
+      return handleCORS(NextResponse.json({ user: safe }))
+    }
+
+    // GET /api/plans
+    if (route === '/plans' && method === 'GET') {
+      return handleCORS(NextResponse.json({ plans: PLANS }))
+    }
+
+    // POST /api/billing/checkout  body: { email, planKey }
+    if (route === '/billing/checkout' && method === 'POST') {
+      const body = await request.json()
+      const { email, planKey } = body || {}
+      if (!email || !planKey || !PLANS[planKey]) return handleCORS(NextResponse.json({ error: 'email and valid planKey required' }, { status: 400 }))
+      const customerId = await getOrCreateCustomer(email)
+      const priceId = await ensurePrice(planKey)
+      const base = process.env.NEXT_PUBLIC_BASE_URL
+      const stripe = getStripe()
+      const session = await stripe.checkout.sessions.create({
+        mode: 'subscription',
+        customer: customerId,
+        line_items: [{ price: priceId, quantity: 1 }],
+        success_url: `${base}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${base}/?canceled=1`,
+        allow_promotion_codes: true,
+        billing_address_collection: 'auto',
+        metadata: { planKey, email },
+        subscription_data: { metadata: { planKey, email } },
+      })
+      return handleCORS(NextResponse.json({ url: session.url, id: session.id }))
+    }
+
+    // POST /api/billing/portal  body: { email }
+    if (route === '/billing/portal' && method === 'POST') {
+      const body = await request.json()
+      const { email } = body || {}
+      if (!email) return handleCORS(NextResponse.json({ error: 'email required' }, { status: 400 }))
+      const user = await db.collection('users').findOne({ email })
+      if (!user?.stripeCustomerId) return handleCORS(NextResponse.json({ error: 'no customer' }, { status: 404 }))
+      const stripe = getStripe()
+      const session = await stripe.billingPortal.sessions.create({
+        customer: user.stripeCustomerId,
+        return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/`,
+      })
+      return handleCORS(NextResponse.json({ url: session.url }))
+    }
+
+    // GET /api/billing/session?session_id=...  (used by success page)
+    if (route === '/billing/session' && method === 'GET') {
+      const url = new URL(request.url)
+      const sid = url.searchParams.get('session_id')
+      if (!sid) return handleCORS(NextResponse.json({ error: 'session_id required' }, { status: 400 }))
+      const stripe = getStripe()
+      const s = await stripe.checkout.sessions.retrieve(sid)
+      const email = s.customer_details?.email || s.metadata?.email
+      // Sync user
+      if (email && s.subscription) {
+        const sub = await stripe.subscriptions.retrieve(s.subscription)
+        await db.collection('users').updateOne(
+          { email },
+          { $set: {
+              email,
+              stripeCustomerId: s.customer,
+              stripeSubscriptionId: sub.id,
+              plan: sub.metadata?.planKey || s.metadata?.planKey || 'pro_monthly',
+              status: sub.status,
+              currentPeriodEnd: sub.current_period_end ? new Date(sub.current_period_end * 1000) : null,
+              updatedAt: new Date(),
+            },
+            $setOnInsert: { createdAt: new Date() },
+          },
+          { upsert: true }
+        )
+      }
+      return handleCORS(NextResponse.json({ email, planKey: s.metadata?.planKey, status: s.status }))
     }
 
     return handleCORS(NextResponse.json({ error: `Route ${route} not found` }, { status: 404 }))

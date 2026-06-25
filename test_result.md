@@ -9,33 +9,40 @@ ALL agents MUST follow these rules. Do NOT edit this section.
 
 ---
 
-## Project: DMForge — AI DM setter builder (SetSmart competitor)
+## Project: DMForge — AI DM setter builder + Stripe-enabled SaaS
 
 ### Stack
-- Next.js 15 App Router + MongoDB
-- LLM: Google Gemini API directly (`gemini-2.5-flash`), key in `GEMINI_API_KEY`
-- All API routes under `/api/*` via catch-all `app/api/[[...path]]/route.js`
+- Next.js 15 App Router + MongoDB + Stripe (test mode)
+- LLM: Google Gemini API directly (`gemini-2.5-flash`)
 
-### Core API endpoints
-- `POST /api/agent/create` — body `{niche, offer, audience, qualification, tone, agentName}` → returns `{id, script, calendarSlots, agentName}`
-- `POST /api/agent/chat` — body `{agentId, messages:[{role,content}]}` → returns `{reply, state:{step,qualified,booked,bookedSlot,tags}}`
-- `POST /api/result/save` — body `{agentId, transcript, state, leadName?}` → returns `{id, shareUrl}`
-- `GET /api/result/:id` — returns saved result
-- `GET /api/competitors` — list of competitor metadata
+### API endpoints (all working)
+- LLM: `POST /api/agent/create`, `POST /api/agent/chat`, `POST /api/result/save`, `GET /api/result/:id`
+- Billing: `POST /api/billing/checkout` (auto-creates product/price), `POST /api/billing/portal`, `GET /api/billing/session?session_id=…`, `POST /api/stripe/webhook`
+- Misc: `GET /api/me?email=…`, `GET /api/plans`, `GET /api/competitors`
 
 ### Pages
-- `/` — homepage with hero + 4-step wizard + live chat simulator + features + vs-table + pricing + faq + footer
-- `/r/[id]` — branded shareable result page with OG meta, share buttons, CTA
-- `/vs/[slug]` — 12 competitor versus pages (setsmart, manychat, chatfuel, inflact, instachamp, tidio, intercom-fin, respond-io, kommo, gohighlevel, voiceflow, botpress)
+- `/` — homepage with hero + wizard + chat simulator + features + vs-table + pricing (Stripe-wired) + faq
+- `/r/[id]` — branded shareable result page
+- `/vs/[slug]` — 12 competitor pages with FAQPage JSON-LD
+- `/billing/success?session_id=…` — Stripe redirect target
 - `/sitemap.xml`, `/robots.txt`
 
-### Status: MVP Phase 1 shipped & verified
-- All endpoints return 200, agent creation produces real high-quality scripts, chat replies are short/human-tone, save+share works end to end.
-- LLM key (Google AI Studio free tier) confirmed working with `gemini-2.5-flash`.
-- Phase 2 pending user go-ahead: auth, Stripe test-mode pricing/billing, dashboard with saved history, blog cluster, programmatic SEO pages.
+### Stripe wiring (TEST MODE)
+- Real Checkout sessions confirmed against user's Stripe test account
+- Products/prices auto-created on first checkout call, cached in `billing_meta` collection
+- Webhook accepts payload with dev fallback when `STRIPE_WEBHOOK_SECRET` is empty; signs when set
+- Webhook URL to register: `${NEXT_PUBLIC_BASE_URL}/api/stripe/webhook`
+
+### Phase 2 NOT yet built
+- Auth (currently email-prompt at checkout); Google OAuth + magic link pending
+- Dashboard with saved agents/history per user
+- 12+ seeded blog posts (pillar + cluster), `/blog`, `/blog/[slug]`
+- Programmatic long-tail landing pages (`/best-ai-dm-setter`, `/[category]-tool`, etc.)
+- Per-page dynamic OG image generation
+- Permanent production deployment
 
 ## Backend sub-agent log
-(empty — run when requested)
+(empty)
 
 ## Frontend sub-agent log
-(empty — frontend testing requires explicit user permission)
+(empty — requires explicit user permission)
