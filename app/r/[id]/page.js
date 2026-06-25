@@ -1,15 +1,21 @@
-import { getDb } from '@/lib/mongo'
+import { getAdminDb } from '@/lib/firebaseAdmin'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 async function getResult(id) {
   try {
-    const db = await getDb()
-    const r = await db.collection('results').findOne({ id })
-    if (!r) return null
-    const { _id, ...rest } = r
-    return JSON.parse(JSON.stringify(rest))
-  } catch (e) { return null }
+    const db = getAdminDb()
+    const snap = await db.collection('results').doc(id).get()
+    if (!snap.exists) return null
+    const data = snap.data()
+    // serialize Timestamps
+    const out = {}
+    for (const [k, v] of Object.entries(data)) {
+      if (v && typeof v.toDate === 'function') out[k] = v.toDate().toISOString()
+      else out[k] = v
+    }
+    return out
+  } catch (e) { console.error(e); return null }
 }
 
 export async function generateMetadata({ params }) {
@@ -19,8 +25,7 @@ export async function generateMetadata({ params }) {
   const title = `${r.agentName}'s AI setter booked a call — DMForge`
   const desc = r.summary?.headline || `An AI DM setter qualified a ${r.niche} lead and booked a call on autopilot.`
   return {
-    title,
-    description: desc,
+    title, description: desc,
     openGraph: { title, description: desc, type: 'article' },
     twitter: { card: 'summary_large_image', title, description: desc },
   }
@@ -51,7 +56,6 @@ export default async function ResultPage({ params }) {
           {r.summary?.headline && <p className="text-[#A0A0C8] mt-3">{r.summary.headline}</p>}
         </div>
 
-        {/* Summary card */}
         {r.summary && (
           <div className="bg-[#161630] border border-[#2A2A55] rounded-xl p-5 mb-6">
             <div className="text-xs uppercase tracking-widest text-[#A0A0C8] mb-3">AI Summary</div>
@@ -68,11 +72,10 @@ export default async function ResultPage({ params }) {
           </div>
         )}
 
-        {/* Transcript */}
         <div className="bg-[#161630] border border-[#2A2A55] rounded-xl overflow-hidden">
           <div className="px-5 py-3 border-b border-[#2A2A55] bg-[#1F1F42] text-sm font-semibold flex items-center justify-between">
             <span>💬 Instagram DM transcript</span>
-            <span className="text-xs text-[#A0A0C8]">{new Date(r.createdAt).toLocaleString()}</span>
+            <span className="text-xs text-[#A0A0C8]">{r.createdAt ? new Date(r.createdAt).toLocaleString() : ''}</span>
           </div>
           <div className="p-5 space-y-3">
             {r.transcript.map((m,i) => (
@@ -86,7 +89,6 @@ export default async function ResultPage({ params }) {
           </div>
         </div>
 
-        {/* Share buttons */}
         <div className="mt-6 flex flex-wrap gap-2 justify-center">
           <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}`} target="_blank" rel="noopener" className="px-4 py-2 bg-[#161630] border border-[#2A2A55] hover:border-[#FF4D6D] rounded-lg text-sm">Share on X</a>
           <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener" className="px-4 py-2 bg-[#161630] border border-[#2A2A55] hover:border-[#FF4D6D] rounded-lg text-sm">Facebook</a>
@@ -95,7 +97,6 @@ export default async function ResultPage({ params }) {
           <a href={`https://www.reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent('I built an AI DM setter in 60s with DMForge')}`} target="_blank" rel="noopener" className="px-4 py-2 bg-[#161630] border border-[#2A2A55] hover:border-[#FF4D6D] rounded-lg text-sm">Reddit</a>
         </div>
 
-        {/* CTA */}
         <div className="mt-12 text-center bg-gradient-to-br from-[#FF4D6D]/15 to-[#6B5BFF]/15 border border-[#FF4D6D]/40 rounded-xl p-10">
           <h2 className="font-display text-3xl font-bold">Build your own AI setter in 60 seconds.</h2>
           <p className="text-[#A0A0C8] mt-2">Free forever. No credit card.</p>

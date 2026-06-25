@@ -7,7 +7,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { ArrowRight, Sparkles, MessageCircle, Calendar, Check, Zap, Share2, Copy, Twitter, Facebook, Linkedin, Send, Flame, Shield, Globe, Mic, Bot, ChevronRight, Star } from 'lucide-react'
+import { ArrowRight, Sparkles, MessageCircle, Calendar, Check, Zap, Share2, Copy, Twitter, Facebook, Linkedin, Send, Flame, Shield, Globe, Mic, Bot, ChevronRight, Star, LogOut, LayoutDashboard } from 'lucide-react'
+import { useAuth, authFetch } from '@/lib/auth-context'
+import { AuthModal } from '@/components/auth-modal'
 
 const NICHES = [
   { id: 'fitness', label: 'Fitness / Weight loss', emoji: '💪' },
@@ -29,7 +31,8 @@ function Logo() {
   )
 }
 
-function Nav({ onTry }) {
+function Nav({ onTry, onAuthOpen }) {
+  const { user, logout } = useAuth()
   return (
     <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#0B0B1A]/70 border-b border-[#2A2A55]/40">
       <div className="max-w-7xl mx-auto px-5 h-16 flex items-center justify-between">
@@ -41,7 +44,17 @@ function Nav({ onTry }) {
           <a href="/blog" className="hover:text-white">Playbooks</a>
           <a href="#faq" className="hover:text-white">FAQ</a>
         </nav>
-        <Button onClick={onTry} className="btn-primary border-0 font-semibold">Try it free <ArrowRight className="w-4 h-4 ml-1" /></Button>
+        <div className="flex items-center gap-2">
+          {user ? (
+            <>
+              <a href="/dashboard" className="hidden sm:inline-flex items-center gap-1.5 text-sm text-[#A0A0C8] hover:text-white px-3 py-1.5 rounded-lg hover:bg-[#1F1F42]"><LayoutDashboard className="w-4 h-4" /> Dashboard</a>
+              <button onClick={logout} title="Sign out" className="text-[#A0A0C8] hover:text-white p-2 rounded-lg hover:bg-[#1F1F42]"><LogOut className="w-4 h-4" /></button>
+            </>
+          ) : (
+            <Button onClick={onAuthOpen} variant="outline" className="bg-transparent border-[#2A2A55] hover:bg-[#1F1F42] text-sm">Sign in</Button>
+          )}
+          <Button onClick={onTry} className="btn-primary border-0 font-semibold">Try it free <ArrowRight className="w-4 h-4 ml-1" /></Button>
+        </div>
       </div>
     </header>
   )
@@ -291,13 +304,14 @@ function WhyBetter() {
 }
 
 function Pricing({ onTry }) {
+  const { user, getToken } = useAuth()
   const [busy, setBusy] = useState(null)
+  const [authPrompt, setAuthPrompt] = useState(false)
   async function checkout(planKey) {
-    const email = window.prompt('Enter your email to start your subscription (test mode — use Stripe test card 4242 4242 4242 4242):')
-    if (!email) return
+    if (!user) { setAuthPrompt(true); return }
     setBusy(planKey)
     try {
-      const res = await fetch('/api/billing/checkout', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email, planKey }) })
+      const res = await authFetch('/api/billing/checkout', { method: 'POST', body: JSON.stringify({ planKey }) }, getToken)
       const data = await res.json()
       if (data.url) window.location.href = data.url
       else toast.error(data.error || 'Checkout failed')
@@ -305,14 +319,15 @@ function Pricing({ onTry }) {
     finally { setBusy(null) }
   }
   async function portal() {
-    const email = window.prompt('Enter the email you used at checkout to manage billing:')
-    if (!email) return
-    const res = await fetch('/api/billing/portal', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email }) })
+    if (!user) { setAuthPrompt(true); return }
+    const res = await authFetch('/api/billing/portal', { method: 'POST', body: JSON.stringify({}) }, getToken)
     const data = await res.json()
     if (data.url) window.location.href = data.url
-    else toast.error(data.error || 'Could not open portal')
+    else toast.error(data.error || 'No active subscription found')
   }
   return (
+    <>
+    <AuthModal open={authPrompt} onClose={() => setAuthPrompt(false)} defaultMode="signup" />
     <section id="pricing" className="max-w-6xl mx-auto px-5 py-24">
       <div className="text-center mb-12">
         <p className="text-[#FF4D6D] text-sm font-semibold uppercase tracking-widest mb-3">Pricing</p>
@@ -349,6 +364,7 @@ function Pricing({ onTry }) {
       </div>
       <p className="text-center mt-6 text-xs text-[#A0A0C8]">No commitment • Cancel any time • 30-day money-back guarantee • <button onClick={portal} className="underline hover:text-white">Manage existing subscription →</button></p>
     </section>
+    </>
   )
 }
 
@@ -406,12 +422,14 @@ function Footer() {
 
 function App() {
   const [agent, setAgent] = useState(null)
+  const [authOpen, setAuthOpen] = useState(false)
   const heroRef = useRef(null)
   const scrollToBuilder = () => { heroRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
 
   return (
     <div>
-      <Nav onTry={scrollToBuilder} />
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
+      <Nav onTry={scrollToBuilder} onAuthOpen={() => setAuthOpen(true)} />
 
       {/* HERO */}
       <section ref={heroRef} className="grad-bg relative overflow-hidden">

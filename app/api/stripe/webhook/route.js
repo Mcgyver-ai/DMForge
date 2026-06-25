@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getStripe } from '@/lib/stripe'
-import { getDb } from '@/lib/mongo'
+import { getAdminDb, getAdminFieldValue } from '@/lib/firebaseAdmin'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,48 +13,53 @@ export async function POST(request) {
     if (process.env.STRIPE_WEBHOOK_SECRET) {
       event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET)
     } else {
-      // No webhook secret configured — accept payload unsigned (DEV ONLY)
       event = JSON.parse(body)
     }
   } catch (err) {
-    console.error('Webhook signature failed', err.message)
     return NextResponse.json({ error: `Bad signature: ${err.message}` }, { status: 400 })
   }
 
-  const db = await getDb()
+  const db = getAdminDb()
+  const FV = getAdminFieldValue()
+
+  async function syncSubscription(email, uid, subOrSession) {
+    const sub = subOrSession.object === 'subscription' ? subOrSession : await stripe.subscriptions.retrieve(subOrSession.subscription)
+    const docId = uid || (await db.collection('users').where('email','==',email).limit(1).get()).docs[0]?.id || sub.customer
+    await db.collection('users').doc(docId).set({
+      uid: uid || null, email, stripeCustomerId: sub.customer, stripeSubscriptionId: sub.id,
+      plan: sub.metadata?.planKey || 'pro_monthly', status: sub.status,
+      currentPeriodEnd: sub.current_period_end ? new Date(sub.current_period_end * 1000) : null,
+      updatedAt: FV.serverTimestamp(),
+    }, { merge: true })
+  }
 
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
         const s = event.data.object
         const email = s.customer_details?.email || s.metadata?.email
-        if (email && s.subscription) {
-          const sub = await stripe.subscriptions.retrieve(s.subscription)
-          await db.collection('users').updateOne(
-            { email },
-            { $set: { email, stripeCustomerId: s.customer, stripeSubscriptionId: sub.id, plan: sub.metadata?.planKey || s.metadata?.planKey, status: sub.status, currentPeriodEnd: sub.current_period_end ? new Date(sub.current_period_end * 1000) : null, updatedAt: new Date() }, $setOnInsert: { createdAt: new Date() } },
-            { upsert: true }
-          )
-        }
+        const uid = s.metadata?.uid
+        if (email && s.subscription) await syncSubscription(email, uid, s)
         break
       }
-      case 'customer.subscription.updated':
-      case 'customer.subscription.created': {
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated': {
         const sub = event.data.object
         const email = sub.metadata?.email
-        if (email) await db.collection('users').updateOne({ email }, { $set: { status: sub.status, plan: sub.metadata?.planKey, currentPeriodEnd: sub.current_period_end ? new Date(sub.current_period_end * 1000) : null, updatedAt: new Date() } })
+        const uid = sub.metadata?.uid
+        if (email) await syncSubscription(email, uid, sub)
         break
       }
       case 'customer.subscription.deleted': {
         const sub = event.data.object
+        const uid = sub.metadata?.uid
         const email = sub.metadata?.email
-        if (email) await db.collection('users').updateOne({ email }, { $set: { status: 'canceled', plan: 'free', updatedAt: new Date() } })
+        const docId = uid || (await db.collection('users').where('email','==',email).limit(1).get()).docs[0]?.id
+        if (docId) await db.collection('users').doc(docId).set({ status: 'canceled', plan: 'free', updatedAt: FV.serverTimestamp() }, { merge: true })
         break
       }
     }
-  } catch (e) {
-    console.error('webhook handler', e)
-  }
+  } catch (e) { console.error('webhook handler', e) }
 
   return NextResponse.json({ received: true })
 }
