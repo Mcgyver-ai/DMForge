@@ -36,9 +36,9 @@ function Nav({ onTry }) {
         <Logo />
         <nav className="hidden md:flex items-center gap-7 text-sm text-[#A0A0C8]">
           <a href="#features" className="hover:text-white">Features</a>
-          <a href="#why" className="hover:text-white">Why DMForge</a>
           <a href="#pricing" className="hover:text-white">Pricing</a>
           <a href="/vs/setsmart" className="hover:text-white">vs SetSmart</a>
+          <a href="/blog" className="hover:text-white">Playbooks</a>
           <a href="#faq" className="hover:text-white">FAQ</a>
         </nav>
         <Button onClick={onTry} className="btn-primary border-0 font-semibold">Try it free <ArrowRight className="w-4 h-4 ml-1" /></Button>
