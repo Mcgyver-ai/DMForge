@@ -87,4 +87,94 @@ ALL agents MUST follow these rules. Do NOT edit this section.
 - No critical issues found
 
 ## Frontend sub-agent log
-(empty — requires explicit user permission)
+
+### Test Run 1 - Firebase Auth + Firestore E2E Testing
+**Date**: June 25, 2026  
+**Tester**: Frontend Testing Sub-agent  
+**Base URL**: https://insight-forge-172.preview.emergentagent.com  
+**Status**: ⚠️ PARTIAL PASS (9/12 tests passed, 3 critical issues found)
+
+#### Test Coverage:
+
+**✅ PASSED (9 tests):**
+1. ✅ **Homepage** - Loads correctly with all UI elements
+2. ✅ **Firebase Email/Password Signup** - Account creation successful with unique email `test+playwright-{timestamp}@dmforge.test`
+3. ✅ **Auth State in Nav** - Dashboard link and logout icon appear after signup
+4. ✅ **AI Agent Creation via Wizard** - 4-step wizard completes successfully (Niche → Offer → Qualify → Tone)
+5. ✅ **ChatSimulator** - Appears after agent creation with agent name "Sarah" and initial AI message
+6. ✅ **Multi-turn Chat** - 5 messages sent and received successfully with AI responses
+7. ✅ **Dashboard Page** - Loads correctly, shows user email, plan badge (Free), stats cards
+8. ✅ **Additional Pages** - /blog, /vs/setsmart pages render correctly
+9. ✅ **Logout** - Successfully logs out and returns to unauthenticated state
+
+**❌ FAILED (3 critical issues):**
+1. ❌ **Save Transcript Button** - "Save & share this transcript" button/link not appearing after conversation
+   - Tested after 5 messages with various user inputs
+   - Neither the button (when `state.booked === true`) nor the link (when `messages.length > 2`) appeared
+   - Root cause: Likely a state update issue or UI condition not being met
+   
+2. ❌ **Agent Ownership** - Created agent NOT associated with logged-in user
+   - Dashboard shows 0 agents despite successful agent creation while authenticated
+   - Issue: `/api/agent/create` endpoint may not be receiving Authorization header from frontend
+   - The `authFetch` helper is not being used in the wizard's agent creation call
+   
+3. ❌ **Page Crash** - /best/setsmart-alternative page fails with ERR_ABORTED
+   - Server memory pressure causing crashes (logs show "Server is approaching the used memory threshold, restarting...")
+   - Next.js dev server restarting frequently
+
+#### Detailed Findings:
+
+**Firebase Integration:**
+- ✅ Firebase Auth working correctly (email/password signup and login)
+- ✅ Firebase Admin SDK configured with service account credentials
+- ✅ Firestore database "dmforge" accessible (after initial NOT_FOUND errors resolved)
+- ⚠️ Initial Firestore writes failed with "5 NOT_FOUND" error, then succeeded after database auto-creation
+
+**Dashboard Verification:**
+- ✅ User email displayed: test+playwright-1782400544584@dmforge.test
+- ✅ Plan badge: Free
+- ❌ Agent count: 0 (expected: 1)
+- ❌ Transcript count: 0 (expected: 0, as save failed)
+- Message: "You haven't forged any AI setters yet"
+
+**API Endpoints Tested:**
+- ✅ GET /api/competitors - Returns 12 competitors
+- ✅ GET /api/me - Returns user data when authenticated
+- ✅ GET /api/my/agents - Returns empty array (no agents associated with user)
+- ✅ GET /api/my/results - Returns empty array (no transcripts saved)
+
+**Console Errors:**
+- No Firebase Auth errors (auth/unauthorized-domain, auth/operation-not-allowed)
+- No critical JavaScript errors
+- Network requests completing successfully
+
+#### Critical Issues Requiring Fix:
+
+1. **HIGH PRIORITY: Agent Creation Not Using authFetch**
+   - Location: `/app/app/page.js` line 178
+   - Current code: `fetch('/api/agent/create', { method: 'POST', ... })`
+   - Should be: `authFetch('/api/agent/create', { method: 'POST', ... }, getToken)`
+   - Impact: Agents created while logged in are not associated with the user
+
+2. **HIGH PRIORITY: Save Transcript UI Logic**
+   - Location: `/app/app/page.js` lines 149-159
+   - The "Save & share this transcript" link should appear when `messages.length > 2 && !state.booked`
+   - Investigation needed: Check if state updates are propagating correctly from chat responses
+   - Possible issue: The `<STATE>` JSON parsing in chat responses may be failing
+
+3. **MEDIUM PRIORITY: Server Memory Management**
+   - Next.js dev server running with `--max-old-space-size=512`
+   - Frequent restarts due to memory pressure
+   - Consider increasing memory limit or optimizing build
+
+#### Test Artifacts:
+- Screenshots saved: 01-authenticated-nav.png, 02-chat-simulator.png, 03-conversation.png, dashboard-verified.png
+- Console logs captured in automation output
+- Test email: test+playwright-1782400544584@dmforge.test (password: testpass123)
+
+#### Recommendations:
+1. Fix agent creation to use `authFetch` with user token
+2. Debug ChatSimulator state management for save button visibility
+3. Increase Next.js memory limit or optimize for production build
+4. Add error boundary for page crashes
+5. Test result page creation after fixing save functionality
