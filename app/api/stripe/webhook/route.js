@@ -12,8 +12,12 @@ export async function POST(request) {
   try {
     if (process.env.STRIPE_WEBHOOK_SECRET) {
       event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET)
-    } else {
+    } else if (process.env.NODE_ENV !== 'production') {
+      // Allow unsigned webhooks only in development (e.g. Stripe CLI forwarding)
+      console.warn('STRIPE_WEBHOOK_SECRET not set — skipping signature verification (dev only)')
       event = JSON.parse(body)
+    } else {
+      return NextResponse.json({ error: 'Webhook signature verification required in production' }, { status: 400 })
     }
   } catch (err) {
     return NextResponse.json({ error: `Bad signature: ${err.message}` }, { status: 400 })
