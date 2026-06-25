@@ -31,8 +31,15 @@ dist/
 dist
 
 # Environment files (comprehensive coverage)
+.env
+.env.*
+!.env.example
 *token.json*
 *credentials.json*
+
+# Firebase / GCP service account files
+credentials/
+*.serviceaccount.json
 
 # Logs and debug files
 npm-debug.log*

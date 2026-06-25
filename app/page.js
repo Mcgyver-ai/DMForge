@@ -163,6 +163,7 @@ function ChatSimulator({ agent, onSave }) {
 }
 
 function Wizard({ onCreated }) {
+  const { getToken } = useAuth()
   const [step, setStep] = useState(0)
   const [niche, setNiche] = useState('fitness')
   const [agentName, setAgentName] = useState('Sarah')
@@ -175,7 +176,7 @@ function Wizard({ onCreated }) {
   async function build() {
     setBusy(true)
     try {
-      const res = await fetch('/api/agent/create', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ niche, offer, audience, qualification, tone, agentName }) })
+      const res = await authFetch('/api/agent/create', { method: 'POST', body: JSON.stringify({ niche, offer, audience, qualification, tone, agentName }) }, getToken)
       const data = await res.json()
       if (data.id) { toast.success('Your AI setter is live!'); onCreated(data) }
       else toast.error(data.error || 'Failed')
