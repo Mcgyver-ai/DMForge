@@ -6,7 +6,6 @@ const nextConfig = {
       { protocol: 'https', hostname: 'avatars.githubusercontent.com', pathname: '/**' },
     ],
   },
-  serverExternalPackages: ['mongodb'],
   webpack(config, { dev }) {
     if (dev) {
       config.watchOptions = {
