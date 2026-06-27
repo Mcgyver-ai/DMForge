@@ -1,0 +1,9 @@
+{
+  "firestore": [
+    {
+      "database": "dmforge",
+      "rules": "firestore.rules",
+      "indexes": "firestore.indexes.json"
+    }
+  ]
+}
