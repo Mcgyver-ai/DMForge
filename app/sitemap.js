@@ -1,11 +1,12 @@
 import { competitors } from '@/lib/competitors'
 import { posts } from '@/lib/blog'
+import { getBaseUrl } from '@/lib/baseUrl'
 
 const NICHES = ['fitness-coaches','nutrition-coaches','business-coaches','life-coaches','course-creators','agencies','yoga-instructors','therapists']
 const BEST_FIXED = ['ai-dm-setter','instagram-dm-bot','whatsapp-ai-agent','ai-setter-for-coaches','comment-to-dm-tools','dm-automation-for-agencies']
 
 export default function sitemap() {
-  const base = process.env.NEXT_PUBLIC_BASE_URL || 'https://dmforge.app'
+  const base = getBaseUrl()
   const now = new Date()
   const entries = [
     { url: `${base}/`, lastModified: now, changeFrequency: 'weekly', priority: 1 },
