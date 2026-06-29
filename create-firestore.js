@@ -3,7 +3,7 @@ const fs = require('fs')
 const { GoogleAuth } = require('google-auth-library')
 
 async function main() {
-  const sa = JSON.parse(fs.readFileSync('/app/credentials/firebase-admin.json', 'utf8'))
+  const sa = JSON.parse(fs.readFileSync('D:/Dev/Secrets/dmforge-1df2e-firebase-adminsdk-fbsvc-5ec8bcd486.json', 'utf8'))
   const auth = new GoogleAuth({
     credentials: sa,
     scopes: ['https://www.googleapis.com/auth/datastore', 'https://www.googleapis.com/auth/cloud-platform'],
@@ -12,7 +12,7 @@ async function main() {
   const projectId = sa.project_id
 
   // Try creating the (default) Firestore database in us-central1 (Native mode)
-  const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases?databaseId=(default)`
+  const url = `https://firestore.googleapis.com/v1/projects/${ projectId }/databases?databaseId=(default)`
   const body = {
     type: 'FIRESTORE_NATIVE',
     locationId: 'nam5',  // multi-region us-central
