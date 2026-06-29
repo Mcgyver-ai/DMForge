@@ -40,6 +40,7 @@ dist
 # Firebase / GCP service account files
 credentials/
 *.serviceaccount.json
+*-firebase-adminsdk-*.json
 
 # Logs and debug files
 npm-debug.log*
