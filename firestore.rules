@@ -4,22 +4,18 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow public reads on results (used by /r/[id] share pages — though we read these server-side, keeping open is safe)
     match /results/{id} {
       allow read: if true;
-      allow write: if false; // server only
+      allow write: if false;
     }
-    // Agents readable to owner only; writes via server only
     match /agents/{id} {
       allow read: if request.auth != null && resource.data.ownerUid == request.auth.uid;
       allow write: if false;
     }
-    // Users docs readable only by their owner
     match /users/{id} {
       allow read: if request.auth != null && request.auth.uid == id;
       allow write: if false;
     }
-    // Everything else locked down
     match /{document=**} {
       allow read, write: if false;
     }
