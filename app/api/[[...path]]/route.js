@@ -11,6 +11,7 @@ import { encrypt, decrypt } from '@/lib/encryption'
 import { testConnection as testEmailConnection, sendEmail } from '@/lib/email'
 import { authorizeUrl as linkedinAuthorizeUrl, exchangeCode as linkedinExchangeCode, fetchProfile as linkedinFetchProfile, sendMessage as linkedinSendMessage } from '@/lib/linkedin'
 import { testTwilio, sendSMS } from '@/lib/sms'
+import { ghlValidate, ghlGetContact, ghlCreateContact, ghlCreateAppointment } from '@/lib/ghl'
 
 function handleCORS(response) {
   response.headers.set('Access-Control-Allow-Origin', '*')
@@ -674,6 +675,94 @@ Rules:
         }
       }
       return handleCORS(NextResponse.json({ processed: due.size, sent, failed }))
+    }
+
+    // POST /api/integrations/ghl/connect — store encrypted API key + locationId
+    if (path[0] === 'integrations' && path[1] === 'ghl' && path[2] === 'connect' && method === 'POST') {
+      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const body = await request.json().catch(() => null)
+      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      const { apiKey, locationId } = body
+      if (!apiKey || !locationId) return handleCORS(NextResponse.json({ success: false, error: 'apiKey and locationId required' }, { status: 400 }))
+      const result = await ghlValidate({ apiKey })
+      if (!result.success) return handleCORS(NextResponse.json({ success: false, error: result.error }))
+      await db.collection('users').doc(decoded.uid).collection('integrations').doc('ghl').set({
+        provider: 'ghl', connected: true,
+        locationId: truncate(String(locationId), 100), // plaintext — needed for inbound webhook routing, not secret
+        encryptedCreds: encrypt(JSON.stringify({ apiKey, locationId })),
+        updatedAt: FieldValue.serverTimestamp(),
+      })
+      return handleCORS(NextResponse.json({ success: true }))
+    }
+
+    // DELETE /api/integrations/ghl — disconnect
+    if (path[0] === 'integrations' && path[1] === 'ghl' && path.length === 2 && method === 'DELETE') {
+      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      await db.collection('users').doc(decoded.uid).collection('integrations').doc('ghl').delete()
+      return handleCORS(NextResponse.json({ ok: true }))
+    }
+
+    // GET /api/integrations — list connected integrations (no secrets)
+    if (route === '/integrations' && method === 'GET') {
+      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const qs = await db.collection('users').doc(decoded.uid).collection('integrations').get()
+      const integrations = qs.docs.map((d) => { const c = ser(d); delete c.encryptedCreds; return { id: d.id, ...c } })
+      return handleCORS(NextResponse.json({ integrations }))
+    }
+
+    // POST /api/integrations/ghl/sync — push a booked lead's contact + appointment to GHL.
+    // ponytail: explicit sync primitive. Auto-firing on a "booked" transition needs
+    // lead contact fields (email/phone) + calendarId/startTime the demo flow doesn't
+    // capture, so callers pass them. Lead model gap, same as tasks 4/8.
+    if (path[0] === 'integrations' && path[1] === 'ghl' && path[2] === 'sync' && method === 'POST') {
+      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const body = await request.json().catch(() => null)
+      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      const { email, phone, firstName, calendarId, startTime } = body
+      if (!email && !phone) return handleCORS(NextResponse.json({ error: 'email or phone required' }, { status: 400 }))
+      const snap = await db.collection('users').doc(decoded.uid).collection('integrations').doc('ghl').get()
+      if (!snap.exists || !snap.data().connected) return handleCORS(NextResponse.json({ error: 'GHL not connected' }, { status: 400 }))
+      const creds = JSON.parse(decrypt(snap.data().encryptedCreds))
+      try {
+        let contact = await ghlGetContact(creds, { email, phone })
+        if (!contact) contact = await ghlCreateContact(creds, { email, phone, firstName: truncate(String(firstName || ''), 100) })
+        const contactId = contact?.id || contact?.contact?.id
+        let appointment = null
+        if (calendarId && startTime && contactId) {
+          appointment = await ghlCreateAppointment(creds, { contactId, calendarId, startTime })
+        }
+        return handleCORS(NextResponse.json({ ok: true, contactId, appointment }))
+      } catch (e) {
+        return handleCORS(NextResponse.json({ ok: false, error: e.message }, { status: 502 }))
+      }
+    }
+
+    // POST /api/integrations/ghl/webhook — inbound GHL events (HMAC verified)
+    if (path[0] === 'integrations' && path[1] === 'ghl' && path[2] === 'webhook' && method === 'POST') {
+      const raw = await request.text()
+      if (process.env.GHL_WEBHOOK_SECRET) {
+        const sig = request.headers.get('x-ghl-signature') || ''
+        const expected = crypto.createHmac('sha256', process.env.GHL_WEBHOOK_SECRET).update(raw).digest('hex')
+        if (sig !== expected) return handleCORS(NextResponse.json({ error: 'invalid signature' }, { status: 401 }))
+      }
+      let payload
+      try { payload = JSON.parse(raw) } catch { return handleCORS(NextResponse.json({ error: 'invalid JSON' }, { status: 400 })) }
+
+      // Route to the connected user by locationId (stored plaintext at connect).
+      const locationId = payload.locationId || payload.location_id
+      let uid = null
+      if (locationId) {
+        const owner = await db.collectionGroup('integrations').where('provider', '==', 'ghl').where('locationId', '==', String(locationId)).limit(1).get()
+        uid = owner.docs[0]?.ref.parent.parent?.id || null
+      }
+      // ponytail: there's no DMForge "lead" doc to flip to booked — no lead model
+      // exists. We persist the inbound event (linked to the uid) so a future lead
+      // pipeline can reconcile it. Mark-lead-booked is the missing half, flagged.
+      await db.collection('ghl_events').add({
+        uid, type: payload.type || 'unknown', locationId: locationId || null,
+        payload, receivedAt: FieldValue.serverTimestamp(),
+      })
+      return handleCORS(NextResponse.json({ ok: true, matchedUid: uid }))
     }
 
     // POST /api/webhooks — register a webhook (auth required)

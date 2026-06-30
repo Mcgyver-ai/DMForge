@@ -78,6 +78,7 @@ See `.env.example` for all required variables. Key notes:
 - **`GEMINI_BASE_URL`** — Optional. Overrides the Gemini host in `lib/llm.js`. Leave unset to call Google directly (`https://generativelanguage.googleapis.com`). Set it to a [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) instance (e.g. `http://127.0.0.1:8317`) to route all LLM calls through CLI-based auth instead of a paid `GEMINI_API_KEY` — the proxy serves the same `/v1beta/models/{model}:generateContent` shape, so no code changes are needed. When this is set, `GEMINI_API_KEY` is optional (the proxy carries its own auth).
 - **`LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` / `LINKEDIN_REDIRECT_URI`** — New, for the LinkedIn outreach channel. Create a LinkedIn app at developer.linkedin.com, add the `r_liteprofile`, `r_emailaddress`, `w_member_social` scopes, and set the redirect URI to `https://www.dmforge.org/api/auth/linkedin/callback`. **Not yet set — LinkedIn connect returns 503 until these exist.** State signing reuses `ENCRYPTION_KEY`.
 - **`CRON_SECRET`** — New, optional but recommended. When set, the `/api/cron/send-reminders` endpoint requires `Authorization: Bearer <CRON_SECRET>` (Vercel attaches this automatically for scheduled cron invocations). Leave unset only for local testing — an unset secret leaves the cron endpoint open. **Twilio credentials are stored per-user (encrypted), not as env vars** — so `TWILIO_ACCOUNT_SID`/`AUTH_TOKEN`/`FROM_NUMBER` from the spec are not used; each user connects their own in Settings → Channels.
+- **`GHL_WEBHOOK_SECRET`** — New, optional but recommended. When set, `/api/integrations/ghl/webhook` requires a valid `x-ghl-signature` (HMAC-SHA256 of the raw body). GHL API keys/location IDs are stored per-user (encrypted), not as env vars.
 
 ### Stripe Webhook
 
@@ -174,6 +175,11 @@ components/
 | POST | `/api/reminders/schedule` | required | Schedule 24h + 1h reminder SMS |
 | GET | `/api/cron/send-reminders` | cron secret | Fire overdue reminders (Vercel cron) |
 | PUT | `/api/agency/white-label` | required (Agency owner) | Update white-label branding |
+| POST | `/api/integrations/ghl/connect` | required | Connect GoHighLevel (API key + location) |
+| DELETE | `/api/integrations/ghl` | required | Disconnect GoHighLevel |
+| GET | `/api/integrations` | required | List connected integrations |
+| POST | `/api/integrations/ghl/sync` | required | Push contact + appointment to GHL |
+| POST | `/api/integrations/ghl/webhook` | signature | Inbound GHL events (HMAC verified) |
 
 ## Pricing
 
