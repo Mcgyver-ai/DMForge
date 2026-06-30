@@ -9,6 +9,7 @@ import { checkRateLimit } from '@/lib/rateLimit'
 import { triggerWebhooks } from '@/lib/webhooks'
 import { encrypt, decrypt } from '@/lib/encryption'
 import { testConnection as testEmailConnection, sendEmail } from '@/lib/email'
+import { authorizeUrl as linkedinAuthorizeUrl, exchangeCode as linkedinExchangeCode, fetchProfile as linkedinFetchProfile, sendMessage as linkedinSendMessage } from '@/lib/linkedin'
 
 function handleCORS(response) {
   response.headers.set('Access-Control-Allow-Origin', '*')
@@ -375,6 +376,72 @@ Rules:
       }
       await sentRef.add({ hash, to, subject: truncate(subject, 200), sentAt: FieldValue.serverTimestamp() })
       return handleCORS(NextResponse.json({ sent: true }))
+    }
+
+    // GET /api/auth/linkedin — returns the consent URL (auth required; browser
+    // navigations can't carry the Bearer header, so we sign the uid into state).
+    if (route === '/auth/linkedin' && method === 'GET') {
+      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!process.env.LINKEDIN_CLIENT_ID) return handleCORS(NextResponse.json({ error: 'LinkedIn not configured' }, { status: 503 }))
+      const state = encrypt(JSON.stringify({ uid: decoded.uid, ts: Date.now() }))
+      return handleCORS(NextResponse.json({ url: linkedinAuthorizeUrl(state) }))
+    }
+
+    // GET /api/auth/linkedin/callback — browser redirect from LinkedIn
+    if (route === '/auth/linkedin/callback' && method === 'GET') {
+      const url = new URL(request.url)
+      const code = url.searchParams.get('code')
+      const state = url.searchParams.get('state')
+      const base = process.env.NEXT_PUBLIC_BASE_URL || ''
+      const fail = (reason) => handleCORS(NextResponse.redirect(`${base}/settings/channels?linkedin=error&reason=${encodeURIComponent(reason)}`))
+      if (!code || !state) return fail('missing_code_or_state')
+      let uid
+      try {
+        const parsed = JSON.parse(decrypt(state))
+        uid = parsed.uid
+        if (!uid || Date.now() - parsed.ts > 10 * 60_000) return fail('state_expired')
+      } catch { return fail('invalid_state') }
+      try {
+        const token = await linkedinExchangeCode(code)
+        let profile = {}
+        try { profile = await linkedinFetchProfile(token.access_token) } catch (e) { console.error('LinkedIn profile fetch failed:', e.message) }
+        await db.collection('users').doc(uid).collection('channels').doc('linkedin').set({
+          provider: 'linkedin', connected: true,
+          email: profile.firstName ? `${profile.firstName} ${profile.lastName}`.trim() : null,
+          profile: { id: profile.id || null, firstName: profile.firstName || null, lastName: profile.lastName || null, headline: profile.headline || null, profileUrl: profile.id ? `https://www.linkedin.com/in/${profile.id}` : null },
+          encryptedCreds: encrypt(JSON.stringify({ access_token: token.access_token, expires_in: token.expires_in, authorUrn: profile.id ? `urn:li:person:${profile.id}` : null })),
+          updatedAt: FieldValue.serverTimestamp(),
+        })
+        return handleCORS(NextResponse.redirect(`${base}/settings/channels?linkedin=connected`))
+      } catch (e) {
+        console.error('LinkedIn callback failed:', e.message)
+        return fail('exchange_failed')
+      }
+    }
+
+    // POST /api/outreach/linkedin/send — auth required
+    if (route === '/outreach/linkedin/send' && method === 'POST') {
+      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const body = await request.json().catch(() => null)
+      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      const { recipientUrn, message } = body
+      if (!recipientUrn || !message) return handleCORS(NextResponse.json({ error: 'recipientUrn and message are required' }, { status: 400 }))
+      const snap = await db.collection('users').doc(decoded.uid).collection('channels').doc('linkedin').get()
+      if (!snap.exists || !snap.data().connected) return handleCORS(NextResponse.json({ error: 'linkedin channel not connected' }, { status: 400 }))
+      const creds = JSON.parse(decrypt(snap.data().encryptedCreds))
+      try {
+        const result = await linkedinSendMessage(creds.access_token, creds.authorUrn, recipientUrn, truncate(message, 2000))
+        return handleCORS(NextResponse.json({ sent: true, result }))
+      } catch (e) {
+        return handleCORS(NextResponse.json({ sent: false, error: e.message }, { status: 502 }))
+      }
+    }
+
+    // DELETE /api/channels/linkedin — disconnect
+    if (path[0] === 'channels' && path[1] === 'linkedin' && path.length === 2 && method === 'DELETE') {
+      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      await db.collection('users').doc(decoded.uid).collection('channels').doc('linkedin').delete()
+      return handleCORS(NextResponse.json({ ok: true }))
     }
 
     // POST /api/webhooks — register a webhook (auth required)

@@ -76,6 +76,7 @@ See `.env.example` for all required variables. Key notes:
 - **`NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`** — Must match your deployed domain for Firebase Auth to work.
 - **`ENCRYPTION_KEY`** — New. Any random string (32+ chars recommended); hashed to a 32-byte AES-256-GCM key for encrypting connected-channel credentials at rest (`lib/encryption.js`). Required before the email channel (or any future channel using the same helper) can connect. **Not yet set in Vercel — add it before this ships.**
 - **`GEMINI_BASE_URL`** — Optional. Overrides the Gemini host in `lib/llm.js`. Leave unset to call Google directly (`https://generativelanguage.googleapis.com`). Set it to a [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) instance (e.g. `http://127.0.0.1:8317`) to route all LLM calls through CLI-based auth instead of a paid `GEMINI_API_KEY` — the proxy serves the same `/v1beta/models/{model}:generateContent` shape, so no code changes are needed. When this is set, `GEMINI_API_KEY` is optional (the proxy carries its own auth).
+- **`LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` / `LINKEDIN_REDIRECT_URI`** — New, for the LinkedIn outreach channel. Create a LinkedIn app at developer.linkedin.com, add the `r_liteprofile`, `r_emailaddress`, `w_member_social` scopes, and set the redirect URI to `https://www.dmforge.org/api/auth/linkedin/callback`. **Not yet set — LinkedIn connect returns 503 until these exist.** State signing reuses `ENCRYPTION_KEY`.
 
 ### Stripe Webhook
 
@@ -159,6 +160,10 @@ components/
 | DELETE | `/api/channels/email` | required | Disconnect email channel |
 | GET | `/api/channels` | required | List connected channels |
 | POST | `/api/outreach/send` | required | Send an email via the connected channel |
+| GET | `/api/auth/linkedin` | required | Get LinkedIn OAuth consent URL |
+| GET | `/api/auth/linkedin/callback` | — | OAuth callback (browser redirect) |
+| POST | `/api/outreach/linkedin/send` | required | Send a LinkedIn message |
+| DELETE | `/api/channels/linkedin` | required | Disconnect LinkedIn |
 
 ## Pricing
 

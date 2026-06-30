@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { ArrowLeft, Mail, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Mail, CheckCircle2, Linkedin } from 'lucide-react'
 
 export default function ChannelsSettings() {
   const { user, loading, getToken } = useAuth()
@@ -25,6 +25,34 @@ export default function ChannelsSettings() {
   useEffect(() => { if (user) loadChannels() }, [user])
 
   const emailChannel = channels.find((c) => c.id === 'email')
+  const linkedinChannel = channels.find((c) => c.id === 'linkedin')
+
+  async function connectLinkedin() {
+    setBusy(true)
+    try {
+      const res = await authFetch('/api/auth/linkedin', { method: 'GET' }, getToken)
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+      else toast.error(data.error || 'LinkedIn not configured')
+    } catch {
+      toast.error('Failed to start LinkedIn connect')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function disconnectLinkedin() {
+    setBusy(true)
+    try {
+      await authFetch('/api/channels/linkedin', { method: 'DELETE' }, getToken)
+      toast.success('LinkedIn disconnected')
+      loadChannels()
+    } catch {
+      toast.error('Failed to disconnect')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   async function connect(provider, creds) {
     setBusy(true)
@@ -62,6 +90,28 @@ export default function ChannelsSettings() {
         <ArrowLeft className="w-4 h-4" /> Back to dashboard
       </Link>
       <h1 className="font-display text-3xl font-bold mb-8">Channels</h1>
+
+      {/* LinkedIn */}
+      <Card className="bg-[#161630] border-[#2A2A55] p-6 mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Linkedin className="w-5 h-5 text-[#0A66C2]" />
+            <div>
+              <div className="font-semibold">{linkedinChannel?.connected ? 'LinkedIn connected' : 'Connect LinkedIn'}</div>
+              <div className="text-xs text-[#A0A0C8]">
+                {linkedinChannel?.connected
+                  ? [linkedinChannel.profile?.firstName && `${linkedinChannel.profile.firstName} ${linkedinChannel.profile.lastName || ''}`.trim(), linkedinChannel.profile?.headline].filter(Boolean).join(' · ') || 'Connected'
+                  : 'Send messages to leads via your LinkedIn account'}
+              </div>
+            </div>
+          </div>
+          {linkedinChannel?.connected ? (
+            <Button onClick={disconnectLinkedin} disabled={busy} variant="outline" className="bg-transparent border-[#2A2A55] text-sm">Disconnect</Button>
+          ) : (
+            <Button onClick={connectLinkedin} disabled={busy} className="btn-primary border-0 text-sm">Connect LinkedIn</Button>
+          )}
+        </div>
+      </Card>
 
       {emailChannel?.connected ? (
         <Card className="bg-[#161630] border-[#2A2A55] p-6 mb-6">
