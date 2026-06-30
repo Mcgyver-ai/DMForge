@@ -75,6 +75,7 @@ See `.env.example` for all required variables. Key notes:
 - **`NEXT_PUBLIC_BASE_URL`** — Your public domain, used for Stripe redirect URLs.
 - **`NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`** — Must match your deployed domain for Firebase Auth to work.
 - **`ENCRYPTION_KEY`** — New. Any random string (32+ chars recommended); hashed to a 32-byte AES-256-GCM key for encrypting connected-channel credentials at rest (`lib/encryption.js`). Required before the email channel (or any future channel using the same helper) can connect. **Not yet set in Vercel — add it before this ships.**
+- **`GEMINI_BASE_URL`** — Optional. Overrides the Gemini host in `lib/llm.js`. Leave unset to call Google directly (`https://generativelanguage.googleapis.com`). Set it to a [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) instance (e.g. `http://127.0.0.1:8317`) to route all LLM calls through CLI-based auth instead of a paid `GEMINI_API_KEY` — the proxy serves the same `/v1beta/models/{model}:generateContent` shape, so no code changes are needed. When this is set, `GEMINI_API_KEY` is optional (the proxy carries its own auth).
 
 ### Stripe Webhook
 
