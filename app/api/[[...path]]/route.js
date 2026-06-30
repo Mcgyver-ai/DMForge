@@ -4,6 +4,7 @@ import { getAdminDb, getAdminFieldValue, verifyRequest } from '@/lib/firebaseAdm
 import { chat, chatJSON } from '@/lib/llm'
 import { competitors } from '@/lib/competitors'
 import { PLANS, ensurePrice, getOrCreateCustomer, getStripe } from '@/lib/stripe'
+import { checkRateLimit } from '@/lib/rateLimit'
 
 function handleCORS(response) {
   response.headers.set('Access-Control-Allow-Origin', '*')
@@ -38,6 +39,11 @@ async function handleRoute(request, { params }) {
   const method = request.method
 
   try {
+    const decoded = await verifyRequest(request)
+    if (!checkRateLimit(request, decoded?.uid)) {
+      return handleCORS(NextResponse.json({ error: 'rate_limit_exceeded' }, { status: 429 }))
+    }
+
     const db = getAdminDb()
     const FieldValue = getAdminFieldValue()
 
@@ -47,7 +53,6 @@ async function handleRoute(request, { params }) {
 
     // POST /api/agent/create — auth optional. Stores ownerUid if logged in.
     if (route === '/agent/create' && method === 'POST') {
-      const decoded = await verifyRequest(request)
       const body = await request.json().catch(() => null)
       if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
       const { niche, offer, audience, qualification, calendarSlots, tone, agentName } = body
@@ -152,7 +157,6 @@ Rules:
 
     // POST /api/result/save
     if (route === '/result/save' && method === 'POST') {
-      const decoded = await verifyRequest(request)
       const body = await request.json().catch(() => null)
       if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
       const { agentId, transcript = [], state = {}, leadName = 'Lead' } = body
@@ -208,7 +212,6 @@ Rules:
 
     // GET /api/me — returns user's plan info from Firestore
     if (route === '/me' && method === 'GET') {
-      const decoded = await verifyRequest(request)
       if (!decoded) return handleCORS(NextResponse.json({ user: null }))
       const snap = await db.collection('users').doc(decoded.uid).get()
       const user = snap.exists ? ser(snap) : { uid: decoded.uid, email: decoded.email, plan: 'free', status: 'active' }
@@ -218,7 +221,6 @@ Rules:
 
     // GET /api/my/agents — authenticated user's saved agents
     if (route === '/my/agents' && method === 'GET') {
-      const decoded = await verifyRequest(request)
       if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       const qs = await db.collection('agents').where('ownerUid', '==', decoded.uid).get()
       const agents = qs.docs.map(d => ser(d)).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
@@ -227,7 +229,6 @@ Rules:
 
     // GET /api/my/results — authenticated user's saved transcripts
     if (route === '/my/results' && method === 'GET') {
-      const decoded = await verifyRequest(request)
       if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       const qs = await db.collection('results').where('ownerUid', '==', decoded.uid).get()
       const results = qs.docs.map(d => ser(d)).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
@@ -236,7 +237,6 @@ Rules:
 
     // POST /api/billing/checkout — auth required
     if (route === '/billing/checkout' && method === 'POST') {
-      const decoded = await verifyRequest(request)
       const body = await request.json().catch(() => null)
       if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
       const { planKey } = body
@@ -264,7 +264,6 @@ Rules:
 
     // POST /api/billing/portal
     if (route === '/billing/portal' && method === 'POST') {
-      const decoded = await verifyRequest(request)
       const body = await request.json().catch(() => ({}))
       const email = decoded?.email || body?.email
       if (!email) return handleCORS(NextResponse.json({ error: 'sign in required' }, { status: 401 }))
