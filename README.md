@@ -122,6 +122,8 @@ lib/
   auth-context.js            # React auth provider + authFetch
   competitors.js             # Competitor data (12 entries)
   blog.js                    # Seeded blog posts
+  rateLimit.js               # In-memory sliding-window rate limiter
+  webhooks.js                 # HMAC-signed outbound webhook delivery
 
 components/
   auth-modal.jsx             # Firebase login/signup modal
@@ -145,6 +147,12 @@ components/
 | GET | `/api/billing/session` | — | Retrieve checkout session |
 | GET | `/api/competitors` | — | List competitors |
 | GET | `/api/plans` | — | List pricing plans |
+| POST | `/api/agents/:id/sequences/generate` | owner-only if claimed | Generate Day 1/3/7 follow-up sequence |
+| GET | `/api/agents/:id/sequences` | — | Get an agent's follow-up sequence |
+| PUT | `/api/agents/:id/sequences/:seqId` | owner-only if claimed | Edit a sequence step |
+| POST | `/api/webhooks` | required | Register an outbound webhook |
+| GET | `/api/webhooks` | required | List your webhooks |
+| DELETE | `/api/webhooks/:id` | required | Remove a webhook |
 
 ## Pricing
 
@@ -162,3 +170,5 @@ components/
 - Stripe webhook signatures verified with `STRIPE_WEBHOOK_SECRET`
 - Input length limits enforced on all user-supplied fields
 - Service account credentials loaded from environment variable (never committed)
+- Per-uid (60/min) and per-IP (20/min) sliding-window rate limiting on the catch-all API route — see `lib/rateLimit.js`
+- Outbound webhooks are HMAC-SHA256 signed (`X-DMForge-Signature` header) using a per-webhook secret
