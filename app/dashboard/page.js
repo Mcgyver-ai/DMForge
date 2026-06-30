@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Flame, LogOut, ExternalLink, MessageCircle, Share2, CreditCard, Sparkles, Plus, Check } from 'lucide-react'
+import { Flame, LogOut, ExternalLink, MessageCircle, Share2, CreditCard, Sparkles, Plus, Check, ChevronDown, RefreshCw } from 'lucide-react'
 
 export default function Dashboard() {
   const { user, loading, logout, getToken } = useAuth()
@@ -15,6 +15,7 @@ export default function Dashboard() {
   const [agents, setAgents] = useState([])
   const [results, setResults] = useState([])
   const [busy, setBusy] = useState(false)
+  const [expandedId, setExpandedId] = useState(null)
 
   useEffect(() => {
     if (loading) return
@@ -130,6 +131,13 @@ export default function Dashboard() {
                 </div>
                 <p className="text-xs text-[#A0A0C8] mt-2 line-clamp-3">{a.offer}</p>
                 <div className="mt-3 text-xs text-[#A0A0C8]">{a.script?.questions?.length || 0} qualification questions</div>
+                <button
+                  onClick={() => setExpandedId(expandedId === a.id ? null : a.id)}
+                  className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-[#6B5BFF] hover:text-[#FF4D6D]"
+                >
+                  Follow-up Sequence <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expandedId === a.id ? 'rotate-180' : ''}`} />
+                </button>
+                {expandedId === a.id && <FollowUpSequence agentId={a.id} getToken={getToken} />}
               </Card>
             ))}
           </div>
@@ -161,6 +169,98 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function FollowUpSequence({ agentId, getToken }) {
+  const [sequence, setSequence] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [generating, setGenerating] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [draft, setDraft] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await authFetch(`/api/agents/${agentId}/sequences`, { method: 'GET' }, getToken)
+        const data = await res.json()
+        if (!cancelled) setSequence(data.sequence || [])
+      } catch {
+        if (!cancelled) setSequence([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [agentId, getToken])
+
+  async function generate() {
+    setGenerating(true)
+    try {
+      const res = await authFetch(`/api/agents/${agentId}/sequences/generate`, { method: 'POST' }, getToken)
+      const data = await res.json()
+      if (data.sequence) setSequence(data.sequence)
+      else toast.error(data.error || 'Failed to generate sequence')
+    } catch {
+      toast.error('Failed to generate sequence')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  async function saveEdit(seqId) {
+    setSequence(prev => prev.map(s => s.id === seqId ? { ...s, body: draft } : s))
+    setEditingId(null)
+    try {
+      await authFetch(`/api/agents/${agentId}/sequences/${seqId}`, { method: 'PUT', body: JSON.stringify({ body: draft }) }, getToken)
+    } catch {
+      toast.error('Failed to save edit')
+    }
+  }
+
+  if (loading) return <div className="mt-3 text-xs text-[#A0A0C8]">Loading sequence…</div>
+
+  return (
+    <div className="mt-3 space-y-2">
+      {(!sequence || sequence.length === 0) ? (
+        <Button onClick={generate} disabled={generating} size="sm" className="btn-primary border-0 text-xs w-full">
+          {generating ? 'Generating…' : 'Generate sequence'}
+        </Button>
+      ) : (
+        <>
+          {sequence.map(s => (
+            <div key={s.id} className="bg-[#0F0F26] border border-[#2A2A55] rounded-lg p-3">
+              <div className="flex items-center justify-between mb-1">
+                <Badge className="bg-[#1F1F42] text-[#A0A0C8] border-0 text-[10px]">Day {s.dayOffset}</Badge>
+                <span className="text-[10px] text-[#A0A0C8]">{s.tone}</span>
+              </div>
+              <p className="text-xs font-semibold text-white">{s.subject}</p>
+              {editingId === s.id ? (
+                <textarea
+                  autoFocus
+                  className="mt-1 w-full bg-[#161630] border border-[#2A2A55] rounded text-xs text-white p-2"
+                  rows={3}
+                  value={draft}
+                  onChange={e => setDraft(e.target.value)}
+                  onBlur={() => saveEdit(s.id)}
+                />
+              ) : (
+                <p
+                  onClick={() => { setEditingId(s.id); setDraft(s.body) }}
+                  className="text-xs text-[#A0A0C8] mt-1 cursor-text hover:text-white"
+                >
+                  {s.body}
+                </p>
+              )}
+            </div>
+          ))}
+          <Button onClick={generate} disabled={generating} variant="outline" size="sm" className="bg-transparent border-[#2A2A55] text-xs w-full">
+            <RefreshCw className="w-3 h-3 mr-1.5" /> {generating ? 'Regenerating…' : 'Regenerate'}
+          </Button>
+        </>
+      )}
     </div>
   )
 }

@@ -240,6 +240,72 @@ Rules:
       return handleCORS(NextResponse.json({ results }))
     }
 
+    // POST /api/agents/:id/sequences/generate — Gemini 3-step follow-up sequence
+    if (path[0] === 'agents' && path[2] === 'sequences' && path[3] === 'generate' && method === 'POST') {
+      const id = path[1]
+      const agentSnap = await db.collection('agents').doc(id).get()
+      if (!agentSnap.exists) return handleCORS(NextResponse.json({ error: 'agent not found' }, { status: 404 }))
+      const agent = agentSnap.data()
+      if (agent.ownerUid && (!decoded || decoded.uid !== agent.ownerUid)) {
+        return handleCORS(NextResponse.json({ error: 'forbidden' }, { status: 403 }))
+      }
+
+      const sys = `Given a coach's ICP and offer, write a 3-step DM follow-up sequence for leads who went quiet: Day 1 opener, Day 3 follow-up, Day 7 last-attempt. Reply with JSON ONLY: { "sequence": [ { "dayOffset": number, "subject": string, "body": string, "tone": string } ] } with exactly 3 entries, dayOffset 1, 3, 7 in order. Casual DM voice, short, matches the coach's tone, never robotic, no emojis at end of every line.`
+      const usr = `Niche: ${agent.niche}\nOffer: ${agent.offer}\nIdeal audience: ${agent.audience || 'general'}\nTone: ${agent.tone || 'warm, direct, encouraging'}`
+      const { sequence } = await chatJSON({ messages: [{ role: 'system', content: sys }, { role: 'user', content: usr }] })
+      if (!Array.isArray(sequence) || sequence.length === 0) {
+        return handleCORS(NextResponse.json({ error: 'LLM did not return a sequence' }, { status: 502 }))
+      }
+
+      const seqRef = db.collection('agents').doc(id).collection('sequences')
+      const existing = await seqRef.get()
+      const batch = db.batch()
+      existing.docs.forEach((d) => batch.delete(d.ref))
+      const saved = sequence.slice(0, 3).map((s) => {
+        const sid = uuidv4()
+        const item = {
+          id: sid,
+          dayOffset: Number(s.dayOffset) || 0,
+          subject: truncate(String(s.subject || ''), 200),
+          body: truncate(String(s.body || ''), 2000),
+          tone: truncate(String(s.tone || ''), 100),
+          status: 'pending',
+        }
+        batch.set(seqRef.doc(sid), item)
+        return item
+      })
+      await batch.commit()
+      return handleCORS(NextResponse.json({ sequence: saved }))
+    }
+
+    // GET /api/agents/:id/sequences
+    if (path[0] === 'agents' && path[2] === 'sequences' && path.length === 3 && method === 'GET') {
+      const id = path[1]
+      const qs = await db.collection('agents').doc(id).collection('sequences').get()
+      const sequence = qs.docs.map((d) => d.data()).sort((a, b) => a.dayOffset - b.dayOffset)
+      return handleCORS(NextResponse.json({ sequence }))
+    }
+
+    // PUT /api/agents/:id/sequences/:seqId — inline edit
+    if (path[0] === 'agents' && path[2] === 'sequences' && path[3] && path[3] !== 'generate' && method === 'PUT') {
+      const id = path[1]
+      const seqId = path[3]
+      const agentSnap = await db.collection('agents').doc(id).get()
+      if (!agentSnap.exists) return handleCORS(NextResponse.json({ error: 'agent not found' }, { status: 404 }))
+      const agent = agentSnap.data()
+      if (agent.ownerUid && (!decoded || decoded.uid !== agent.ownerUid)) {
+        return handleCORS(NextResponse.json({ error: 'forbidden' }, { status: 403 }))
+      }
+      const body = await request.json().catch(() => null)
+      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      const updates = {}
+      if (typeof body.subject === 'string') updates.subject = truncate(body.subject, 200)
+      if (typeof body.body === 'string') updates.body = truncate(body.body, 2000)
+      if (!Object.keys(updates).length) return handleCORS(NextResponse.json({ error: 'nothing to update' }, { status: 400 }))
+      await db.collection('agents').doc(id).collection('sequences').doc(seqId).update(updates)
+      return handleCORS(NextResponse.json({ ok: true }))
+    }
+
     // POST /api/webhooks — register a webhook (auth required)
     if (route === '/webhooks' && method === 'POST') {
       if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
