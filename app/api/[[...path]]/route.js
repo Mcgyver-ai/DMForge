@@ -444,6 +444,116 @@ Rules:
       return handleCORS(NextResponse.json({ ok: true }))
     }
 
+    // ---- Team / agency seats ----
+    // Seat limit comes from the owner's Stripe subscription metadata.seats,
+    // falling back to 10 (the Agency plan's documented workspace count).
+    async function resolveSeats(ownerUserData) {
+      const subId = ownerUserData?.stripeSubscriptionId
+      if (!subId) return 10
+      try {
+        const sub = await getStripe().subscriptions.retrieve(subId)
+        const n = parseInt(sub.metadata?.seats, 10)
+        return Number.isFinite(n) && n > 0 ? n : (sub.items?.data?.[0]?.quantity || 10)
+      } catch { return 10 }
+    }
+
+    // POST /api/agency/invite — owner invites a member (Agency plan only)
+    if (route === '/agency/invite' && method === 'POST') {
+      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const body = await request.json().catch(() => null)
+      const inviteEmail = body?.email
+      if (!inviteEmail || typeof inviteEmail !== 'string') return handleCORS(NextResponse.json({ error: 'email required' }, { status: 400 }))
+
+      const ownerSnap = await db.collection('users').doc(decoded.uid).get()
+      const owner = ownerSnap.exists ? ownerSnap.data() : null
+      if (owner?.plan !== 'agency' || owner?.status !== 'active') {
+        return handleCORS(NextResponse.json({ error: 'Agency plan required' }, { status: 403 }))
+      }
+
+      const agencyId = decoded.uid
+      const agencyRef = db.collection('agencies').doc(agencyId)
+      const agencySnap = await agencyRef.get()
+      if (!agencySnap.exists) {
+        await agencyRef.set({ ownerUid: decoded.uid, seats: await resolveSeats(owner), memberUids: [], createdAt: FieldValue.serverTimestamp() })
+        await db.collection('users').doc(decoded.uid).set({ role: 'owner', agencyId }, { merge: true })
+      }
+
+      const token = uuidv4()
+      await db.collection('invites').doc(token).set({
+        token, agencyId, email: truncate(inviteEmail, 200), status: 'pending', createdAt: FieldValue.serverTimestamp(),
+      })
+      // ponytail: returns the accept link; no system transactional email provider
+      // exists in this codebase (the email channel is per-user SMTP outreach, not
+      // system mail). Wire to one when available — for now the owner shares the link.
+      const acceptUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/agency/accept?token=${token}`
+      return handleCORS(NextResponse.json({ token, acceptUrl }))
+    }
+
+    // GET /api/agency/accept?token= — invitee accepts (must be signed in)
+    if (route === '/agency/accept' && method === 'GET') {
+      const token = new URL(request.url).searchParams.get('token')
+      if (!token) return handleCORS(NextResponse.json({ error: 'token required' }, { status: 400 }))
+      if (!decoded) return handleCORS(NextResponse.json({ error: 'sign in to accept the invite' }, { status: 401 }))
+
+      const inviteRef = db.collection('invites').doc(token)
+      const inviteSnap = await inviteRef.get()
+      if (!inviteSnap.exists || inviteSnap.data().status !== 'pending') {
+        return handleCORS(NextResponse.json({ error: 'invite invalid or already used' }, { status: 400 }))
+      }
+      const { agencyId } = inviteSnap.data()
+      const agencyRef = db.collection('agencies').doc(agencyId)
+      const result = await db.runTransaction(async (tx) => {
+        const agency = await tx.get(agencyRef)
+        if (!agency.exists) return { error: 'agency not found' }
+        const data = agency.data()
+        const members = data.memberUids || []
+        if (members.includes(decoded.uid)) return { ok: true, agencyId }
+        if (members.length >= (data.seats || 0)) return { error: 'seat limit reached' }
+        tx.update(agencyRef, { memberUids: [...members, decoded.uid] })
+        tx.set(db.collection('users').doc(decoded.uid), { role: 'member', agencyId }, { merge: true })
+        tx.update(inviteRef, { status: 'accepted', acceptedBy: decoded.uid })
+        return { ok: true, agencyId }
+      })
+      if (result.error) return handleCORS(NextResponse.json({ error: result.error }, { status: 400 }))
+      return handleCORS(NextResponse.json({ ok: true, agencyId }))
+    }
+
+    // POST /api/agency/remove — owner removes a member
+    if (route === '/agency/remove' && method === 'POST') {
+      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const body = await request.json().catch(() => null)
+      const memberUid = body?.memberUid
+      if (!memberUid) return handleCORS(NextResponse.json({ error: 'memberUid required' }, { status: 400 }))
+      const agencyRef = db.collection('agencies').doc(decoded.uid)
+      const agencySnap = await agencyRef.get()
+      if (!agencySnap.exists) return handleCORS(NextResponse.json({ error: 'no agency found' }, { status: 404 }))
+      await agencyRef.update({ memberUids: (agencySnap.data().memberUids || []).filter((u) => u !== memberUid) })
+      await db.collection('users').doc(memberUid).set({ role: 'member', agencyId: FieldValue.delete() }, { merge: true })
+      return handleCORS(NextResponse.json({ ok: true }))
+    }
+
+    // GET /api/agency — agency view for the current user (owner or member)
+    if (route === '/agency' && method === 'GET') {
+      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const userSnap = await db.collection('users').doc(decoded.uid).get()
+      const u = userSnap.exists ? userSnap.data() : {}
+      const agencyId = u.role === 'owner' ? decoded.uid : u.agencyId
+      if (!agencyId) return handleCORS(NextResponse.json({ agency: null, role: u.role || null }))
+      const agencySnap = await db.collection('agencies').doc(agencyId).get()
+      if (!agencySnap.exists) return handleCORS(NextResponse.json({ agency: null, role: u.role || null }))
+      const agency = agencySnap.data()
+      const memberUids = agency.memberUids || []
+      const members = await Promise.all(memberUids.map(async (uid) => {
+        const m = await db.collection('users').doc(uid).get()
+        return { uid, email: m.exists ? m.data().email : null }
+      }))
+      const ownerSnap = await db.collection('users').doc(agency.ownerUid).get()
+      return handleCORS(NextResponse.json({
+        role: u.role || (agency.ownerUid === decoded.uid ? 'owner' : 'member'),
+        agency: { agencyId, seats: agency.seats, used: memberUids.length, members, ownerEmail: ownerSnap.exists ? ownerSnap.data().email : null },
+      }))
+    }
+
     // POST /api/webhooks — register a webhook (auth required)
     if (route === '/webhooks' && method === 'POST') {
       if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))

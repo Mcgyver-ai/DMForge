@@ -164,6 +164,10 @@ components/
 | GET | `/api/auth/linkedin/callback` | — | OAuth callback (browser redirect) |
 | POST | `/api/outreach/linkedin/send` | required | Send a LinkedIn message |
 | DELETE | `/api/channels/linkedin` | required | Disconnect LinkedIn |
+| POST | `/api/agency/invite` | required (owner) | Invite a team member |
+| GET | `/api/agency/accept` | required | Accept an invite (`?token=`) |
+| POST | `/api/agency/remove` | required (owner) | Remove a member |
+| GET | `/api/agency` | required | Agency + members for current user |
 
 ## Pricing
 
