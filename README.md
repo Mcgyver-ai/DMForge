@@ -77,6 +77,7 @@ See `.env.example` for all required variables. Key notes:
 - **`ENCRYPTION_KEY`** — New. Any random string (32+ chars recommended); hashed to a 32-byte AES-256-GCM key for encrypting connected-channel credentials at rest (`lib/encryption.js`). Required before the email channel (or any future channel using the same helper) can connect. **Not yet set in Vercel — add it before this ships.**
 - **`GEMINI_BASE_URL`** — Optional. Overrides the Gemini host in `lib/llm.js`. Leave unset to call Google directly (`https://generativelanguage.googleapis.com`). Set it to a [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) instance (e.g. `http://127.0.0.1:8317`) to route all LLM calls through CLI-based auth instead of a paid `GEMINI_API_KEY` — the proxy serves the same `/v1beta/models/{model}:generateContent` shape, so no code changes are needed. When this is set, `GEMINI_API_KEY` is optional (the proxy carries its own auth).
 - **`LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` / `LINKEDIN_REDIRECT_URI`** — New, for the LinkedIn outreach channel. Create a LinkedIn app at developer.linkedin.com, add the `r_liteprofile`, `r_emailaddress`, `w_member_social` scopes, and set the redirect URI to `https://www.dmforge.org/api/auth/linkedin/callback`. **Not yet set — LinkedIn connect returns 503 until these exist.** State signing reuses `ENCRYPTION_KEY`.
+- **`CRON_SECRET`** — New, optional but recommended. When set, the `/api/cron/send-reminders` endpoint requires `Authorization: Bearer <CRON_SECRET>` (Vercel attaches this automatically for scheduled cron invocations). Leave unset only for local testing — an unset secret leaves the cron endpoint open. **Twilio credentials are stored per-user (encrypted), not as env vars** — so `TWILIO_ACCOUNT_SID`/`AUTH_TOKEN`/`FROM_NUMBER` from the spec are not used; each user connects their own in Settings → Channels.
 
 ### Stripe Webhook
 
@@ -168,6 +169,10 @@ components/
 | GET | `/api/agency/accept` | required | Accept an invite (`?token=`) |
 | POST | `/api/agency/remove` | required (owner) | Remove a member |
 | GET | `/api/agency` | required | Agency + members for current user |
+| POST | `/api/channels/sms/connect` | required | Connect Twilio (SID/token/from) |
+| DELETE | `/api/channels/sms` | required | Disconnect SMS |
+| POST | `/api/reminders/schedule` | required | Schedule 24h + 1h reminder SMS |
+| GET | `/api/cron/send-reminders` | cron secret | Fire overdue reminders (Vercel cron) |
 
 ## Pricing
 

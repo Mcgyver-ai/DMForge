@@ -10,6 +10,7 @@ import { triggerWebhooks } from '@/lib/webhooks'
 import { encrypt, decrypt } from '@/lib/encryption'
 import { testConnection as testEmailConnection, sendEmail } from '@/lib/email'
 import { authorizeUrl as linkedinAuthorizeUrl, exchangeCode as linkedinExchangeCode, fetchProfile as linkedinFetchProfile, sendMessage as linkedinSendMessage } from '@/lib/linkedin'
+import { testTwilio, sendSMS } from '@/lib/sms'
 
 function handleCORS(response) {
   response.headers.set('Access-Control-Allow-Origin', '*')
@@ -552,6 +553,96 @@ Rules:
         role: u.role || (agency.ownerUid === decoded.uid ? 'owner' : 'member'),
         agency: { agencyId, seats: agency.seats, used: memberUids.length, members, ownerEmail: ownerSnap.exists ? ownerSnap.data().email : null },
       }))
+    }
+
+    // POST /api/channels/sms/connect — save encrypted Twilio creds
+    if (path[0] === 'channels' && path[1] === 'sms' && path[2] === 'connect' && method === 'POST') {
+      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const body = await request.json().catch(() => null)
+      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      const { accountSid, authToken, from } = body
+      if (!accountSid || !authToken || !from) {
+        return handleCORS(NextResponse.json({ success: false, error: 'accountSid, authToken, and from are required' }, { status: 400 }))
+      }
+      const result = await testTwilio({ accountSid, authToken })
+      if (!result.success) return handleCORS(NextResponse.json({ success: false, error: result.error }))
+      await db.collection('users').doc(decoded.uid).collection('channels').doc('sms').set({
+        provider: 'twilio', connected: true, email: truncate(from, 40),
+        encryptedCreds: encrypt(JSON.stringify({ accountSid, authToken, from })),
+        updatedAt: FieldValue.serverTimestamp(),
+      })
+      return handleCORS(NextResponse.json({ success: true }))
+    }
+
+    // DELETE /api/channels/sms — disconnect
+    if (path[0] === 'channels' && path[1] === 'sms' && path.length === 2 && method === 'DELETE') {
+      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      await db.collection('users').doc(decoded.uid).collection('channels').doc('sms').delete()
+      return handleCORS(NextResponse.json({ ok: true }))
+    }
+
+    // POST /api/reminders/schedule — enqueue 24h + 1h reminders before scheduledAt.
+    // ponytail: this is the scheduling primitive. Auto-firing it on a "booked"
+    // status transition needs a lead phone + appointment.scheduledAt, neither of
+    // which the demo agent/result flow captures — so callers pass them explicitly.
+    if (route === '/reminders/schedule' && method === 'POST') {
+      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const body = await request.json().catch(() => null)
+      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      const { to, scheduledAt, leadName } = body
+      const when = Date.parse(scheduledAt)
+      if (!to || !Number.isFinite(when)) return handleCORS(NextResponse.json({ error: 'to and a valid scheduledAt are required' }, { status: 400 }))
+
+      const pendingRef = db.collection('reminders').doc(decoded.uid).collection('pending')
+      const name = truncate(String(leadName || 'there'), 80)
+      const offsets = [{ ms: 24 * 3600_000, label: '24h' }, { ms: 1 * 3600_000, label: '1h' }]
+      const scheduled = []
+      for (const o of offsets) {
+        const sendAt = when - o.ms
+        if (sendAt <= Date.now()) continue // skip reminders already in the past
+        const id = uuidv4()
+        await pendingRef.doc(id).set({
+          id, uid: decoded.uid, to: truncate(String(to), 40),
+          body: `Hi ${name}, reminder: your call is in ${o.label}.`,
+          sendAt: new Date(sendAt), status: 'pending', createdAt: FieldValue.serverTimestamp(),
+        })
+        scheduled.push({ id, label: o.label, sendAt: new Date(sendAt).toISOString() })
+      }
+      return handleCORS(NextResponse.json({ scheduled }))
+    }
+
+    // GET /api/cron/send-reminders — Vercel cron (*/15). Fires overdue reminders.
+    if (route === '/cron/send-reminders' && (method === 'GET' || method === 'POST')) {
+      // Vercel attaches `Authorization: Bearer <CRON_SECRET>` when CRON_SECRET is set.
+      if (process.env.CRON_SECRET) {
+        const auth = request.headers.get('authorization') || ''
+        if (auth !== `Bearer ${process.env.CRON_SECRET}`) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      }
+      const now = new Date()
+      const due = await db.collectionGroup('pending').where('status', '==', 'pending').where('sendAt', '<=', now).limit(100).get()
+      let sent = 0, failed = 0
+      for (const doc of due.docs) {
+        const r = doc.data()
+        // Double-send guard: claim the reminder before firing.
+        const claimed = await db.runTransaction(async (tx) => {
+          const fresh = await tx.get(doc.ref)
+          if (!fresh.exists || fresh.data().status !== 'pending') return false
+          tx.update(doc.ref, { status: 'sent', sentAt: FieldValue.serverTimestamp() })
+          return true
+        })
+        if (!claimed) continue
+        try {
+          const chSnap = await db.collection('users').doc(r.uid).collection('channels').doc('sms').get()
+          if (!chSnap.exists || !chSnap.data().connected) throw new Error('sms channel not connected')
+          const creds = JSON.parse(decrypt(chSnap.data().encryptedCreds))
+          await sendSMS(creds, r.to, r.body)
+          sent++
+        } catch (e) {
+          failed++
+          await doc.ref.update({ status: 'failed', error: e.message })
+        }
+      }
+      return handleCORS(NextResponse.json({ processed: due.size, sent, failed }))
     }
 
     // POST /api/webhooks — register a webhook (auth required)
