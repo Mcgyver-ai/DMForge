@@ -4,6 +4,7 @@ Concrete commands for the workflow in SKILL.md. Use a Bash shell (Git Bash on Wi
 Replace `$BASE` with the production URL. Never print/commit secret values; pipe via stdin.
 
 ## Table of contents
+
 1. Page + link crawl
 2. Endpoint discovery from the client bundle
 3. Real registration + authed journey (Firebase Auth REST)
@@ -27,11 +28,13 @@ done < urls.txt
 # extract internal links from a page and check the same way:
 curl -s -L "$BASE/" | grep -oP 'href="\K/[^"#?]*' | sort -u
 ```
+
 A 308 to a different host (apex↔www) is a finding: canonical/sitemap should match the primary domain.
 
 ## 2. Endpoint discovery from the client bundle
 
 Don't guess route names — read what the frontend calls:
+
 ```bash
 curl -s -L "$BASE/" -o home.html
 for c in $(grep -oP '/_next/static/chunks/[^"]+\.js' home.html | sort -u); do curl -s "$BASE$c"; done > chunks.js
@@ -42,6 +45,7 @@ grep -oP 'fetch\([^)]{0,60}/api/[a-zA-Z0-9_/-]+' chunks.js | sort -u
 ## 3. Real registration + authed journey (Firebase Auth REST)
 
 The web API key is public (`NEXT_PUBLIC_FIREBASE_API_KEY`); using it to sign up a test user is safe.
+
 ```bash
 APIKEY="<NEXT_PUBLIC_FIREBASE_API_KEY>"
 TS=$(date +%s); EMAIL="qa-${TS}@example.com"; PASS="QaTest1234_${TS}"
@@ -56,6 +60,7 @@ curl -s -o /dev/null -w "data: %{http_code}\n"      -H "Authorization: Bearer $T
 curl -s -o /dev/null -w "feature: %{http_code}\n" -X POST "$BASE/api/feature/create" \
   -H "Authorization: Bearer $TOK" -H "Content-Type: application/json" -d '{ ...real body... }'
 ```
+
 Report the test account so the user can delete it. `signIn` endpoint is `accounts:signInWithPassword`.
 `UID` is a reserved bash variable — name it `USERID`.
 
@@ -70,12 +75,14 @@ node -p "JSON.stringify(require('/abs/path/key.json'))" | vercel env add MY_JSON
 vercel env rm BROKEN_VAR production -y         # remove a bad var
 vercel --prod                                  # redeploy so new env takes effect
 ```
+
 Env changes require a fresh deploy to take effect. If you only have the Vercel MCP (read/deploy/logs,
 no env write), set env vars via this CLI or hand off to the user.
 
 ## 5. Firebase Admin credential failure-mode → fix table
 
 The Admin SDK resolves credentials in order; first match wins. Typical `loadServiceAccount()`:
+
 1. `FIREBASE_SERVICE_ACCOUNT_JSON` → `JSON.parse` (often try/catch: silently falls through if invalid)
 2. `FIREBASE_PRIVATE_KEY` + `FIREBASE_CLIENT_EMAIL` + project id → `.replace(/\\n/g,'\n')`
 3. `FIREBASE_SERVICE_ACCOUNT_PATH` file
@@ -87,10 +94,13 @@ The Admin SDK resolves credentials in order; first match wins. Typical `loadServ
 | `Firebase Admin SDK not configured` | No credential resolved — the JSON var is unset or invalid (silently skipped) and the others aren't set. | Set a **valid** single-line `FIREBASE_SERVICE_ACCOUNT_JSON`. Verify it parses: `node -p "JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON).client_email"`. |
 
 Generate the bulletproof single-line value:
+
 ```bash
 node -p "JSON.stringify(require('/abs/path/service-account.json'))"
 ```
+
 Verify after redeploy — both must be 200:
+
 ```bash
 curl -s -o /dev/null -w "create:%{http_code}\n" -X POST "$BASE/api/<write-route>" -H "Content-Type: application/json" -d '{...}'
 # plus a fresh Firebase Auth signUp -> /api/me returns 200 with the provisioned user
@@ -104,6 +114,7 @@ curl -s -X POST "$BASE/api/billing/checkout" -H "Authorization: Bearer $TOK" \
 curl -s -X POST "$BASE/api/billing/portal" -H "Authorization: Bearer $TOK" \
   -H "Content-Type: application/json" -d '{}'                      # expect a billing.stripe.com url
 ```
+
 A live portal URL means the Stripe billing-portal config is saved; a 500 usually means it isn't.
 
 ## 7. Minimal reusable Playwright setup
@@ -114,6 +125,7 @@ npx playwright install --with-deps chromium
 ```
 
 `playwright.config.js` (override target with `BASE_URL` for any project):
+
 ```js
 const { defineConfig, devices } = require('@playwright/test')
 const baseURL = process.env.BASE_URL || 'https://www.example.com'
@@ -127,6 +139,7 @@ module.exports = defineConfig({
 ```
 
 `tests/e2e/smoke.spec.js` — target visible text/placeholders; scope ambiguous controls:
+
 ```js
 const { test, expect } = require('@playwright/test')
 test('homepage loads', async ({ page }) => {
@@ -143,6 +156,7 @@ test('core flow works', async ({ page }) => {
   // timeout if it calls an LLM/3rd-party.
 })
 ```
+
 Run: `npm run test:e2e` (prod) or `BASE_URL=http://localhost:3000 npm run test:e2e` (local).
 A test that "fails" by catching a real outage is the suite doing its job — read the captured
 screenshot/error-context to see the page state at failure.
