@@ -74,6 +74,7 @@ See `.env.example` for all required variables. Key notes:
 - **`STRIPE_WEBHOOK_SECRET`** — Required in production. Get it from the Stripe dashboard → Webhooks → your endpoint.
 - **`NEXT_PUBLIC_BASE_URL`** — Your public domain, used for Stripe redirect URLs.
 - **`NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`** — Must match your deployed domain for Firebase Auth to work.
+- **`ENCRYPTION_KEY`** — New. Any random string (32+ chars recommended); hashed to a 32-byte AES-256-GCM key for encrypting connected-channel credentials at rest (`lib/encryption.js`). Required before the email channel (or any future channel using the same helper) can connect. **Not yet set in Vercel — add it before this ships.**
 
 ### Stripe Webhook
 
@@ -153,6 +154,10 @@ components/
 | POST | `/api/webhooks` | required | Register an outbound webhook |
 | GET | `/api/webhooks` | required | List your webhooks |
 | DELETE | `/api/webhooks/:id` | required | Remove a webhook |
+| POST | `/api/channels/email/connect` | required | Connect Gmail (SMTP+app password) or SMTP |
+| DELETE | `/api/channels/email` | required | Disconnect email channel |
+| GET | `/api/channels` | required | List connected channels |
+| POST | `/api/outreach/send` | required | Send an email via the connected channel |
 
 ## Pricing
 

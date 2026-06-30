@@ -7,6 +7,8 @@ import { competitors } from '@/lib/competitors'
 import { PLANS, ensurePrice, getOrCreateCustomer, getStripe } from '@/lib/stripe'
 import { checkRateLimit } from '@/lib/rateLimit'
 import { triggerWebhooks } from '@/lib/webhooks'
+import { encrypt, decrypt } from '@/lib/encryption'
+import { testConnection as testEmailConnection, sendEmail } from '@/lib/email'
 
 function handleCORS(response) {
   response.headers.set('Access-Control-Allow-Origin', '*')
@@ -304,6 +306,75 @@ Rules:
       if (!Object.keys(updates).length) return handleCORS(NextResponse.json({ error: 'nothing to update' }, { status: 400 }))
       await db.collection('agents').doc(id).collection('sequences').doc(seqId).update(updates)
       return handleCORS(NextResponse.json({ ok: true }))
+    }
+
+    // POST /api/channels/email/connect — auth required
+    if (path[0] === 'channels' && path[1] === 'email' && path[2] === 'connect' && method === 'POST') {
+      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const body = await request.json().catch(() => null)
+      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      const { provider, host, port, user, pass } = body
+      if (!provider || !['gmail', 'smtp'].includes(provider)) {
+        return handleCORS(NextResponse.json({ success: false, error: "provider must be 'gmail' or 'smtp'" }, { status: 400 }))
+      }
+      if (!user || !pass) {
+        return handleCORS(NextResponse.json({ success: false, error: 'user and pass are required' }, { status: 400 }))
+      }
+      const result = await testEmailConnection({ provider, host, port, user, pass })
+      if (!result.success) return handleCORS(NextResponse.json({ success: false, error: result.error }))
+
+      const encryptedCreds = encrypt(JSON.stringify(result.creds))
+      await db.collection('users').doc(decoded.uid).collection('channels').doc('email').set({
+        provider, connected: true, email: truncate(user, 200), encryptedCreds, updatedAt: FieldValue.serverTimestamp(),
+      })
+      return handleCORS(NextResponse.json({ success: true }))
+    }
+
+    // DELETE /api/channels/email — disconnect
+    if (path[0] === 'channels' && path[1] === 'email' && path.length === 2 && method === 'DELETE') {
+      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      await db.collection('users').doc(decoded.uid).collection('channels').doc('email').delete()
+      return handleCORS(NextResponse.json({ ok: true }))
+    }
+
+    // GET /api/channels — list connected channels (never returns encryptedCreds)
+    if (route === '/channels' && method === 'GET') {
+      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const qs = await db.collection('users').doc(decoded.uid).collection('channels').get()
+      const channels = qs.docs.map((d) => { const c = ser(d); delete c.encryptedCreds; return { id: d.id, ...c } })
+      return handleCORS(NextResponse.json({ channels }))
+    }
+
+    // POST /api/outreach/send — send via the connected email channel
+    if (route === '/outreach/send' && method === 'POST') {
+      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const body = await request.json().catch(() => null)
+      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      const { to, subject, body: text } = body
+      if (!to || typeof to !== 'string' || !subject || !text) {
+        return handleCORS(NextResponse.json({ error: 'to, subject, and body are required' }, { status: 400 }))
+      }
+      const channelSnap = await db.collection('users').doc(decoded.uid).collection('channels').doc('email').get()
+      if (!channelSnap.exists || !channelSnap.data().connected) {
+        return handleCORS(NextResponse.json({ error: 'email channel not connected' }, { status: 400 }))
+      }
+      const creds = JSON.parse(decrypt(channelSnap.data().encryptedCreds))
+
+      // ponytail: dedup keyed by content hash under users/{uid}/sentMessages — the
+      // real spec wants leads/{uid}/prospects/{prospectId}/sentMessages, but no
+      // lead/prospect model exists in this codebase yet. Move it there once it does.
+      const hash = crypto.createHash('sha256').update(`${to}|${subject}|${text}`).digest('hex')
+      const sentRef = db.collection('users').doc(decoded.uid).collection('sentMessages')
+      const dupe = await sentRef.where('hash', '==', hash).limit(1).get()
+      if (!dupe.empty) return handleCORS(NextResponse.json({ sent: false, skipped: 'duplicate' }))
+
+      try {
+        await sendEmail(creds, { to, subject: truncate(subject, 200), text: truncate(text, 5000) })
+      } catch (err) {
+        return handleCORS(NextResponse.json({ sent: false, error: err.message }, { status: 502 }))
+      }
+      await sentRef.add({ hash, to, subject: truncate(subject, 200), sentAt: FieldValue.serverTimestamp() })
+      return handleCORS(NextResponse.json({ sent: true }))
     }
 
     // POST /api/webhooks — register a webhook (auth required)

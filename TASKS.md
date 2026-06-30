@@ -4,7 +4,7 @@
 - ✅ Zapier / webhook outbound — `users/{uid}/webhooks` CRUD (`POST`/`GET /api/webhooks`, `DELETE /api/webhooks/:id`) + `triggerWebhooks()` in `lib/webhooks.js`, fired (fire-and-forget, HMAC-SHA256 signed) from `/result/save` when `state.booked` is true.
 - ✅ Follow-up sequence builder — "campaign" mapped to the existing `agents` collection (no separate campaign model exists). `agents/{id}/sequences` + Gemini-generated Day 1/3/7 sequence (`POST/GET /api/agents/:id/sequences[/generate]`, `PUT .../sequences/:seqId`), inline expandable panel + edit on the dashboard agent cards.
 - ⛔ Inbox view — SKIPPED. Spec needs `leads/{uid}/prospects` with `latestReply`/`latestReplyAt` (ongoing reply tracking). Nothing in this codebase ingests inbound replies — `results` are one-shot saved transcripts from the demo simulator, not a live conversation thread. Building an inbox here means designing the missing reply-ingestion pipeline first; flagged per user decision rather than faked.
-- [ ] Email outreach channel
+- ✅ Email outreach channel — `users/{uid}/channels/email` (Gmail-via-SMTP or generic SMTP), AES-256-GCM creds at rest (`lib/encryption.js`, needs `ENCRYPTION_KEY` — not yet set in Vercel), connection tested before saving, `/settings/channels` UI. `/api/outreach/send` dedups by content hash under `users/{uid}/sentMessages` (the spec's `leads/{uid}/prospects/{id}/sentMessages` path doesn't exist — no lead model — flagged, not faked). Gmail is SMTP+app-password, not 3-legged OAuth (no GMAIL_CLIENT_ID/SECRET registered).
 - [ ] LinkedIn OAuth connect
 - [ ] Team / agency seats
 - [ ] SMS appointment reminders

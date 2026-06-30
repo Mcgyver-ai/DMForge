@@ -74,6 +74,7 @@ export default function Dashboard() {
           </Link>
           <div className="flex items-center gap-3">
             <span className="text-sm text-[#A0A0C8] hidden sm:inline">{user.email}</span>
+            <Link href="/settings/channels" className="text-[#A0A0C8] hover:text-white p-2 rounded-lg hover:bg-[#1F1F42]" title="Channels">Channels</Link>
             <button onClick={logout} className="text-[#A0A0C8] hover:text-white p-2 rounded-lg hover:bg-[#1F1F42]" title="Sign out"><LogOut className="w-4 h-4" /></button>
           </div>
         </div>
