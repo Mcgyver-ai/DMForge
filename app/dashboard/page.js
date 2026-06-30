@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [results, setResults] = useState([])
   const [busy, setBusy] = useState(false)
   const [expandedId, setExpandedId] = useState(null)
+  const [whiteLabel, setWhiteLabel] = useState(null)
 
   useEffect(() => {
     if (loading) return
@@ -23,20 +24,30 @@ export default function Dashboard() {
     ;(async () => {
       setBusy(true)
       try {
-        const [meRes, aRes, rRes] = await Promise.all([
+        const [meRes, aRes, rRes, agRes] = await Promise.all([
           authFetch('/api/me', { method: 'GET' }, getToken),
           authFetch('/api/my/agents', { method: 'GET' }, getToken),
           authFetch('/api/my/results', { method: 'GET' }, getToken),
+          authFetch('/api/agency', { method: 'GET' }, getToken),
         ])
         const meD = await meRes.json()
         const aD = await aRes.json()
         const rD = await rRes.json()
+        const agD = await agRes.json().catch(() => ({}))
         setMe(meD.user)
         setAgents(aD.agents || [])
         setResults(rD.results || [])
+        setWhiteLabel(agD?.agency?.whiteLabel || null)
       } catch (e) { toast.error('Failed to load') } finally { setBusy(false) }
     })()
   }, [user, loading, getToken])
+
+  // Apply agency white-label branding: title + --brand-primary.
+  useEffect(() => {
+    if (!whiteLabel) return
+    if (whiteLabel.primaryColor) document.documentElement.style.setProperty('--brand-primary', whiteLabel.primaryColor)
+    if (whiteLabel.brandName) document.title = whiteLabel.brandName
+  }, [whiteLabel])
 
   async function portal() {
     const res = await authFetch('/api/billing/portal', { method: 'POST', body: JSON.stringify({}) }, getToken)
@@ -69,13 +80,19 @@ export default function Dashboard() {
       <header className="border-b border-[#2A2A55]/40 px-5 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <Link href="/" className="inline-flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg btn-primary flex items-center justify-center text-sm font-bold">🔥</div>
-            <span className="font-display font-bold text-lg">DMForge</span>
+            {whiteLabel?.logoUrl ? (
+              <img src={whiteLabel.logoUrl} alt={whiteLabel.brandName || 'logo'} className="h-7 w-auto rounded" />
+            ) : (
+              <div className="w-7 h-7 rounded-lg btn-primary flex items-center justify-center text-sm font-bold">🔥</div>
+            )}
+            <span className="font-display font-bold text-lg">{whiteLabel?.brandName || 'DMForge'}</span>
+            {whiteLabel && !whiteLabel.hideParentBranding && <span className="text-[10px] text-[#A0A0C8]">by DMForge</span>}
           </Link>
           <div className="flex items-center gap-3">
             <span className="text-sm text-[#A0A0C8] hidden sm:inline">{user.email}</span>
             <Link href="/settings/channels" className="text-[#A0A0C8] hover:text-white p-2 rounded-lg hover:bg-[#1F1F42]" title="Channels">Channels</Link>
             <Link href="/settings/team" className="text-[#A0A0C8] hover:text-white p-2 rounded-lg hover:bg-[#1F1F42]" title="Team">Team</Link>
+            {me?.plan === 'agency' && <Link href="/settings/white-label" className="text-[#A0A0C8] hover:text-white p-2 rounded-lg hover:bg-[#1F1F42]" title="White Label">Brand</Link>}
             <button onClick={logout} className="text-[#A0A0C8] hover:text-white p-2 rounded-lg hover:bg-[#1F1F42]" title="Sign out"><LogOut className="w-4 h-4" /></button>
           </div>
         </div>

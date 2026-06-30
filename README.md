@@ -173,6 +173,7 @@ components/
 | DELETE | `/api/channels/sms` | required | Disconnect SMS |
 | POST | `/api/reminders/schedule` | required | Schedule 24h + 1h reminder SMS |
 | GET | `/api/cron/send-reminders` | cron secret | Fire overdue reminders (Vercel cron) |
+| PUT | `/api/agency/white-label` | required (Agency owner) | Update white-label branding |
 
 ## Pricing
 

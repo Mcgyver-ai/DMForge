@@ -551,8 +551,39 @@ Rules:
       const ownerSnap = await db.collection('users').doc(agency.ownerUid).get()
       return handleCORS(NextResponse.json({
         role: u.role || (agency.ownerUid === decoded.uid ? 'owner' : 'member'),
-        agency: { agencyId, seats: agency.seats, used: memberUids.length, members, ownerEmail: ownerSnap.exists ? ownerSnap.data().email : null },
+        agency: { agencyId, seats: agency.seats, used: memberUids.length, members, ownerEmail: ownerSnap.exists ? ownerSnap.data().email : null, whiteLabel: agency.whiteLabel || null },
       }))
+    }
+
+    // PUT /api/agency/white-label — owner updates branding (Agency plan only)
+    if (route === '/agency/white-label' && method === 'PUT') {
+      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const ownerSnap = await db.collection('users').doc(decoded.uid).get()
+      const owner = ownerSnap.exists ? ownerSnap.data() : null
+      if (owner?.plan !== 'agency' || owner?.status !== 'active') {
+        return handleCORS(NextResponse.json({ error: 'Agency plan required' }, { status: 403 }))
+      }
+      const body = await request.json().catch(() => null)
+      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      const brandName = truncate(String(body.brandName || ''), 100)
+      if (!brandName) return handleCORS(NextResponse.json({ error: 'brandName required' }, { status: 400 }))
+      const primaryColor = /^#[0-9a-fA-F]{6}$/.test(body.primaryColor || '') ? body.primaryColor : '#FF4D6D'
+      const whiteLabel = {
+        brandName,
+        primaryColor,
+        domain: body.domain ? truncate(String(body.domain), 200) : null,
+        logoUrl: body.logoUrl ? truncate(String(body.logoUrl), 500) : null,
+        hideParentBranding: !!body.hideParentBranding,
+      }
+      const agencyRef = db.collection('agencies').doc(decoded.uid)
+      const agencySnap = await agencyRef.get()
+      if (!agencySnap.exists) {
+        await agencyRef.set({ ownerUid: decoded.uid, seats: await resolveSeats(owner), memberUids: [], whiteLabel, createdAt: FieldValue.serverTimestamp() })
+        await db.collection('users').doc(decoded.uid).set({ role: 'owner', agencyId: decoded.uid }, { merge: true })
+      } else {
+        await agencyRef.update({ whiteLabel })
+      }
+      return handleCORS(NextResponse.json({ ok: true, whiteLabel }))
     }
 
     // POST /api/channels/sms/connect — save encrypted Twilio creds
