@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { NextResponse } from 'next/server'
 import { v4 as uuidv4 } from 'uuid'
 import { getAdminDb, getAdminFieldValue, verifyRequest } from '@/lib/firebaseAdmin'
@@ -5,6 +6,7 @@ import { chat, chatJSON } from '@/lib/llm'
 import { competitors } from '@/lib/competitors'
 import { PLANS, ensurePrice, getOrCreateCustomer, getStripe } from '@/lib/stripe'
 import { checkRateLimit } from '@/lib/rateLimit'
+import { triggerWebhooks } from '@/lib/webhooks'
 
 function handleCORS(response) {
   response.headers.set('Access-Control-Allow-Origin', '*')
@@ -188,6 +190,9 @@ Rules:
         leadName: safeLeadName, transcript, state, summary,
         createdAt: FieldValue.serverTimestamp(),
       })
+      if (state?.booked) {
+        triggerWebhooks(decoded?.uid || agent.ownerUid, 'appointment.booked', { resultId: id, agentId, leadName: safeLeadName, bookedSlot: state.bookedSlot || null })
+      }
       return handleCORS(NextResponse.json({ id, shareUrl: `/r/${id}` }))
     }
 
@@ -233,6 +238,42 @@ Rules:
       const qs = await db.collection('results').where('ownerUid', '==', decoded.uid).get()
       const results = qs.docs.map(d => ser(d)).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
       return handleCORS(NextResponse.json({ results }))
+    }
+
+    // POST /api/webhooks — register a webhook (auth required)
+    if (route === '/webhooks' && method === 'POST') {
+      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const body = await request.json().catch(() => null)
+      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      const { url, events } = body
+      if (!url || typeof url !== 'string' || !/^https:\/\//.test(url)) {
+        return handleCORS(NextResponse.json({ error: 'valid https url required' }, { status: 400 }))
+      }
+      if (!Array.isArray(events) || events.length === 0 || !events.every((e) => typeof e === 'string')) {
+        return handleCORS(NextResponse.json({ error: 'events must be a non-empty array of strings' }, { status: 400 }))
+      }
+      const id = uuidv4()
+      const secret = crypto.randomBytes(32).toString('hex')
+      const webhook = { id, url: truncate(url, 500), events: events.slice(0, 20), secret, active: true, createdAt: FieldValue.serverTimestamp() }
+      await db.collection('users').doc(decoded.uid).collection('webhooks').doc(id).set(webhook)
+      return handleCORS(NextResponse.json({ id, url: webhook.url, events: webhook.events, active: true, secret }))
+    }
+
+    // GET /api/webhooks — list user's webhooks (secret never returned after creation)
+    if (route === '/webhooks' && method === 'GET') {
+      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const qs = await db.collection('users').doc(decoded.uid).collection('webhooks').get()
+      const webhooks = qs.docs.map((d) => { const w = ser(d); delete w.secret; return w })
+      return handleCORS(NextResponse.json({ webhooks }))
+    }
+
+    // DELETE /api/webhooks/:id
+    if (route.startsWith('/webhooks/') && method === 'DELETE') {
+      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const id = route.split('/')[2]
+      if (!id) return handleCORS(NextResponse.json({ error: 'webhook id required' }, { status: 400 }))
+      await db.collection('users').doc(decoded.uid).collection('webhooks').doc(id).delete()
+      return handleCORS(NextResponse.json({ ok: true }))
     }
 
     // POST /api/billing/checkout — auth required
