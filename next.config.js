@@ -1,5 +1,5 @@
 const nextConfig = {
-  output: 'standalone',
+  // No `output: 'standalone'` — that's for self-hosting/Docker; Vercel builds its own output.
   images: {
     unoptimized: true,
     remotePatterns: [
