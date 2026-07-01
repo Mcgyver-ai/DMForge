@@ -6,6 +6,9 @@ const nextConfig = {
       { protocol: 'https', hostname: 'avatars.githubusercontent.com', pathname: '/**' },
     ],
   },
+  // Next 16 builds with Turbopack by default; declare it so the presence of
+  // the (dev-only, webpack-fallback) `webpack` block below isn't a fatal error.
+  turbopack: {},
   webpack(config, { dev }) {
     if (dev) {
       config.watchOptions = {
