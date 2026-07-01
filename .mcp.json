@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "cloudflare-api": {
+      "type": "http",
+      "url": "https://mcp.cloudflare.com/mcp"
+    },
+    "cloudflare-ai-gateway": {
+      "type": "http",
+      "url": "https://ai-gateway.mcp.cloudflare.com/mcp"
+    }
+  }
+}
