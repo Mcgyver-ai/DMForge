@@ -1,0 +1,46 @@
+{
+	"folders": [
+		{
+			"name": "DMForge",
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.exclude": {
+			"**/.next": true,
+			"**/node_modules": true,
+			"**/__pycache__": true
+		},
+		"search.exclude": {
+			"**/.next": true,
+			"**/node_modules": true,
+			"**/test-results": true,
+			"**/test_reports": true,
+			"**/yarn.lock": true
+		},
+		"files.watcherExclude": {
+			"**/.next/**": true,
+			"**/node_modules/**": true,
+			"**/test-results/**": true
+		},
+		"files.eol": "\n",
+		"files.insertFinalNewline": true,
+		"editor.tabSize": 2,
+		"javascript.updateImportsOnFileMove.enabled": "always",
+		"javascript.preferences.importModuleSpecifier": "non-relative",
+		"tailwindCSS.experimental.classRegex": [
+			["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
+			["cn\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
+		],
+		"css.validate": false,
+		"npm.packageManager": "yarn"
+	},
+	"extensions": {
+		"recommendations": [
+			"bradlc.vscode-tailwindcss",
+			"ms-playwright.playwright",
+			"anthropic.claude-code",
+			"toba.vsfire"
+		]
+	}
+}
