@@ -413,7 +413,7 @@ function Footer() {
         </div>
         <div>
           <p className="font-semibold mb-3">Company</p>
-          <ul className="space-y-2 text-[#A0A0C8]"><li><a href="#">About</a></li><li><a href="#">Contact</a></li><li><a href="#">Privacy</a></li><li><a href="#">Terms</a></li></ul>
+          <ul className="space-y-2 text-[#A0A0C8]"><li><a href="#">About</a></li><li><a href="mailto:support@dmforge.org">Contact</a></li><li><a href="#">Privacy</a></li><li><a href="#">Terms</a></li></ul>
         </div>
       </div>
       <div className="text-center text-xs text-[#A0A0C8] pb-8">© 2025 DMForge • Built for coaches who close on calls.</div>

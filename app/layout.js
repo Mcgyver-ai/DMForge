@@ -1,5 +1,6 @@
 import './globals.css'
 import { Providers } from './providers'
+import { SupportChat } from '@/components/support-chat'
 import { Inter, Space_Grotesk } from 'next/font/google'
 import { getBaseUrl } from '@/lib/baseUrl'
 
@@ -38,6 +39,7 @@ export default function RootLayout({ children }) {
       </head>
       <body className="font-body bg-[#0B0B1A] text-[#F5F5FA] antialiased">
         <Providers>{children}</Providers>
+        <SupportChat />
       </body>
     </html>
   )
