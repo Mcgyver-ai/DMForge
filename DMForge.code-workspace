@@ -29,11 +29,18 @@
 		"javascript.updateImportsOnFileMove.enabled": "always",
 		"javascript.preferences.importModuleSpecifier": "non-relative",
 		"tailwindCSS.experimental.classRegex": [
-			["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
-			["cn\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
+			[
+				"cva\\(([^)]*)\\)",
+				"[\"'`]([^\"'`]*).*?[\"'`]"
+			],
+			[
+				"cn\\(([^)]*)\\)",
+				"(?:'|\"|`)([^']*)(?:'|\"|`)"
+			]
 		],
 		"css.validate": false,
-		"npm.packageManager": "yarn"
+		"npm.packageManager": "yarn",
+		"markdown.validate.enabled": false
 	},
 	"extensions": {
 		"recommendations": [
