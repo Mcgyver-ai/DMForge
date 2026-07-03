@@ -1,11 +1,11 @@
 import crypto from 'crypto'
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { v4 as uuidv4 } from 'uuid'
 import { getAdminDb, getAdminFieldValue, verifyRequest } from '@/lib/firebaseAdmin'
 import { chat, chatJSON } from '@/lib/llm'
 import { competitors } from '@/lib/competitors'
 import { PLANS, ensurePrice, getOrCreateCustomer, getStripe } from '@/lib/stripe'
-import { checkRateLimit } from '@/lib/rateLimit'
+import { checkRateLimit, checkLlmRateLimit } from '@/lib/rateLimit'
 import { triggerWebhooks } from '@/lib/webhooks'
 import { encrypt, decrypt } from '@/lib/encryption'
 import { testConnection as testEmailConnection, sendEmail } from '@/lib/email'
@@ -13,14 +13,24 @@ import { authorizeUrl as linkedinAuthorizeUrl, exchangeCode as linkedinExchangeC
 import { testTwilio, sendSMS } from '@/lib/sms'
 import { ghlValidate, ghlGetContact, ghlCreateContact, ghlCreateAppointment } from '@/lib/ghl'
 
-function handleCORS(response) {
-  response.headers.set('Access-Control-Allow-Origin', '*')
+// Cross-origin callers must be on the allow-list; same-origin requests never
+// need CORS headers. Override via CORS_ORIGINS (comma-separated) — the old
+// default of '*' let any origin make authenticated calls.
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || 'https://dmforge.org,https://www.dmforge.org')
+  .split(',').map((s) => s.trim()).filter(Boolean)
+
+function handleCORS(request, response) {
+  const origin = request.headers.get('origin')
+  if (origin && (ALLOWED_ORIGINS.includes(origin) || process.env.NODE_ENV === 'development')) {
+    response.headers.set('Access-Control-Allow-Origin', origin)
+    response.headers.set('Vary', 'Origin')
+  }
   response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
   response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   return response
 }
 
-export async function OPTIONS() { return handleCORS(new NextResponse(null, { status: 200 })) }
+export async function OPTIONS(request) { return handleCORS(request, new NextResponse(null, { status: 200 })) }
 
 // Serialize Firestore docs (handles Timestamp objects → ISO strings)
 function ser(doc) {
@@ -48,25 +58,36 @@ async function handleRoute(request, { params }) {
   try {
     const decoded = await verifyRequest(request)
     if (!checkRateLimit(request, decoded?.uid)) {
-      return handleCORS(NextResponse.json({ error: 'rate_limit_exceeded' }, { status: 429 }))
+      return handleCORS(request, NextResponse.json({ error: 'rate_limit_exceeded' }, { status: 429 }))
     }
 
     const db = getAdminDb()
     const FieldValue = getAdminFieldValue()
 
+    // Extra gate for routes that burn paid Gemini credits: stricter per-minute
+    // window for anonymous callers plus a durable per-IP daily cap. Returns a
+    // 429 response when limited, null when the call may proceed.
+    const llmLimited = async () =>
+      (await checkLlmRateLimit(request, decoded?.uid))
+        ? null
+        : handleCORS(request, NextResponse.json({ error: 'rate_limit_exceeded' }, { status: 429 }))
+
     if (route === '/' && method === 'GET') {
-      return handleCORS(NextResponse.json({ ok: true, app: 'DMForge', version: '1.0.0', backend: 'firebase' }))
+      return handleCORS(request, NextResponse.json({ ok: true, app: 'DMForge', version: '1.0.0', backend: 'firebase' }))
     }
 
-    // POST /api/agent/create — auth optional. Stores ownerUid if logged in.
+    // POST /api/agent/create — auth optional (the "live-test before signup"
+    // flow depends on anonymous access). Stores ownerUid if logged in.
     if (route === '/agent/create' && method === 'POST') {
+      const limited = await llmLimited()
+      if (limited) return limited
       const body = await request.json().catch(() => null)
-      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      if (!body) return handleCORS(request, NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
       const { niche, offer, audience, qualification, calendarSlots, tone, agentName } = body
 
-      if (!niche || !offer) return handleCORS(NextResponse.json({ error: 'niche and offer required' }, { status: 400 }))
+      if (!niche || !offer) return handleCORS(request, NextResponse.json({ error: 'niche and offer required' }, { status: 400 }))
       if (typeof niche !== 'string' || typeof offer !== 'string') {
-        return handleCORS(NextResponse.json({ error: 'niche and offer must be strings' }, { status: 400 }))
+        return handleCORS(request, NextResponse.json({ error: 'niche and offer must be strings' }, { status: 400 }))
       }
 
       // Validate and sanitize user-supplied strings used in prompts
@@ -99,27 +120,29 @@ async function handleRoute(request, { params }) {
         createdAt: FieldValue.serverTimestamp(),
       }
       await db.collection('agents').doc(id).set(agent)
-      return handleCORS(NextResponse.json({ id, script, calendarSlots: agent.calendarSlots, agentName: agent.agentName }))
+      return handleCORS(request, NextResponse.json({ id, script, calendarSlots: agent.calendarSlots, agentName: agent.agentName }))
     }
 
-    // POST /api/agent/chat
+    // POST /api/agent/chat — auth optional (anonymous live-test flow).
     if (route === '/agent/chat' && method === 'POST') {
+      const limited = await llmLimited()
+      if (limited) return limited
       const body = await request.json().catch(() => null)
-      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      if (!body) return handleCORS(request, NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
       const { agentId, messages = [] } = body
       if (!agentId || typeof agentId !== 'string') {
-        return handleCORS(NextResponse.json({ error: 'agentId required' }, { status: 400 }))
+        return handleCORS(request, NextResponse.json({ error: 'agentId required' }, { status: 400 }))
       }
       if (!Array.isArray(messages)) {
-        return handleCORS(NextResponse.json({ error: 'messages must be an array' }, { status: 400 }))
+        return handleCORS(request, NextResponse.json({ error: 'messages must be an array' }, { status: 400 }))
       }
       // Limit conversation length to prevent abuse
       if (messages.length > 100) {
-        return handleCORS(NextResponse.json({ error: 'conversation too long' }, { status: 400 }))
+        return handleCORS(request, NextResponse.json({ error: 'conversation too long' }, { status: 400 }))
       }
 
       const snap = await db.collection('agents').doc(agentId).get()
-      if (!snap.exists) return handleCORS(NextResponse.json({ error: 'agent not found' }, { status: 404 }))
+      if (!snap.exists) return handleCORS(request, NextResponse.json({ error: 'agent not found' }, { status: 404 }))
       const agent = snap.data()
 
       const sys = `You are role-playing as ${agent.agentName}, an online ${agent.niche} coach, talking to a NEW LEAD over Instagram DM.
@@ -142,7 +165,7 @@ Rules:
 - The reply the lead sees is everything BEFORE the <STATE> tag.`
 
       if (messages.length === 0) {
-        return handleCORS(NextResponse.json({
+        return handleCORS(request, NextResponse.json({
           reply: agent.script?.intro || `hey! thanks for reaching out 👋`,
           state: { step: 0, qualified: false, booked: false, bookedSlot: null, tags: [] },
         }))
@@ -159,20 +182,22 @@ Rules:
         reply = content.replace(/<STATE>[\s\S]*?<\/STATE>/, '').trim()
         try { state = { ...state, ...JSON.parse(stateMatch[1]) } } catch { /* keep default state */ }
       }
-      return handleCORS(NextResponse.json({ reply, state }))
+      return handleCORS(request, NextResponse.json({ reply, state }))
     }
 
     // POST /api/support/chat — public site support bot. No auth; covered by the
     // global per-IP rate limit above. Stateless: history lives in the client.
     if (route === '/support/chat' && method === 'POST') {
+      const limited = await llmLimited()
+      if (limited) return limited
       const body = await request.json().catch(() => null)
-      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      if (!body) return handleCORS(request, NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
       const { messages = [] } = body
       if (!Array.isArray(messages) || messages.length === 0) {
-        return handleCORS(NextResponse.json({ error: 'messages must be a non-empty array' }, { status: 400 }))
+        return handleCORS(request, NextResponse.json({ error: 'messages must be a non-empty array' }, { status: 400 }))
       }
       if (messages.length > 30) {
-        return handleCORS(NextResponse.json({ error: 'conversation too long' }, { status: 400 }))
+        return handleCORS(request, NextResponse.json({ error: 'conversation too long' }, { status: 400 }))
       }
 
       const sys = `You are the DMForge support assistant on dmforge.org. Answer questions about the product concisely and honestly.
@@ -198,23 +223,25 @@ Rules:
         temperature: 0.4,
         max_tokens: 500,
       })
-      return handleCORS(NextResponse.json({ reply: content.trim() }))
+      return handleCORS(request, NextResponse.json({ reply: content.trim() }))
     }
 
-    // POST /api/result/save
+    // POST /api/result/save — auth optional; calls the LLM for the summary.
     if (route === '/result/save' && method === 'POST') {
+      const limited = await llmLimited()
+      if (limited) return limited
       const body = await request.json().catch(() => null)
-      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      if (!body) return handleCORS(request, NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
       const { agentId, transcript = [], state = {}, leadName = 'Lead' } = body
       if (!agentId || typeof agentId !== 'string') {
-        return handleCORS(NextResponse.json({ error: 'agentId required' }, { status: 400 }))
+        return handleCORS(request, NextResponse.json({ error: 'agentId required' }, { status: 400 }))
       }
       if (!Array.isArray(transcript) || transcript.length === 0) {
-        return handleCORS(NextResponse.json({ error: 'transcript must be a non-empty array' }, { status: 400 }))
+        return handleCORS(request, NextResponse.json({ error: 'transcript must be a non-empty array' }, { status: 400 }))
       }
 
       const agentSnap = await db.collection('agents').doc(agentId).get()
-      if (!agentSnap.exists) return handleCORS(NextResponse.json({ error: 'agent not found' }, { status: 404 }))
+      if (!agentSnap.exists) return handleCORS(request, NextResponse.json({ error: 'agent not found' }, { status: 404 }))
       const agent = agentSnap.data()
 
       let summary = null
@@ -235,70 +262,75 @@ Rules:
         createdAt: FieldValue.serverTimestamp(),
       })
       if (state?.booked) {
-        triggerWebhooks(decoded?.uid || agent.ownerUid, 'appointment.booked', { resultId: id, agentId, leadName: safeLeadName, bookedSlot: state.bookedSlot || null })
+        // after() keeps the serverless function alive past the response so the
+        // delivery isn't killed the instant we return (Vercel freezes the
+        // instance once the response is sent).
+        after(() => triggerWebhooks(decoded?.uid || agent.ownerUid, 'appointment.booked', { resultId: id, agentId, leadName: safeLeadName, bookedSlot: state.bookedSlot || null }))
       }
-      return handleCORS(NextResponse.json({ id, shareUrl: `/r/${id}` }))
+      return handleCORS(request, NextResponse.json({ id, shareUrl: `/r/${id}` }))
     }
 
     // GET /api/result/:id
     if (route.startsWith('/result/') && method === 'GET') {
       const id = route.split('/')[2]
-      if (!id) return handleCORS(NextResponse.json({ error: 'result id required' }, { status: 400 }))
+      if (!id) return handleCORS(request, NextResponse.json({ error: 'result id required' }, { status: 400 }))
       const snap = await db.collection('results').doc(id).get()
-      if (!snap.exists) return handleCORS(NextResponse.json({ error: 'not found' }, { status: 404 }))
-      return handleCORS(NextResponse.json(ser(snap)))
+      if (!snap.exists) return handleCORS(request, NextResponse.json({ error: 'not found' }, { status: 404 }))
+      return handleCORS(request, NextResponse.json(ser(snap)))
     }
 
     // GET /api/competitors
     if (route === '/competitors' && method === 'GET') {
-      return handleCORS(NextResponse.json({ competitors }))
+      return handleCORS(request, NextResponse.json({ competitors }))
     }
 
     // GET /api/plans
     if (route === '/plans' && method === 'GET') {
-      return handleCORS(NextResponse.json({ plans: PLANS }))
+      return handleCORS(request, NextResponse.json({ plans: PLANS }))
     }
 
     // GET /api/me — returns user's plan info from Firestore
     if (route === '/me' && method === 'GET') {
-      if (!decoded) return handleCORS(NextResponse.json({ user: null }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ user: null }))
       const snap = await db.collection('users').doc(decoded.uid).get()
       const user = snap.exists ? ser(snap) : { uid: decoded.uid, email: decoded.email, plan: 'free', status: 'active' }
       delete user.stripeCustomerId
-      return handleCORS(NextResponse.json({ user }))
+      return handleCORS(request, NextResponse.json({ user }))
     }
 
     // GET /api/my/agents — authenticated user's saved agents
     if (route === '/my/agents' && method === 'GET') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       const qs = await db.collection('agents').where('ownerUid', '==', decoded.uid).get()
       const agents = qs.docs.map(d => ser(d)).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
-      return handleCORS(NextResponse.json({ agents }))
+      return handleCORS(request, NextResponse.json({ agents }))
     }
 
     // GET /api/my/results — authenticated user's saved transcripts
     if (route === '/my/results' && method === 'GET') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       const qs = await db.collection('results').where('ownerUid', '==', decoded.uid).get()
       const results = qs.docs.map(d => ser(d)).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
-      return handleCORS(NextResponse.json({ results }))
+      return handleCORS(request, NextResponse.json({ results }))
     }
 
     // POST /api/agents/:id/sequences/generate — Gemini 3-step follow-up sequence
     if (path[0] === 'agents' && path[2] === 'sequences' && path[3] === 'generate' && method === 'POST') {
+      const limited = await llmLimited()
+      if (limited) return limited
       const id = path[1]
       const agentSnap = await db.collection('agents').doc(id).get()
-      if (!agentSnap.exists) return handleCORS(NextResponse.json({ error: 'agent not found' }, { status: 404 }))
+      if (!agentSnap.exists) return handleCORS(request, NextResponse.json({ error: 'agent not found' }, { status: 404 }))
       const agent = agentSnap.data()
       if (agent.ownerUid && (!decoded || decoded.uid !== agent.ownerUid)) {
-        return handleCORS(NextResponse.json({ error: 'forbidden' }, { status: 403 }))
+        return handleCORS(request, NextResponse.json({ error: 'forbidden' }, { status: 403 }))
       }
 
       const sys = `Given a coach's ICP and offer, write a 3-step DM follow-up sequence for leads who went quiet: Day 1 opener, Day 3 follow-up, Day 7 last-attempt. Reply with JSON ONLY: { "sequence": [ { "dayOffset": number, "subject": string, "body": string, "tone": string } ] } with exactly 3 entries, dayOffset 1, 3, 7 in order. Casual DM voice, short, matches the coach's tone, never robotic, no emojis at end of every line.`
       const usr = `Niche: ${agent.niche}\nOffer: ${agent.offer}\nIdeal audience: ${agent.audience || 'general'}\nTone: ${agent.tone || 'warm, direct, encouraging'}`
       const { sequence } = await chatJSON({ messages: [{ role: 'system', content: sys }, { role: 'user', content: usr }] })
       if (!Array.isArray(sequence) || sequence.length === 0) {
-        return handleCORS(NextResponse.json({ error: 'LLM did not return a sequence' }, { status: 502 }))
+        return handleCORS(request, NextResponse.json({ error: 'LLM did not return a sequence' }, { status: 502 }))
       }
 
       const seqRef = db.collection('agents').doc(id).collection('sequences')
@@ -319,7 +351,7 @@ Rules:
         return item
       })
       await batch.commit()
-      return handleCORS(NextResponse.json({ sequence: saved }))
+      return handleCORS(request, NextResponse.json({ sequence: saved }))
     }
 
     // GET /api/agents/:id/sequences
@@ -327,7 +359,7 @@ Rules:
       const id = path[1]
       const qs = await db.collection('agents').doc(id).collection('sequences').get()
       const sequence = qs.docs.map((d) => d.data()).sort((a, b) => a.dayOffset - b.dayOffset)
-      return handleCORS(NextResponse.json({ sequence }))
+      return handleCORS(request, NextResponse.json({ sequence }))
     }
 
     // PUT /api/agents/:id/sequences/:seqId — inline edit
@@ -335,70 +367,70 @@ Rules:
       const id = path[1]
       const seqId = path[3]
       const agentSnap = await db.collection('agents').doc(id).get()
-      if (!agentSnap.exists) return handleCORS(NextResponse.json({ error: 'agent not found' }, { status: 404 }))
+      if (!agentSnap.exists) return handleCORS(request, NextResponse.json({ error: 'agent not found' }, { status: 404 }))
       const agent = agentSnap.data()
       if (agent.ownerUid && (!decoded || decoded.uid !== agent.ownerUid)) {
-        return handleCORS(NextResponse.json({ error: 'forbidden' }, { status: 403 }))
+        return handleCORS(request, NextResponse.json({ error: 'forbidden' }, { status: 403 }))
       }
       const body = await request.json().catch(() => null)
-      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      if (!body) return handleCORS(request, NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
       const updates = {}
       if (typeof body.subject === 'string') updates.subject = truncate(body.subject, 200)
       if (typeof body.body === 'string') updates.body = truncate(body.body, 2000)
-      if (!Object.keys(updates).length) return handleCORS(NextResponse.json({ error: 'nothing to update' }, { status: 400 }))
+      if (!Object.keys(updates).length) return handleCORS(request, NextResponse.json({ error: 'nothing to update' }, { status: 400 }))
       await db.collection('agents').doc(id).collection('sequences').doc(seqId).update(updates)
-      return handleCORS(NextResponse.json({ ok: true }))
+      return handleCORS(request, NextResponse.json({ ok: true }))
     }
 
     // POST /api/channels/email/connect — auth required
     if (path[0] === 'channels' && path[1] === 'email' && path[2] === 'connect' && method === 'POST') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       const body = await request.json().catch(() => null)
-      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      if (!body) return handleCORS(request, NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
       const { provider, host, port, user, pass } = body
       if (!provider || !['gmail', 'smtp'].includes(provider)) {
-        return handleCORS(NextResponse.json({ success: false, error: "provider must be 'gmail' or 'smtp'" }, { status: 400 }))
+        return handleCORS(request, NextResponse.json({ success: false, error: "provider must be 'gmail' or 'smtp'" }, { status: 400 }))
       }
       if (!user || !pass) {
-        return handleCORS(NextResponse.json({ success: false, error: 'user and pass are required' }, { status: 400 }))
+        return handleCORS(request, NextResponse.json({ success: false, error: 'user and pass are required' }, { status: 400 }))
       }
       const result = await testEmailConnection({ provider, host, port, user, pass })
-      if (!result.success) return handleCORS(NextResponse.json({ success: false, error: result.error }))
+      if (!result.success) return handleCORS(request, NextResponse.json({ success: false, error: result.error }))
 
       const encryptedCreds = encrypt(JSON.stringify(result.creds))
       await db.collection('users').doc(decoded.uid).collection('channels').doc('email').set({
         provider, connected: true, email: truncate(user, 200), encryptedCreds, updatedAt: FieldValue.serverTimestamp(),
       })
-      return handleCORS(NextResponse.json({ success: true }))
+      return handleCORS(request, NextResponse.json({ success: true }))
     }
 
     // DELETE /api/channels/email — disconnect
     if (path[0] === 'channels' && path[1] === 'email' && path.length === 2 && method === 'DELETE') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       await db.collection('users').doc(decoded.uid).collection('channels').doc('email').delete()
-      return handleCORS(NextResponse.json({ ok: true }))
+      return handleCORS(request, NextResponse.json({ ok: true }))
     }
 
     // GET /api/channels — list connected channels (never returns encryptedCreds)
     if (route === '/channels' && method === 'GET') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       const qs = await db.collection('users').doc(decoded.uid).collection('channels').get()
       const channels = qs.docs.map((d) => { const c = ser(d); delete c.encryptedCreds; return { id: d.id, ...c } })
-      return handleCORS(NextResponse.json({ channels }))
+      return handleCORS(request, NextResponse.json({ channels }))
     }
 
     // POST /api/outreach/send — send via the connected email channel
     if (route === '/outreach/send' && method === 'POST') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       const body = await request.json().catch(() => null)
-      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      if (!body) return handleCORS(request, NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
       const { to, subject, body: text } = body
       if (!to || typeof to !== 'string' || !subject || !text) {
-        return handleCORS(NextResponse.json({ error: 'to, subject, and body are required' }, { status: 400 }))
+        return handleCORS(request, NextResponse.json({ error: 'to, subject, and body are required' }, { status: 400 }))
       }
       const channelSnap = await db.collection('users').doc(decoded.uid).collection('channels').doc('email').get()
       if (!channelSnap.exists || !channelSnap.data().connected) {
-        return handleCORS(NextResponse.json({ error: 'email channel not connected' }, { status: 400 }))
+        return handleCORS(request, NextResponse.json({ error: 'email channel not connected' }, { status: 400 }))
       }
       const creds = JSON.parse(decrypt(channelSnap.data().encryptedCreds))
 
@@ -408,24 +440,24 @@ Rules:
       const hash = crypto.createHash('sha256').update(`${to}|${subject}|${text}`).digest('hex')
       const sentRef = db.collection('users').doc(decoded.uid).collection('sentMessages')
       const dupe = await sentRef.where('hash', '==', hash).limit(1).get()
-      if (!dupe.empty) return handleCORS(NextResponse.json({ sent: false, skipped: 'duplicate' }))
+      if (!dupe.empty) return handleCORS(request, NextResponse.json({ sent: false, skipped: 'duplicate' }))
 
       try {
         await sendEmail(creds, { to, subject: truncate(subject, 200), text: truncate(text, 5000) })
       } catch (err) {
-        return handleCORS(NextResponse.json({ sent: false, error: err.message }, { status: 502 }))
+        return handleCORS(request, NextResponse.json({ sent: false, error: err.message }, { status: 502 }))
       }
       await sentRef.add({ hash, to, subject: truncate(subject, 200), sentAt: FieldValue.serverTimestamp() })
-      return handleCORS(NextResponse.json({ sent: true }))
+      return handleCORS(request, NextResponse.json({ sent: true }))
     }
 
     // GET /api/auth/linkedin — returns the consent URL (auth required; browser
     // navigations can't carry the Bearer header, so we sign the uid into state).
     if (route === '/auth/linkedin' && method === 'GET') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
-      if (!process.env.LINKEDIN_CLIENT_ID) return handleCORS(NextResponse.json({ error: 'LinkedIn not configured' }, { status: 503 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!process.env.LINKEDIN_CLIENT_ID) return handleCORS(request, NextResponse.json({ error: 'LinkedIn not configured' }, { status: 503 }))
       const state = encrypt(JSON.stringify({ uid: decoded.uid, ts: Date.now() }))
-      return handleCORS(NextResponse.json({ url: linkedinAuthorizeUrl(state) }))
+      return handleCORS(request, NextResponse.json({ url: linkedinAuthorizeUrl(state) }))
     }
 
     // GET /api/auth/linkedin/callback — browser redirect from LinkedIn
@@ -434,7 +466,7 @@ Rules:
       const code = url.searchParams.get('code')
       const state = url.searchParams.get('state')
       const base = process.env.NEXT_PUBLIC_BASE_URL || ''
-      const fail = (reason) => handleCORS(NextResponse.redirect(`${base}/settings/channels?linkedin=error&reason=${encodeURIComponent(reason)}`))
+      const fail = (reason) => handleCORS(request, NextResponse.redirect(`${base}/settings/channels?linkedin=error&reason=${encodeURIComponent(reason)}`))
       if (!code || !state) return fail('missing_code_or_state')
       let uid
       try {
@@ -453,7 +485,7 @@ Rules:
           encryptedCreds: encrypt(JSON.stringify({ access_token: token.access_token, expires_in: token.expires_in, authorUrn: profile.id ? `urn:li:person:${profile.id}` : null })),
           updatedAt: FieldValue.serverTimestamp(),
         })
-        return handleCORS(NextResponse.redirect(`${base}/settings/channels?linkedin=connected`))
+        return handleCORS(request, NextResponse.redirect(`${base}/settings/channels?linkedin=connected`))
       } catch (e) {
         console.error('LinkedIn callback failed:', e.message)
         return fail('exchange_failed')
@@ -462,27 +494,27 @@ Rules:
 
     // POST /api/outreach/linkedin/send — auth required
     if (route === '/outreach/linkedin/send' && method === 'POST') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       const body = await request.json().catch(() => null)
-      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      if (!body) return handleCORS(request, NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
       const { recipientUrn, message } = body
-      if (!recipientUrn || !message) return handleCORS(NextResponse.json({ error: 'recipientUrn and message are required' }, { status: 400 }))
+      if (!recipientUrn || !message) return handleCORS(request, NextResponse.json({ error: 'recipientUrn and message are required' }, { status: 400 }))
       const snap = await db.collection('users').doc(decoded.uid).collection('channels').doc('linkedin').get()
-      if (!snap.exists || !snap.data().connected) return handleCORS(NextResponse.json({ error: 'linkedin channel not connected' }, { status: 400 }))
+      if (!snap.exists || !snap.data().connected) return handleCORS(request, NextResponse.json({ error: 'linkedin channel not connected' }, { status: 400 }))
       const creds = JSON.parse(decrypt(snap.data().encryptedCreds))
       try {
         const result = await linkedinSendMessage(creds.access_token, creds.authorUrn, recipientUrn, truncate(message, 2000))
-        return handleCORS(NextResponse.json({ sent: true, result }))
+        return handleCORS(request, NextResponse.json({ sent: true, result }))
       } catch (e) {
-        return handleCORS(NextResponse.json({ sent: false, error: e.message }, { status: 502 }))
+        return handleCORS(request, NextResponse.json({ sent: false, error: e.message }, { status: 502 }))
       }
     }
 
     // DELETE /api/channels/linkedin — disconnect
     if (path[0] === 'channels' && path[1] === 'linkedin' && path.length === 2 && method === 'DELETE') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       await db.collection('users').doc(decoded.uid).collection('channels').doc('linkedin').delete()
-      return handleCORS(NextResponse.json({ ok: true }))
+      return handleCORS(request, NextResponse.json({ ok: true }))
     }
 
     // ---- Team / agency seats ----
@@ -500,15 +532,15 @@ Rules:
 
     // POST /api/agency/invite — owner invites a member (Agency plan only)
     if (route === '/agency/invite' && method === 'POST') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       const body = await request.json().catch(() => null)
       const inviteEmail = body?.email
-      if (!inviteEmail || typeof inviteEmail !== 'string') return handleCORS(NextResponse.json({ error: 'email required' }, { status: 400 }))
+      if (!inviteEmail || typeof inviteEmail !== 'string') return handleCORS(request, NextResponse.json({ error: 'email required' }, { status: 400 }))
 
       const ownerSnap = await db.collection('users').doc(decoded.uid).get()
       const owner = ownerSnap.exists ? ownerSnap.data() : null
       if (owner?.plan !== 'agency' || owner?.status !== 'active') {
-        return handleCORS(NextResponse.json({ error: 'Agency plan required' }, { status: 403 }))
+        return handleCORS(request, NextResponse.json({ error: 'Agency plan required' }, { status: 403 }))
       }
 
       const agencyId = decoded.uid
@@ -527,19 +559,19 @@ Rules:
       // exists in this codebase (the email channel is per-user SMTP outreach, not
       // system mail). Wire to one when available — for now the owner shares the link.
       const acceptUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/agency/accept?token=${token}`
-      return handleCORS(NextResponse.json({ token, acceptUrl }))
+      return handleCORS(request, NextResponse.json({ token, acceptUrl }))
     }
 
     // GET /api/agency/accept?token= — invitee accepts (must be signed in)
     if (route === '/agency/accept' && method === 'GET') {
       const token = new URL(request.url).searchParams.get('token')
-      if (!token) return handleCORS(NextResponse.json({ error: 'token required' }, { status: 400 }))
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'sign in to accept the invite' }, { status: 401 }))
+      if (!token) return handleCORS(request, NextResponse.json({ error: 'token required' }, { status: 400 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'sign in to accept the invite' }, { status: 401 }))
 
       const inviteRef = db.collection('invites').doc(token)
       const inviteSnap = await inviteRef.get()
       if (!inviteSnap.exists || inviteSnap.data().status !== 'pending') {
-        return handleCORS(NextResponse.json({ error: 'invite invalid or already used' }, { status: 400 }))
+        return handleCORS(request, NextResponse.json({ error: 'invite invalid or already used' }, { status: 400 }))
       }
       const { agencyId } = inviteSnap.data()
       const agencyRef = db.collection('agencies').doc(agencyId)
@@ -555,33 +587,33 @@ Rules:
         tx.update(inviteRef, { status: 'accepted', acceptedBy: decoded.uid })
         return { ok: true, agencyId }
       })
-      if (result.error) return handleCORS(NextResponse.json({ error: result.error }, { status: 400 }))
-      return handleCORS(NextResponse.json({ ok: true, agencyId }))
+      if (result.error) return handleCORS(request, NextResponse.json({ error: result.error }, { status: 400 }))
+      return handleCORS(request, NextResponse.json({ ok: true, agencyId }))
     }
 
     // POST /api/agency/remove — owner removes a member
     if (route === '/agency/remove' && method === 'POST') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       const body = await request.json().catch(() => null)
       const memberUid = body?.memberUid
-      if (!memberUid) return handleCORS(NextResponse.json({ error: 'memberUid required' }, { status: 400 }))
+      if (!memberUid) return handleCORS(request, NextResponse.json({ error: 'memberUid required' }, { status: 400 }))
       const agencyRef = db.collection('agencies').doc(decoded.uid)
       const agencySnap = await agencyRef.get()
-      if (!agencySnap.exists) return handleCORS(NextResponse.json({ error: 'no agency found' }, { status: 404 }))
+      if (!agencySnap.exists) return handleCORS(request, NextResponse.json({ error: 'no agency found' }, { status: 404 }))
       await agencyRef.update({ memberUids: (agencySnap.data().memberUids || []).filter((u) => u !== memberUid) })
       await db.collection('users').doc(memberUid).set({ role: 'member', agencyId: FieldValue.delete() }, { merge: true })
-      return handleCORS(NextResponse.json({ ok: true }))
+      return handleCORS(request, NextResponse.json({ ok: true }))
     }
 
     // GET /api/agency — agency view for the current user (owner or member)
     if (route === '/agency' && method === 'GET') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       const userSnap = await db.collection('users').doc(decoded.uid).get()
       const u = userSnap.exists ? userSnap.data() : {}
       const agencyId = u.role === 'owner' ? decoded.uid : u.agencyId
-      if (!agencyId) return handleCORS(NextResponse.json({ agency: null, role: u.role || null }))
+      if (!agencyId) return handleCORS(request, NextResponse.json({ agency: null, role: u.role || null }))
       const agencySnap = await db.collection('agencies').doc(agencyId).get()
-      if (!agencySnap.exists) return handleCORS(NextResponse.json({ agency: null, role: u.role || null }))
+      if (!agencySnap.exists) return handleCORS(request, NextResponse.json({ agency: null, role: u.role || null }))
       const agency = agencySnap.data()
       const memberUids = agency.memberUids || []
       const members = await Promise.all(memberUids.map(async (uid) => {
@@ -589,7 +621,7 @@ Rules:
         return { uid, email: m.exists ? m.data().email : null }
       }))
       const ownerSnap = await db.collection('users').doc(agency.ownerUid).get()
-      return handleCORS(NextResponse.json({
+      return handleCORS(request, NextResponse.json({
         role: u.role || (agency.ownerUid === decoded.uid ? 'owner' : 'member'),
         agency: { agencyId, seats: agency.seats, used: memberUids.length, members, ownerEmail: ownerSnap.exists ? ownerSnap.data().email : null, whiteLabel: agency.whiteLabel || null },
       }))
@@ -597,16 +629,16 @@ Rules:
 
     // PUT /api/agency/white-label — owner updates branding (Agency plan only)
     if (route === '/agency/white-label' && method === 'PUT') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       const ownerSnap = await db.collection('users').doc(decoded.uid).get()
       const owner = ownerSnap.exists ? ownerSnap.data() : null
       if (owner?.plan !== 'agency' || owner?.status !== 'active') {
-        return handleCORS(NextResponse.json({ error: 'Agency plan required' }, { status: 403 }))
+        return handleCORS(request, NextResponse.json({ error: 'Agency plan required' }, { status: 403 }))
       }
       const body = await request.json().catch(() => null)
-      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      if (!body) return handleCORS(request, NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
       const brandName = truncate(String(body.brandName || ''), 100)
-      if (!brandName) return handleCORS(NextResponse.json({ error: 'brandName required' }, { status: 400 }))
+      if (!brandName) return handleCORS(request, NextResponse.json({ error: 'brandName required' }, { status: 400 }))
       const primaryColor = /^#[0-9a-fA-F]{6}$/.test(body.primaryColor || '') ? body.primaryColor : '#FF4D6D'
       const whiteLabel = {
         brandName,
@@ -623,33 +655,33 @@ Rules:
       } else {
         await agencyRef.update({ whiteLabel })
       }
-      return handleCORS(NextResponse.json({ ok: true, whiteLabel }))
+      return handleCORS(request, NextResponse.json({ ok: true, whiteLabel }))
     }
 
     // POST /api/channels/sms/connect — save encrypted Twilio creds
     if (path[0] === 'channels' && path[1] === 'sms' && path[2] === 'connect' && method === 'POST') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       const body = await request.json().catch(() => null)
-      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      if (!body) return handleCORS(request, NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
       const { accountSid, authToken, from } = body
       if (!accountSid || !authToken || !from) {
-        return handleCORS(NextResponse.json({ success: false, error: 'accountSid, authToken, and from are required' }, { status: 400 }))
+        return handleCORS(request, NextResponse.json({ success: false, error: 'accountSid, authToken, and from are required' }, { status: 400 }))
       }
       const result = await testTwilio({ accountSid, authToken })
-      if (!result.success) return handleCORS(NextResponse.json({ success: false, error: result.error }))
+      if (!result.success) return handleCORS(request, NextResponse.json({ success: false, error: result.error }))
       await db.collection('users').doc(decoded.uid).collection('channels').doc('sms').set({
         provider: 'twilio', connected: true, email: truncate(from, 40),
         encryptedCreds: encrypt(JSON.stringify({ accountSid, authToken, from })),
         updatedAt: FieldValue.serverTimestamp(),
       })
-      return handleCORS(NextResponse.json({ success: true }))
+      return handleCORS(request, NextResponse.json({ success: true }))
     }
 
     // DELETE /api/channels/sms — disconnect
     if (path[0] === 'channels' && path[1] === 'sms' && path.length === 2 && method === 'DELETE') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       await db.collection('users').doc(decoded.uid).collection('channels').doc('sms').delete()
-      return handleCORS(NextResponse.json({ ok: true }))
+      return handleCORS(request, NextResponse.json({ ok: true }))
     }
 
     // POST /api/reminders/schedule — enqueue 24h + 1h reminders before scheduledAt.
@@ -657,12 +689,12 @@ Rules:
     // status transition needs a lead phone + appointment.scheduledAt, neither of
     // which the demo agent/result flow captures — so callers pass them explicitly.
     if (route === '/reminders/schedule' && method === 'POST') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       const body = await request.json().catch(() => null)
-      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      if (!body) return handleCORS(request, NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
       const { to, scheduledAt, leadName } = body
       const when = Date.parse(scheduledAt)
-      if (!to || !Number.isFinite(when)) return handleCORS(NextResponse.json({ error: 'to and a valid scheduledAt are required' }, { status: 400 }))
+      if (!to || !Number.isFinite(when)) return handleCORS(request, NextResponse.json({ error: 'to and a valid scheduledAt are required' }, { status: 400 }))
 
       const pendingRef = db.collection('reminders').doc(decoded.uid).collection('pending')
       const name = truncate(String(leadName || 'there'), 80)
@@ -679,7 +711,7 @@ Rules:
         })
         scheduled.push({ id, label: o.label, sendAt: new Date(sendAt).toISOString() })
       }
-      return handleCORS(NextResponse.json({ scheduled }))
+      return handleCORS(request, NextResponse.json({ scheduled }))
     }
 
     // GET /api/cron/send-reminders — Vercel cron (*/15). Fires overdue reminders.
@@ -687,7 +719,7 @@ Rules:
       // Vercel attaches `Authorization: Bearer <CRON_SECRET>` when CRON_SECRET is set.
       if (process.env.CRON_SECRET) {
         const auth = request.headers.get('authorization') || ''
-        if (auth !== `Bearer ${process.env.CRON_SECRET}`) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+        if (auth !== `Bearer ${process.env.CRON_SECRET}`) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       }
       const now = new Date()
       const due = await db.collectionGroup('pending').where('status', '==', 'pending').where('sendAt', '<=', now).limit(100).get()
@@ -713,40 +745,40 @@ Rules:
           await doc.ref.update({ status: 'failed', error: e.message })
         }
       }
-      return handleCORS(NextResponse.json({ processed: due.size, sent, failed }))
+      return handleCORS(request, NextResponse.json({ processed: due.size, sent, failed }))
     }
 
     // POST /api/integrations/ghl/connect — store encrypted API key + locationId
     if (path[0] === 'integrations' && path[1] === 'ghl' && path[2] === 'connect' && method === 'POST') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       const body = await request.json().catch(() => null)
-      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      if (!body) return handleCORS(request, NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
       const { apiKey, locationId } = body
-      if (!apiKey || !locationId) return handleCORS(NextResponse.json({ success: false, error: 'apiKey and locationId required' }, { status: 400 }))
+      if (!apiKey || !locationId) return handleCORS(request, NextResponse.json({ success: false, error: 'apiKey and locationId required' }, { status: 400 }))
       const result = await ghlValidate({ apiKey })
-      if (!result.success) return handleCORS(NextResponse.json({ success: false, error: result.error }))
+      if (!result.success) return handleCORS(request, NextResponse.json({ success: false, error: result.error }))
       await db.collection('users').doc(decoded.uid).collection('integrations').doc('ghl').set({
         provider: 'ghl', connected: true,
         locationId: truncate(String(locationId), 100), // plaintext — needed for inbound webhook routing, not secret
         encryptedCreds: encrypt(JSON.stringify({ apiKey, locationId })),
         updatedAt: FieldValue.serverTimestamp(),
       })
-      return handleCORS(NextResponse.json({ success: true }))
+      return handleCORS(request, NextResponse.json({ success: true }))
     }
 
     // DELETE /api/integrations/ghl — disconnect
     if (path[0] === 'integrations' && path[1] === 'ghl' && path.length === 2 && method === 'DELETE') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       await db.collection('users').doc(decoded.uid).collection('integrations').doc('ghl').delete()
-      return handleCORS(NextResponse.json({ ok: true }))
+      return handleCORS(request, NextResponse.json({ ok: true }))
     }
 
     // GET /api/integrations — list connected integrations (no secrets)
     if (route === '/integrations' && method === 'GET') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       const qs = await db.collection('users').doc(decoded.uid).collection('integrations').get()
       const integrations = qs.docs.map((d) => { const c = ser(d); delete c.encryptedCreds; return { id: d.id, ...c } })
-      return handleCORS(NextResponse.json({ integrations }))
+      return handleCORS(request, NextResponse.json({ integrations }))
     }
 
     // POST /api/integrations/ghl/sync — push a booked lead's contact + appointment to GHL.
@@ -754,13 +786,13 @@ Rules:
     // lead contact fields (email/phone) + calendarId/startTime the demo flow doesn't
     // capture, so callers pass them. Lead model gap, same as tasks 4/8.
     if (path[0] === 'integrations' && path[1] === 'ghl' && path[2] === 'sync' && method === 'POST') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       const body = await request.json().catch(() => null)
-      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      if (!body) return handleCORS(request, NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
       const { email, phone, firstName, calendarId, startTime } = body
-      if (!email && !phone) return handleCORS(NextResponse.json({ error: 'email or phone required' }, { status: 400 }))
+      if (!email && !phone) return handleCORS(request, NextResponse.json({ error: 'email or phone required' }, { status: 400 }))
       const snap = await db.collection('users').doc(decoded.uid).collection('integrations').doc('ghl').get()
-      if (!snap.exists || !snap.data().connected) return handleCORS(NextResponse.json({ error: 'GHL not connected' }, { status: 400 }))
+      if (!snap.exists || !snap.data().connected) return handleCORS(request, NextResponse.json({ error: 'GHL not connected' }, { status: 400 }))
       const creds = JSON.parse(decrypt(snap.data().encryptedCreds))
       try {
         let contact = await ghlGetContact(creds, { email, phone })
@@ -770,9 +802,9 @@ Rules:
         if (calendarId && startTime && contactId) {
           appointment = await ghlCreateAppointment(creds, { contactId, calendarId, startTime })
         }
-        return handleCORS(NextResponse.json({ ok: true, contactId, appointment }))
+        return handleCORS(request, NextResponse.json({ ok: true, contactId, appointment }))
       } catch (e) {
-        return handleCORS(NextResponse.json({ ok: false, error: e.message }, { status: 502 }))
+        return handleCORS(request, NextResponse.json({ ok: false, error: e.message }, { status: 502 }))
       }
     }
 
@@ -782,10 +814,10 @@ Rules:
       if (process.env.GHL_WEBHOOK_SECRET) {
         const sig = request.headers.get('x-ghl-signature') || ''
         const expected = crypto.createHmac('sha256', process.env.GHL_WEBHOOK_SECRET).update(raw).digest('hex')
-        if (sig !== expected) return handleCORS(NextResponse.json({ error: 'invalid signature' }, { status: 401 }))
+        if (sig !== expected) return handleCORS(request, NextResponse.json({ error: 'invalid signature' }, { status: 401 }))
       }
       let payload
-      try { payload = JSON.parse(raw) } catch { return handleCORS(NextResponse.json({ error: 'invalid JSON' }, { status: 400 })) }
+      try { payload = JSON.parse(raw) } catch { return handleCORS(request, NextResponse.json({ error: 'invalid JSON' }, { status: 400 })) }
 
       // Route to the connected user by locationId (stored plaintext at connect).
       const locationId = payload.locationId || payload.location_id
@@ -801,57 +833,57 @@ Rules:
         uid, type: payload.type || 'unknown', locationId: locationId || null,
         payload, receivedAt: FieldValue.serverTimestamp(),
       })
-      return handleCORS(NextResponse.json({ ok: true, matchedUid: uid }))
+      return handleCORS(request, NextResponse.json({ ok: true, matchedUid: uid }))
     }
 
     // POST /api/webhooks — register a webhook (auth required)
     if (route === '/webhooks' && method === 'POST') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       const body = await request.json().catch(() => null)
-      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      if (!body) return handleCORS(request, NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
       const { url, events } = body
       if (!url || typeof url !== 'string' || !/^https:\/\//.test(url)) {
-        return handleCORS(NextResponse.json({ error: 'valid https url required' }, { status: 400 }))
+        return handleCORS(request, NextResponse.json({ error: 'valid https url required' }, { status: 400 }))
       }
       if (!Array.isArray(events) || events.length === 0 || !events.every((e) => typeof e === 'string')) {
-        return handleCORS(NextResponse.json({ error: 'events must be a non-empty array of strings' }, { status: 400 }))
+        return handleCORS(request, NextResponse.json({ error: 'events must be a non-empty array of strings' }, { status: 400 }))
       }
       const id = uuidv4()
       const secret = crypto.randomBytes(32).toString('hex')
       const webhook = { id, url: truncate(url, 500), events: events.slice(0, 20), secret, active: true, createdAt: FieldValue.serverTimestamp() }
       await db.collection('users').doc(decoded.uid).collection('webhooks').doc(id).set(webhook)
-      return handleCORS(NextResponse.json({ id, url: webhook.url, events: webhook.events, active: true, secret }))
+      return handleCORS(request, NextResponse.json({ id, url: webhook.url, events: webhook.events, active: true, secret }))
     }
 
     // GET /api/webhooks — list user's webhooks (secret never returned after creation)
     if (route === '/webhooks' && method === 'GET') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       const qs = await db.collection('users').doc(decoded.uid).collection('webhooks').get()
       const webhooks = qs.docs.map((d) => { const w = ser(d); delete w.secret; return w })
-      return handleCORS(NextResponse.json({ webhooks }))
+      return handleCORS(request, NextResponse.json({ webhooks }))
     }
 
     // DELETE /api/webhooks/:id
     if (route.startsWith('/webhooks/') && method === 'DELETE') {
-      if (!decoded) return handleCORS(NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       const id = route.split('/')[2]
-      if (!id) return handleCORS(NextResponse.json({ error: 'webhook id required' }, { status: 400 }))
+      if (!id) return handleCORS(request, NextResponse.json({ error: 'webhook id required' }, { status: 400 }))
       await db.collection('users').doc(decoded.uid).collection('webhooks').doc(id).delete()
-      return handleCORS(NextResponse.json({ ok: true }))
+      return handleCORS(request, NextResponse.json({ ok: true }))
     }
 
     // POST /api/billing/checkout — auth required
     if (route === '/billing/checkout' && method === 'POST') {
       const body = await request.json().catch(() => null)
-      if (!body) return handleCORS(NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      if (!body) return handleCORS(request, NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
       const { planKey } = body
       const email = decoded?.email || body?.email
-      if (!email) return handleCORS(NextResponse.json({ error: 'sign in required' }, { status: 401 }))
-      if (!planKey || !PLANS[planKey]) return handleCORS(NextResponse.json({ error: 'valid planKey required' }, { status: 400 }))
+      if (!email) return handleCORS(request, NextResponse.json({ error: 'sign in required' }, { status: 401 }))
+      if (!planKey || !PLANS[planKey]) return handleCORS(request, NextResponse.json({ error: 'valid planKey required' }, { status: 400 }))
       const customerId = await getOrCreateCustomer(email, decoded?.uid)
       const priceId = await ensurePrice(planKey)
       const base = process.env.NEXT_PUBLIC_BASE_URL
-      if (!base) return handleCORS(NextResponse.json({ error: 'server misconfiguration: NEXT_PUBLIC_BASE_URL not set' }, { status: 500 }))
+      if (!base) return handleCORS(request, NextResponse.json({ error: 'server misconfiguration: NEXT_PUBLIC_BASE_URL not set' }, { status: 500 }))
       const stripe = getStripe()
       const session = await stripe.checkout.sessions.create({
         mode: 'subscription',
@@ -864,31 +896,31 @@ Rules:
         metadata: { planKey, email, uid: decoded?.uid || '' },
         subscription_data: { metadata: { planKey, email, uid: decoded?.uid || '' } },
       })
-      return handleCORS(NextResponse.json({ url: session.url, id: session.id }))
+      return handleCORS(request, NextResponse.json({ url: session.url, id: session.id }))
     }
 
     // POST /api/billing/portal
     if (route === '/billing/portal' && method === 'POST') {
       const body = await request.json().catch(() => ({}))
       const email = decoded?.email || body?.email
-      if (!email) return handleCORS(NextResponse.json({ error: 'sign in required' }, { status: 401 }))
+      if (!email) return handleCORS(request, NextResponse.json({ error: 'sign in required' }, { status: 401 }))
       const userDoc = decoded?.uid ? await db.collection('users').doc(decoded.uid).get() : null
       const userByEmail = !userDoc?.exists ? (await db.collection('users').where('email', '==', email).limit(1).get()).docs[0] : null
       const u = userDoc?.exists ? userDoc.data() : userByEmail?.data()
-      if (!u?.stripeCustomerId) return handleCORS(NextResponse.json({ error: 'no customer found' }, { status: 404 }))
+      if (!u?.stripeCustomerId) return handleCORS(request, NextResponse.json({ error: 'no customer found' }, { status: 404 }))
       const stripe = getStripe()
       const session = await stripe.billingPortal.sessions.create({
         customer: u.stripeCustomerId,
         return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard`,
       })
-      return handleCORS(NextResponse.json({ url: session.url }))
+      return handleCORS(request, NextResponse.json({ url: session.url }))
     }
 
     // GET /api/billing/session?session_id=...
     if (route === '/billing/session' && method === 'GET') {
       const url = new URL(request.url)
       const sid = url.searchParams.get('session_id')
-      if (!sid) return handleCORS(NextResponse.json({ error: 'session_id required' }, { status: 400 }))
+      if (!sid) return handleCORS(request, NextResponse.json({ error: 'session_id required' }, { status: 400 }))
       const stripe = getStripe()
       const s = await stripe.checkout.sessions.retrieve(sid)
       const email = s.customer_details?.email || s.metadata?.email
@@ -904,13 +936,13 @@ Rules:
           updatedAt: FieldValue.serverTimestamp(),
         }, { merge: true })
       }
-      return handleCORS(NextResponse.json({ email, planKey: s.metadata?.planKey, status: s.status }))
+      return handleCORS(request, NextResponse.json({ email, planKey: s.metadata?.planKey, status: s.status }))
     }
 
-    return handleCORS(NextResponse.json({ error: `Route ${route} not found` }, { status: 404 }))
+    return handleCORS(request, NextResponse.json({ error: `Route ${route} not found` }, { status: 404 }))
   } catch (err) {
     console.error('API Error:', err)
-    return handleCORS(NextResponse.json({ error: err.message || 'internal server error' }, { status: 500 }))
+    return handleCORS(request, NextResponse.json({ error: err.message || 'internal server error' }, { status: 500 }))
   }
 }
 

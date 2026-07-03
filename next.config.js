@@ -34,15 +34,9 @@ const nextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
         ],
       },
-      {
-        // API routes need CORS for external integrations (webhooks, widget embeds)
-        source: "/api/(.*)",
-        headers: [
-          { key: "Access-Control-Allow-Origin", value: process.env.CORS_ORIGINS || "*" },
-          { key: "Access-Control-Allow-Methods", value: "GET, POST, PUT, DELETE, OPTIONS" },
-          { key: "Access-Control-Allow-Headers", value: "Content-Type, Authorization" },
-        ],
-      },
+      // CORS for /api is handled by handleCORS() in app/api/[[...path]]/route.js
+      // (origin allow-list from CORS_ORIGINS) — do not duplicate it here, the two
+      // used to disagree. The Stripe webhook is server-to-server and needs none.
     ];
   },
 };
