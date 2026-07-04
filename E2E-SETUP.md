@@ -31,6 +31,7 @@ npm run test:e2e:headed                           # watch the browser click
 ```
 
 ## What it covers (tests/e2e/smoke.spec.js)
+
 1. Homepage loads — hero + Sign in button.
 2. Auth modal opens from "Sign in".
 3. **Wizard regression** — advances all 4 steps, clicks "Build my AI setter",
@@ -38,10 +39,12 @@ npm run test:e2e:headed                           # watch the browser click
 4. Blog index lists posts and a post opens.
 
 ## Reuse for future projects
+
 The config reads `BASE_URL` (defaults to `https://www.dmforge.org`). For a new
 project: copy `playwright.config.js`, drop a new spec in `tests/e2e/`, and point
 `BASE_URL` at the new site. Selectors use visible text/placeholders rather than
 CSS classes, so they survive restyling.
 
 ## Note: keep test files out of the deployed bundle
+
 These live in `tests/` and won't be bundled by Next.js. No extra config needed.
