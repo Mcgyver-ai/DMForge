@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { ArrowLeft, Mail, CheckCircle2, Linkedin, MessageSquare } from 'lucide-react'
+import { ArrowLeft, Mail, CheckCircle2, Link2, MessageSquare } from 'lucide-react'
 
 export default function ChannelsSettings() {
   const { user, loading, getToken } = useAuth()
@@ -124,7 +124,7 @@ export default function ChannelsSettings() {
       <Card className="bg-[#161630] border-[#2A2A55] p-6 mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Linkedin className="w-5 h-5 text-[#0A66C2]" />
+            <Link2 className="w-5 h-5 text-[#0A66C2]" />
             <div>
               <div className="font-semibold">{linkedinChannel?.connected ? 'LinkedIn connected' : 'Connect LinkedIn'}</div>
               <div className="text-xs text-[#A0A0C8]">
