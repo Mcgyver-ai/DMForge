@@ -17,6 +17,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Least privilege: this workflow only checks out code and deploys via the Vercel
+# CLI (authenticated with VERCEL_TOKEN, not GITHUB_TOKEN), so read is enough.
+permissions:
+  contents: read
+
 concurrency:
   group: deploy-production
   cancel-in-progress: false
