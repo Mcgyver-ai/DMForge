@@ -3,7 +3,7 @@
 - ✅ Rate limiting — sliding-window limiter (`lib/rateLimit.js`) wired into `handleRoute` in the catch-all API route: 60 req/min per uid, 20 req/min per IP for unauthenticated requests, 429 `{ error: "rate_limit_exceeded" }` on breach.
 - ✅ Zapier / webhook outbound — `users/{uid}/webhooks` CRUD (`POST`/`GET /api/webhooks`, `DELETE /api/webhooks/:id`) + `triggerWebhooks()` in `lib/webhooks.js`, fired (fire-and-forget, HMAC-SHA256 signed) from `/result/save` when `state.booked` is true.
 - ✅ Follow-up sequence builder — "campaign" mapped to the existing `agents` collection (no separate campaign model exists). `agents/{id}/sequences` + Gemini-generated Day 1/3/7 sequence (`POST/GET /api/agents/:id/sequences[/generate]`, `PUT .../sequences/:seqId`), inline expandable panel + edit on the dashboard agent cards.
-- ⛔ Inbox view — SKIPPED. Spec needs `leads/{uid}/prospects` with `latestReply`/`latestReplyAt` (ongoing reply tracking). Nothing in this codebase ingests inbound replies — `results` are one-shot saved transcripts from the demo simulator, not a live conversation thread. Building an inbox here means designing the missing reply-ingestion pipeline first; flagged per user decision rather than faked.
+- ✅ Inbox view — BUILT (2026-07-06). `leads/{uid}/prospects/{id}` model with denormalized `latestReply`/`latestReplyAt`/`lastMessageAt`/`status` + a `messages` subcollection thread. Full CRUD (`POST/GET /api/prospects`, `GET/PUT/DELETE /api/prospects/:id`, `POST /api/prospects/:id/messages`) and a token-scoped public **reply-ingestion pipeline** (`POST /api/inbound/token` mints the URL, `POST /api/inbound/:token` matches-or-creates a prospect from any channel poller/Zapier/email parser). `/inbox` UI: status-filtered list, thread drawer, outbound logging, status transitions. A transition into `booked` now **auto-fires** the reminder + GHL-sync + webhook side effects (`lib/prospects.js onProspectBooked`) — closing the auto-trigger gap that tasks 8/10 flagged.
 - ✅ Email outreach channel — `users/{uid}/channels/email` (Gmail-via-SMTP or generic SMTP), AES-256-GCM creds at rest (`lib/encryption.js`, needs `ENCRYPTION_KEY` — not yet set in Vercel), connection tested before saving, `/settings/channels` UI. `/api/outreach/send` dedups by content hash under `users/{uid}/sentMessages` (the spec's `leads/{uid}/prospects/{id}/sentMessages` path doesn't exist — no lead model — flagged, not faked). Gmail is SMTP+app-password, not 3-legged OAuth (no GMAIL_CLIENT_ID/SECRET registered).
 - ✅ LinkedIn OAuth connect — 3-legged OAuth (`GET /api/auth/linkedin` → consent URL with encrypted-state-carried uid, `GET /api/auth/linkedin/callback` → token exchange + profile fetch, encrypted token in `users/{uid}/channels/linkedin`), `POST /api/outreach/linkedin/send`, Connect/Disconnect card on `/settings/channels`. Reuses `lib/encryption.js` + channel pattern. NEEDS `LINKEDIN_CLIENT_ID/SECRET/REDIRECT_URI` (returns 503 until set) — requires a registered LinkedIn app.
 - ✅ Team / agency seats — `users/{uid}` gains `role`/`agencyId` (additive, no query breakage), `agencies/{ownerUid}` = `{ ownerUid, seats, memberUids[] }`. `POST /api/agency/invite` (Agency-plan gated, creates agency on first invite), `GET /api/agency/accept?token=` (transactional seat check), `POST /api/agency/remove`, `GET /api/agency`, Settings → Team page. Seat limit from Stripe `subscription.metadata.seats` (fallback 10). NOTE: invite link is returned/copied to clipboard — no system transactional email provider exists, so no email is auto-sent (flagged in code).
@@ -69,3 +69,50 @@ This codebase has `agents` (ICP/offer config) + one-shot demo `results` — **no
 - Reconnect Vercel Git integration (manual deploys until then).
 - LinkedIn app registration + `LINKEDIN_*` env vars (unchanged from sprint notes).
 - `CRON_SECRET` / `GHL_WEBHOOK_SECRET` still recommended-but-unset; `CRON_SECRET` now also needs adding as a **GitHub repo secret** for the Actions cron once set in Vercel.
+
+---
+
+## Session log (2026-07-06) — closing open items 1–4
+
+Worked the four open items from the previous session. Two were fully closeable in
+code; two are gated on external dashboards/accounts and are now prepared + documented.
+
+### 1. Vercel auto-deploy restored (code-side) — `.github/workflows/deploy.yml`
+- The native Git integration has been dead since the 2026-06-30 history rewrite. Added
+  a GitHub Actions workflow that deploys production on every push to `main` via the
+  Vercel CLI (`vercel pull → build → deploy --prebuilt --prod`). Self-skips (yellow
+  warning, not red) until the three secrets are set, so it never blocks CI.
+- **Manual step remaining (you):** add repo secrets `VERCEL_TOKEN`, `VERCEL_ORG_ID`,
+  `VERCEL_PROJECT_ID` (org/project IDs are in `.vercel/project.json` after `vercel link`).
+  Alternatively still fixable via dashboard → dm-forge → Settings → Git (either restores
+  auto-deploy; the workflow needs no dashboard access).
+
+### 2. LinkedIn — **blocked on external account, cannot be done from code**
+- The connect flow is already fully built; it only lacks a registered app. Documented the
+  exact setup (scopes, redirect URI) in `.env.example`. **Manual step (you):** register the
+  app at developer.linkedin.com, then set `LINKEDIN_CLIENT_ID/SECRET/REDIRECT_URI` in Vercel.
+  Nothing further to build.
+
+### 3. Cron / webhook secrets — generated + documented, **setting them is manual**
+- Added `CRON_SECRET` + `GHL_WEBHOOK_SECRET` to `.env.example` with usage notes. Strong
+  values were generated for you this session (see the PR / chat — not committed).
+  **Manual step (you):** set both in Vercel env; also add `CRON_SECRET` as a GitHub repo
+  secret so `cron-reminders.yml` authenticates.
+
+### 4. Leads / prospects model + inbox — **BUILT** (the keystone)
+- `lib/prospects.js` — `PROSPECT_STATUSES`/`CHANNELS`, normalizers, and `onProspectBooked()`
+  (fire-and-forget webhooks + SMS reminders + GHL sync, each independently guarded).
+- Catch-all route — full prospect CRUD, `messages` subcollection logging, and the
+  token-scoped inbound-reply ingestion endpoints. A `→ booked` transition fires the side
+  effects via `after()`, finally wiring the auto-trigger halves of tasks 8 (SMS-on-booked)
+  and 10 (GHL-sync-on-booked) that were flagged unbuildable without a lead model.
+- `app/inbox/page.js` + dashboard nav link — status-filtered inbox, thread drawer with
+  outbound logging, status pills, call-time picker, and a copy-able ingestion URL.
+- Model: `leads/{uid}/prospects/{id}` (mirrors `reminders/{uid}/pending`). Queries are all
+  single-parent equality/no-orderBy, so **no new Firestore composite index is required**.
+- ponytail: the public `/api/inbound/:token` endpoint is still under the anonymous 20/req/min
+  per-IP cap (token isn't treated as auth by the rate limiter); raise/exempt it if a
+  high-volume channel poller starts hitting it.
+
+### Verification
+- `yarn build` green (the new `/inbox` route prerenders; API route compiles).
