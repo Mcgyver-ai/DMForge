@@ -45,4 +45,27 @@ This codebase has `agents` (ICP/offer config) + one-shot demo `results` — **no
 ### Verification done
 - All changes compiled via `next build --webpack` (Turbopack is broken in this repo pre-existing — webpack used only to validate; the prerender failures are an unrelated missing Firebase API key at build time).
 - Non-trivial logic (rate-limit window, HMAC signing, AES roundtrip, reminder offsets, GHL signature) covered by standalone assertion checks.
-- 20 Playwright specs across 10 files parse and list. **Not yet run against production** — the new endpoints need a deploy first (smoke suite targets `https://www.dmforge.org`).
+- 20 Playwright specs across 10 files parse and list. ~~Not yet run against production~~ → **run 2026-07-06: 20/20 pass against production** (see session log below).
+
+---
+
+## Session log (2026-07-05 → 2026-07-06) — key rotation, build repair, prod redeploy + outage fix
+
+### Shipped (all commits on `main`, CI green, live in production)
+- **Encryption key rotation** (`a099f89`) — `lib/encryption.js` writes `v1:`-prefixed ciphertext (legacy bare-base64 still decrypts; base64 can't contain `:` so the marker is unambiguous). New optional `ENCRYPTION_KEY_PREVIOUS` env var: decrypt falls back to it, so rotating `ENCRYPTION_KEY` no longer bricks stored channel credentials. Rotation procedure documented in the module header. Both vars added to `.env.example`.
+- **Build repair** — the earlier bulk dep-bump had broken `yarn build` and CI three ways, all fixed: Tailwind restored to v3-lts 3.4.19 (repo configs are v3-shaped; `0f374b6`), stale `yarn.lock` synced, `lucide-react` `Linkedin` icon → `Link2` (brand icons removed upstream; `43f4fc7`), CI runner Node 20 → 22 (`610f647`).
+- **Reminder cron moved to GitHub Actions** (`52b5b1b`) — Vercel Hobby rejects sub-daily crons and was **blocking every production deploy**. `vercel.json` keeps a daily backstop; `.github/workflows/cron-reminders.yml` now drives the 15-min cadence (sends `Bearer CRON_SECRET` when the repo secret is set).
+- **Production API outage found & fixed during prod-verify** — deploying current `main` revealed `firebase-admin@14` (from the same bulk bump) 500s **every** API route on Vercel: the ESM default-export namespace loses `admin.apps` (TypeError), and its `jwks-rsa@4 → jose@6` chain can't `require()` (ESM-only). Fixed by migrating `lib/firebaseAdmin.js` to the modular API (`1b63aae`) and pinning `firebase-admin` **13.10.0** (`db927b7`). **Do not bump firebase-admin past 13.x without proving a live API route on a preview deploy** — this failure is invisible to `yarn build` and CI.
+- **Firestore composite indexes** (`bef5030`) — `pending` (status+sendAt) and `integrations` (locationId+provider) collection-group indexes defined in `firestore.indexes.json` and **created + READY** on the `dmforge` database; the reminders cron and GHL webhook 500'd (`FAILED_PRECONDITION`) without them.
+
+### Production state after this session
+- Deployed current `main` via CLI (production had been stuck on a June 30 build). **Vercel Git auto-deploy is broken** since the 2026-06-30 history rewrite — no deploy fires on push. Manual `vercel deploy --prod` required until the repo is reconnected (dashboard → dm-forge → Settings → Git). ⚠ open item.
+- Full e2e suite **20/20 green against production**, including the wizard build flow (live Gemini call — the 2026-06-29 "prepayment credits depleted" 429 is resolved). Note: the anonymous per-IP rate caps throttle the suite when run in parallel from one IP; re-run stragglers with `--workers=1`.
+- `ENCRYPTION_KEY` is set and working in prod (channel-connect specs pass) — the sprint-note above saying it's "not yet set in Vercel" is stale.
+- Deploying `main` **removed the pre-rewrite sprint's campaigns/leads/analytics dashboard** that the June 30 build still served (that code only existed in the rewritten-away history). Intentional: the `leads-model` agent owns rebuilding this properly on a real lead/reply pipeline.
+- Test artifacts cleaned: all 3 anonymous "TestBot" agents (2026-06-29/30 + this session's) deleted from Firestore.
+
+### Still open
+- Reconnect Vercel Git integration (manual deploys until then).
+- LinkedIn app registration + `LINKEDIN_*` env vars (unchanged from sprint notes).
+- `CRON_SECRET` / `GHL_WEBHOOK_SECRET` still recommended-but-unset; `CRON_SECRET` now also needs adding as a **GitHub repo secret** for the Actions cron once set in Vercel.
