@@ -12,6 +12,7 @@ import { testConnection as testEmailConnection, sendEmail } from '@/lib/email'
 import { authorizeUrl as linkedinAuthorizeUrl, exchangeCode as linkedinExchangeCode, fetchProfile as linkedinFetchProfile, sendMessage as linkedinSendMessage } from '@/lib/linkedin'
 import { testTwilio, sendSMS } from '@/lib/sms'
 import { ghlValidate, ghlGetContact, ghlCreateContact, ghlCreateAppointment } from '@/lib/ghl'
+import { onProspectBooked, normalizeStatus, normalizeChannel, PROSPECT_STATUSES } from '@/lib/prospects'
 
 // Cross-origin callers must be on the allow-list; same-origin requests never
 // need CORS headers. Override via CORS_ORIGINS (comma-separated) — the old
@@ -834,6 +835,197 @@ Rules:
         payload, receivedAt: FieldValue.serverTimestamp(),
       })
       return handleCORS(request, NextResponse.json({ ok: true, matchedUid: uid }))
+    }
+
+    // ─── Leads / prospects (the live conversation pipeline) ──────────────────
+    // Real lead records with reply tracking — the model the one-shot demo
+    // `results` flow never had. Powers the inbox and the auto-trigger halves of
+    // SMS reminders + GHL sync (see lib/prospects.js onProspectBooked).
+    const prospectsCol = (uid) => db.collection('leads').doc(uid).collection('prospects')
+
+    // Append a message to a thread and refresh the denormalized inbox fields.
+    async function appendProspectMessage(uid, prospectRef, { direction, body, channel }) {
+      const mid = uuidv4()
+      const at = new Date()
+      const msg = {
+        id: mid, direction: direction === 'inbound' ? 'inbound' : 'outbound',
+        body: truncate(String(body || ''), 4000), channel: channel || null, at,
+      }
+      await prospectRef.collection('messages').doc(mid).set({ ...msg, createdAt: FieldValue.serverTimestamp() })
+      const patch = { lastMessageAt: at, updatedAt: FieldValue.serverTimestamp() }
+      if (msg.direction === 'inbound') { patch.latestReply = msg.body; patch.latestReplyAt = at }
+      return { msg, patch }
+    }
+
+    // POST /api/prospects — create a lead
+    if (route === '/prospects' && method === 'POST') {
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const body = await request.json().catch(() => null)
+      if (!body) return handleCORS(request, NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      const id = uuidv4()
+      const prospect = {
+        id, uid: decoded.uid,
+        name: truncate(String(body.name || 'Lead'), 100),
+        handle: body.handle ? truncate(String(body.handle), 100) : null,
+        channel: normalizeChannel(body.channel),
+        email: body.email ? truncate(String(body.email), 200) : null,
+        phone: body.phone ? truncate(String(body.phone), 40) : null,
+        agentId: body.agentId ? truncate(String(body.agentId), 100) : null,
+        notes: body.notes ? truncate(String(body.notes), 2000) : null,
+        status: normalizeStatus(body.status),
+        scheduledAt: null, ghlCalendarId: null,
+        latestReply: null, latestReplyAt: null, lastMessageAt: null, source: 'manual',
+        createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
+      }
+      await prospectsCol(decoded.uid).doc(id).set(prospect)
+      return handleCORS(request, NextResponse.json({ id, prospect: { ...prospect, createdAt: null, updatedAt: null } }))
+    }
+
+    // GET /api/prospects — list leads (optional ?status=), newest activity first
+    if (route === '/prospects' && method === 'GET') {
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const statusFilter = new URL(request.url).searchParams.get('status')
+      let q = prospectsCol(decoded.uid)
+      if (statusFilter && PROSPECT_STATUSES.includes(statusFilter)) q = q.where('status', '==', statusFilter)
+      const qs = await q.get()
+      const prospects = qs.docs.map((d) => ser(d)).sort((a, b) =>
+        (b.latestReplyAt || b.updatedAt || '').localeCompare(a.latestReplyAt || a.updatedAt || ''))
+      return handleCORS(request, NextResponse.json({ prospects }))
+    }
+
+    // GET /api/prospects/:id — one lead + its message thread
+    if (path[0] === 'prospects' && path.length === 2 && method === 'GET') {
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const ref = prospectsCol(decoded.uid).doc(path[1])
+      const snap = await ref.get()
+      if (!snap.exists) return handleCORS(request, NextResponse.json({ error: 'not found' }, { status: 404 }))
+      const msgs = await ref.collection('messages').get()
+      const messages = msgs.docs.map((d) => ser(d)).sort((a, b) => (a.at || '').localeCompare(b.at || ''))
+      return handleCORS(request, NextResponse.json({ prospect: ser(snap), messages }))
+    }
+
+    // PUT /api/prospects/:id — update; a transition into "booked" fires side effects
+    if (path[0] === 'prospects' && path.length === 2 && method === 'PUT') {
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const ref = prospectsCol(decoded.uid).doc(path[1])
+      const snap = await ref.get()
+      if (!snap.exists) return handleCORS(request, NextResponse.json({ error: 'not found' }, { status: 404 }))
+      const body = await request.json().catch(() => null)
+      if (!body) return handleCORS(request, NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
+      const prev = snap.data()
+      const patch = { updatedAt: FieldValue.serverTimestamp() }
+      if (body.name !== undefined) patch.name = truncate(String(body.name || 'Lead'), 100)
+      if (body.handle !== undefined) patch.handle = body.handle ? truncate(String(body.handle), 100) : null
+      if (body.email !== undefined) patch.email = body.email ? truncate(String(body.email), 200) : null
+      if (body.phone !== undefined) patch.phone = body.phone ? truncate(String(body.phone), 40) : null
+      if (body.notes !== undefined) patch.notes = body.notes ? truncate(String(body.notes), 2000) : null
+      if (body.channel !== undefined) patch.channel = normalizeChannel(body.channel)
+      if (body.ghlCalendarId !== undefined) patch.ghlCalendarId = body.ghlCalendarId ? truncate(String(body.ghlCalendarId), 100) : null
+      if (body.scheduledAt !== undefined) {
+        const t = Date.parse(body.scheduledAt)
+        patch.scheduledAt = Number.isFinite(t) ? new Date(t).toISOString() : null
+      }
+      if (body.status !== undefined) patch.status = normalizeStatus(body.status, prev.status || 'new')
+      await ref.update(patch)
+
+      const becameBooked = patch.status === 'booked' && prev.status !== 'booked'
+      if (becameBooked) {
+        const merged = { ...prev, ...patch, id: path[1], scheduledAt: patch.scheduledAt ?? (prev.scheduledAt || null) }
+        after(() => onProspectBooked({ db, FieldValue, uid: decoded.uid, prospect: merged }))
+      }
+      const fresh = await ref.get()
+      return handleCORS(request, NextResponse.json({ prospect: ser(fresh), booked: becameBooked }))
+    }
+
+    // DELETE /api/prospects/:id
+    if (path[0] === 'prospects' && path.length === 2 && method === 'DELETE') {
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const ref = prospectsCol(decoded.uid).doc(path[1])
+      const msgs = await ref.collection('messages').get()
+      const batch = db.batch()
+      msgs.docs.forEach((d) => batch.delete(d.ref))
+      batch.delete(ref)
+      await batch.commit()
+      return handleCORS(request, NextResponse.json({ ok: true }))
+    }
+
+    // POST /api/prospects/:id/messages — log an inbound/outbound message
+    if (path[0] === 'prospects' && path[2] === 'messages' && path.length === 3 && method === 'POST') {
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const ref = prospectsCol(decoded.uid).doc(path[1])
+      const snap = await ref.get()
+      if (!snap.exists) return handleCORS(request, NextResponse.json({ error: 'not found' }, { status: 404 }))
+      const body = await request.json().catch(() => null)
+      if (!body || !body.body) return handleCORS(request, NextResponse.json({ error: 'body required' }, { status: 400 }))
+      const { msg, patch } = await appendProspectMessage(decoded.uid, ref, body)
+      const prev = snap.data()
+      if (msg.direction === 'inbound' && ['new', 'contacted'].includes(prev.status)) patch.status = 'replied'
+      if (msg.direction === 'outbound' && prev.status === 'new') patch.status = 'contacted'
+      await ref.update(patch)
+      return handleCORS(request, NextResponse.json({ message: { ...msg, at: msg.at.toISOString() } }))
+    }
+
+    // POST /api/inbound/token — (auth) mint/return this user's inbound ingestion token
+    if (route === '/inbound/token' && method === 'POST') {
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      const userRef = db.collection('users').doc(decoded.uid)
+      const userSnap = await userRef.get()
+      let token = userSnap.exists ? userSnap.data().inboundToken : null
+      if (!token) {
+        token = crypto.randomBytes(24).toString('hex')
+        await userRef.set({ inboundToken: token }, { merge: true })
+        await db.collection('inbound_tokens').doc(token).set({ uid: decoded.uid, createdAt: FieldValue.serverTimestamp() })
+      }
+      const base = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.dmforge.org'
+      return handleCORS(request, NextResponse.json({ token, url: `${base}/api/inbound/${token}` }))
+    }
+
+    // POST /api/inbound/:token — public inbound-reply ingestion. Any source
+    // (native poller, Zapier, GHL, email parser) posts replies here; we match or
+    // create the prospect and record the message. Token-scoped, no user auth.
+    if (path[0] === 'inbound' && path.length === 2 && path[1] !== 'token' && method === 'POST') {
+      const tokSnap = await db.collection('inbound_tokens').doc(path[1]).get()
+      if (!tokSnap.exists) return handleCORS(request, NextResponse.json({ error: 'invalid token' }, { status: 404 }))
+      const uid = tokSnap.data().uid
+      const body = await request.json().catch(() => null)
+      if (!body || !body.message) return handleCORS(request, NextResponse.json({ error: 'message required' }, { status: 400 }))
+      const channel = normalizeChannel(body.channel)
+      const handle = body.handle ? truncate(String(body.handle), 100) : null
+      const email = body.email ? truncate(String(body.email), 200) : null
+      const phone = body.phone ? truncate(String(body.phone), 40) : null
+      if (!handle && !email && !phone) {
+        return handleCORS(request, NextResponse.json({ error: 'one of handle, email, phone required' }, { status: 400 }))
+      }
+
+      // Match an existing prospect by channel + strongest available identifier.
+      const col = prospectsCol(uid)
+      let matchRef = null
+      for (const [field, value] of [['handle', handle], ['email', email], ['phone', phone]]) {
+        if (!value) continue
+        const found = await col.where('channel', '==', channel).where(field, '==', value).limit(1).get()
+        if (!found.empty) { matchRef = found.docs[0].ref; break }
+      }
+
+      let created = false
+      if (!matchRef) {
+        const id = uuidv4()
+        matchRef = col.doc(id)
+        await matchRef.set({
+          id, uid, name: truncate(String(body.name || handle || email || phone || 'Lead'), 100),
+          handle, channel, email, phone, agentId: null, notes: null,
+          status: 'replied', scheduledAt: null, ghlCalendarId: null,
+          latestReply: null, latestReplyAt: null, lastMessageAt: null, source: 'inbound',
+          createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
+        })
+        created = true
+      }
+      const { patch } = await appendProspectMessage(uid, matchRef, { direction: 'inbound', body: body.message, channel })
+      if (!created) {
+        const cur = (await matchRef.get()).data()
+        if (['new', 'contacted'].includes(cur.status)) patch.status = 'replied'
+      }
+      await matchRef.update(patch)
+      return handleCORS(request, NextResponse.json({ ok: true, prospectId: matchRef.id, created }))
     }
 
     // POST /api/webhooks — register a webhook (auth required)
