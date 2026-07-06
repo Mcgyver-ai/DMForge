@@ -1,0 +1,59 @@
+name: Deploy (Vercel)
+
+# Vercel's Git auto-deploy has been disconnected since the 2026-06-30 history
+# rewrite, so pushes to main stopped shipping. This workflow restores automatic
+# production deploys by driving the Vercel CLI directly — no dashboard reconnect
+# needed. Once the native Git integration is reconnected, this can be removed.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   VERCEL_TOKEN       — Vercel account token (vercel.com/account/tokens)
+#   VERCEL_ORG_ID      — from `vercel link` → .vercel/project.json ("orgId")
+#   VERCEL_PROJECT_ID  — from `vercel link` → .vercel/project.json ("projectId")
+# Build-time env vars live in the Vercel project settings (Production scope),
+# so the remote build picks them up exactly as the Git integration did.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Production deploy
+    runs-on: ubuntu-latest
+    # Skip cleanly (rather than fail red) if the secrets aren't configured yet.
+    if: ${{ github.repository == 'mcgyver-ai/dmforge' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Guard on required secrets
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "::warning::Vercel deploy secrets not set — skipping deploy. Add VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID to enable auto-deploy."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+        id: guard
+
+      - name: Setup Node.js
+        if: steps.guard.outputs.skip != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Deploy to production
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npx --yes vercel@latest pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
+          npx --yes vercel@latest build --prod --token="${{ secrets.VERCEL_TOKEN }}"
+          npx --yes vercel@latest deploy --prebuilt --prod --token="${{ secrets.VERCEL_TOKEN }}"
