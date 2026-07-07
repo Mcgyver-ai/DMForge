@@ -7,9 +7,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { ArrowRight, Sparkles, MessageCircle, Calendar, Check, Zap, Share2, Copy, Twitter, Facebook, Linkedin, Send, Flame, Shield, Globe, Mic, Bot, ChevronRight, Star, LogOut, LayoutDashboard } from 'lucide-react'
+import { ArrowRight, Sparkles, MessageCircle, Calendar, Check, Zap, Share2, Copy, Twitter, Facebook, Linkedin, Send, Shield, Globe, Mic, Bot, ChevronRight, Star, LogOut, LayoutDashboard } from 'lucide-react'
 import { useAuth, authFetch } from '@/lib/auth-context'
 import { AuthModal } from '@/components/auth-modal'
+import { Logo } from '@/components/logo'
 
 const NICHES = [
   { id: 'fitness', label: 'Fitness / Weight loss', emoji: '💪' },
@@ -22,14 +23,7 @@ const NICHES = [
   { id: 'therapist', label: 'Therapist / Healer', emoji: '✨' },
 ]
 
-function Logo() {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center btn-primary glow-coral"><Flame className="w-5 h-5" /></div>
-      <span className="font-display font-bold text-xl tracking-tight">DMForge</span>
-    </div>
-  )
-}
+/* Logo is now imported from @/components/logo */
 
 function Nav({ onTry, onAuthOpen }) {
   const { user, logout } = useAuth()

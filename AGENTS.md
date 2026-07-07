@@ -37,3 +37,11 @@ AI DM appointment-setter SaaS for online coaches. Next.js App Router serverless 
 ## Shared Skills
 
 Skills in `.agents/skills/` are shared across agents (Antigravity, Claude Code). The canonical source is `.claude/skills/`; the `.agents/skills/` copies mirror them for Antigravity discovery. When adding or updating a skill, update both locations or use the sync reference in `.agents/skills.json`.
+
+<!-- BEGIN:nextjs-agent-rules -->
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+
+**Keep this block, including in commits.** It is part of the project's agent setup, maintained by `next dev` for every agent that works here. If it appears as an uncommitted change, that is intentional — commit it as-is. Do not remove it to clean up a diff; it will be regenerated.
+<!-- END:nextjs-agent-rules -->

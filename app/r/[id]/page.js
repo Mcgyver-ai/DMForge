@@ -1,6 +1,7 @@
 import { getAdminDb } from '@/lib/firebaseAdmin'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { Logo } from '@/components/logo'
 
 async function getResult(id) {
   try {
@@ -43,10 +44,7 @@ export default async function ResultPage({ params }) {
   return (
     <div className="min-h-screen">
       <header className="border-b border-[#2A2A55]/40 px-5 py-4">
-        <Link href="/" className="inline-flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg btn-primary flex items-center justify-center text-sm font-bold">🔥</div>
-          <span className="font-display font-bold text-lg">DMForge</span>
-        </Link>
+        <Logo />
       </header>
 
       <div className="max-w-3xl mx-auto px-5 py-12">

@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Flame, LogOut, ExternalLink, MessageCircle, Share2, CreditCard, Sparkles, Plus, Check, ChevronDown, RefreshCw } from 'lucide-react'
+import { LogOut, ExternalLink, MessageCircle, Share2, CreditCard, Sparkles, Plus, Check, ChevronDown, RefreshCw } from 'lucide-react'
+import { Logo } from '@/components/logo'
 
 export default function Dashboard() {
   const { user, loading, logout, getToken } = useAuth()
@@ -79,15 +80,7 @@ export default function Dashboard() {
     <div className="min-h-screen">
       <header className="border-b border-[#2A2A55]/40 px-5 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center gap-2">
-            {whiteLabel?.logoUrl ? (
-              <img src={whiteLabel.logoUrl} alt={whiteLabel.brandName || 'logo'} className="h-7 w-auto rounded" />
-            ) : (
-              <div className="w-7 h-7 rounded-lg btn-primary flex items-center justify-center text-sm font-bold">🔥</div>
-            )}
-            <span className="font-display font-bold text-lg">{whiteLabel?.brandName || 'DMForge'}</span>
-            {whiteLabel && !whiteLabel.hideParentBranding && <span className="text-[10px] text-[#A0A0C8]">by DMForge</span>}
-          </Link>
+          <Logo whiteLabel={whiteLabel} />
           <div className="flex items-center gap-3">
             <span className="text-sm text-[#A0A0C8] hidden sm:inline">{user.email}</span>
             <Link href="/inbox" className="text-[#A0A0C8] hover:text-white p-2 rounded-lg hover:bg-[#1F1F42]" title="Inbox">Inbox</Link>

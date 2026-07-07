@@ -2,6 +2,7 @@ import { competitors, getCompetitor } from '@/lib/competitors'
 import { posts } from '@/lib/blog'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { Logo } from '@/components/logo'
 
 // Programmatic high-intent landing pages:
 // - /best/ai-dm-setter
@@ -99,10 +100,7 @@ export default async function BestPage({ params }) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ldjson) }} />
       <header className="border-b border-[#2A2A55]/40 px-5 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg btn-primary flex items-center justify-center text-sm font-bold">🔥</div>
-            <span className="font-display font-bold text-lg">DMForge</span>
-          </Link>
+          <Logo />
           <Link href="/blog" className="text-sm text-[#A0A0C8] hover:text-white">Playbooks →</Link>
         </div>
       </header>

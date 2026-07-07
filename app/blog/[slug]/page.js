@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { Logo } from '@/components/logo'
 
 export async function generateStaticParams() { return posts.map(p => ({ slug: p.slug })) }
 
@@ -44,10 +45,7 @@ export default async function PostPage({ params }) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ldjson) }} />
       <header className="border-b border-[#2A2A55]/40 px-5 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg btn-primary flex items-center justify-center text-sm font-bold">🔥</div>
-            <span className="font-display font-bold text-lg">DMForge</span>
-          </Link>
+          <Logo />
           <Link href="/blog" className="text-sm text-[#A0A0C8] hover:text-white">← All posts</Link>
         </div>
       </header>
