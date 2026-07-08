@@ -1,0 +1,4 @@
+# graphify output changes on every extract and would otherwise invalidate
+# Claude Code's prompt cache each time.
+graph.json
+graphify-out/
