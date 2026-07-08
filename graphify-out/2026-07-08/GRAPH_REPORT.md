@@ -5,12 +5,12 @@
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 722 nodes · 728 edges · 123 communities (76 shown, 47 thin omitted)
+- 730 nodes · 732 edges · 125 communities (77 shown, 48 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 11 edges (avg confidence: 0.73)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `a5f61d89`
+- Built from commit: `336063da`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -115,6 +115,8 @@
 - DMForge — brand tokens (verified from app/globals.css)
 - CalendarDayButton
 - DMForge — Design Decisions
+- DMForge — Project Rules
+- prod-verify recipes (Antigravity mirror)
 
 ## God Nodes (most connected - your core abstractions)
 1. `print_test()` - 19 edges
@@ -122,11 +124,11 @@
 3. `DMForge Ship-Faster Agent Workflow` - 11 edges
 4. `react` - 8 edges
 5. `resolutions` - 8 edges
-6. `scripts` - 7 edges
-7. `DMForge — Design Decisions` - 6 edges
-8. `Design Context` - 6 edges
-9. `tailwind` - 6 edges
-10. `aliases` - 6 edges
+6. `DMForge — Project Rules` - 7 edges
+7. `scripts` - 7 edges
+8. `DMForge — Design Decisions` - 6 edges
+9. `Design Context` - 6 edges
+10. `tailwind` - 6 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `TASKS.md backlog and session log` --semantically_similar_to--> `api-security subagent spec`  [INFERRED] [semantically similar]
@@ -145,10 +147,9 @@
 
 ## Hyperedges (group relationships)
 - **DMForge six area-scoped subagents defined by the workflow doc** — claude_dmforge_agent_workflow, claude_agents_api_security, claude_agents_billing_stripe, claude_agents_channels_integrations, claude_agents_lead_enricher, claude_agents_leads_model, claude_agents_verifier [EXTRACTED 1.00]
-- **prod-verify skill mirrored between .claude/skills and .agents/skills** — agents_skills_prod_verify_skill, agents_skills_prod_verify_references_recipes, claude_skills_prod_verify_skill, claude_skills_prod_verify_references_recipes [EXTRACTED 1.00]
 - **leads/prospects model as keystone dependency for channels-integrations auto-triggers and lead-enricher** — claude_agents_leads_model, claude_agents_leads_model_leadsprospectsmodel, claude_agents_channels_integrations, claude_agents_lead_enricher, tasks [INFERRED 0.85]
 
-## Communities (123 total, 47 thin omitted)
+## Communities (125 total, 48 thin omitted)
 
 ### Community 0 - "NPM Dependencies"
 Cohesion: 0.03
@@ -159,8 +160,8 @@ Cohesion: 0.10
 Nodes (37): main(), print_test(), Test POST /api/agent/chat - empty messages returns intro, Test POST /api/agent/chat - multi-turn conversation, Test POST /api/agent/chat - invalid agentId returns 404, Test POST /api/result/save, Test GET /api/ - health check, Test GET /api/result/:id (+29 more)
 
 ### Community 2 - "Subagent & Skill Specs"
-Cohesion: 0.10
-Nodes (30): AGENTS.md project rules, prod-verify recipes (Antigravity mirror), prod-verify SKILL (Antigravity mirror), CLAUDE.md project rules, api-security subagent spec, Catch-all API route (app/api/[[...path]]/route.js), Firestore composite indexes requirement, billing-stripe subagent spec (+22 more)
+Cohesion: 0.11
+Nodes (27): CLAUDE.md project rules, api-security subagent spec, Catch-all API route (app/api/[[...path]]/route.js), Firestore composite indexes requirement, billing-stripe subagent spec, current_period_end field-location bug, channels-integrations subagent spec, Encryption key rotation (ENCRYPTION_KEY, v1: prefix, ENCRYPTION_KEY_PREVIOUS) (+19 more)
 
 ### Community 3 - "Calendar & Carousel UI"
 Cohesion: 0.22
@@ -362,25 +363,29 @@ Nodes (5): Colors, DMForge — brand tokens (verified from app/globals.css), Log
 Cohesion: 0.29
 Nodes (6): DMForge — Design Decisions, 关键决策 (Key Decisions), 变更历史 (Change History), 已知限制 (Known Limitations), 方案选择 (Alternatives Considered), 设计目标 (Design Goals)
 
+### Community 123 - "DMForge — Project Rules"
+Cohesion: 0.22
+Nodes (8): Commands, Credentials Vault, DMForge — Project Rules, Layout, Rules, Shared Skills, Stack, This is NOT the Next.js you know
+
 ## Knowledge Gaps
-- **354 isolated node(s):** `设计目标 (Design Goals)`, `方案选择 (Alternatives Considered)`, `关键决策 (Key Decisions)`, `已知限制 (Known Limitations)`, `变更历史 (Change History)` (+349 more)
+- **363 isolated node(s):** `Stack`, `Commands`, `Layout`, `Rules`, `Credentials Vault` (+358 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **47 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **48 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `dependencies` connect `NPM Dependencies` to `Sonner Toaster`, `Input OTP Component`, `Package Scripts`, `Firebase Client Config`, `Firebase Admin & Stripe Init`, `react`?**
-  _High betweenness centrality (0.053) - this node is a cross-community bridge._
+  _High betweenness centrality (0.052) - this node is a cross-community bridge._
 - **Why does `react` connect `react` to `CalendarDayButton`, `NPM Dependencies`, `Toast Hook`?**
-  _High betweenness centrality (0.038) - this node is a cross-community bridge._
+  _High betweenness centrality (0.037) - this node is a cross-community bridge._
 - **Why does `useSidebar()` connect `react` to `Sidebar Component`?**
-  _High betweenness centrality (0.016) - this node is a cross-community bridge._
-- **What connects `设计目标 (Design Goals)`, `方案选择 (Alternatives Considered)`, `关键决策 (Key Decisions)` to the rest of the system?**
-  _373 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _High betweenness centrality (0.015) - this node is a cross-community bridge._
+- **What connects `Stack`, `Commands`, `Layout` to the rest of the system?**
+  _382 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `NPM Dependencies` be split into smaller, more focused modules?**
   _Cohesion score 0.034482758620689655 - nodes in this community are weakly interconnected._
 - **Should `Legacy Python Backend Tests` be split into smaller, more focused modules?**
   _Cohesion score 0.10384068278805121 - nodes in this community are weakly interconnected._
 - **Should `Subagent & Skill Specs` be split into smaller, more focused modules?**
-  _Cohesion score 0.1032258064516129 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11375661375661375 - nodes in this community are weakly interconnected._

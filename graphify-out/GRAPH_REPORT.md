@@ -5,12 +5,12 @@
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 730 nodes · 732 edges · 125 communities (77 shown, 48 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 11 edges (avg confidence: 0.73)
+- 736 nodes · 735 edges · 122 communities (75 shown, 47 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 11 edges (avg confidence: 0.73)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `336063da`
+- Built from commit: `16ed4ba2`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -110,10 +110,7 @@
 - API Route PUT Handler
 - chart.jsx
 - Design Context
-- carousel.jsx
-- react
 - DMForge — brand tokens (verified from app/globals.css)
-- CalendarDayButton
 - DMForge — Design Decisions
 - DMForge — Project Rules
 - prod-verify recipes (Antigravity mirror)
@@ -126,9 +123,9 @@
 5. `resolutions` - 8 edges
 6. `DMForge — Project Rules` - 7 edges
 7. `scripts` - 7 edges
-8. `DMForge — Design Decisions` - 6 edges
-9. `Design Context` - 6 edges
-10. `tailwind` - 6 edges
+8. `DMForge — Project Rules` - 6 edges
+9. `DMForge — Design Decisions` - 6 edges
+10. `Design Context` - 6 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `TASKS.md backlog and session log` --semantically_similar_to--> `api-security subagent spec`  [INFERRED] [semantically similar]
@@ -137,10 +134,10 @@
   .claude/skills/prod-verify/references/recipes.md → E2E-SETUP.md
 - `emergent.yml env image config` --semantically_similar_to--> `test_result.md testing protocol and log`  [INFERRED] [semantically similar]
   .emergent/emergent.yml → test_result.md
-- `CalendarDayButton()` --references--> `react`  [EXTRACTED]
-  components/ui/calendar.jsx → package.json
 - `useCarousel()` --references--> `react`  [EXTRACTED]
   components/ui/carousel.jsx → package.json
+- `useChart()` --references--> `react`  [EXTRACTED]
+  components/ui/chart.jsx → package.json
 
 ## Import Cycles
 - None detected.
@@ -149,7 +146,7 @@
 - **DMForge six area-scoped subagents defined by the workflow doc** — claude_dmforge_agent_workflow, claude_agents_api_security, claude_agents_billing_stripe, claude_agents_channels_integrations, claude_agents_lead_enricher, claude_agents_leads_model, claude_agents_verifier [EXTRACTED 1.00]
 - **leads/prospects model as keystone dependency for channels-integrations auto-triggers and lead-enricher** — claude_agents_leads_model, claude_agents_leads_model_leadsprospectsmodel, claude_agents_channels_integrations, claude_agents_lead_enricher, tasks [INFERRED 0.85]
 
-## Communities (125 total, 48 thin omitted)
+## Communities (122 total, 47 thin omitted)
 
 ### Community 0 - "NPM Dependencies"
 Cohesion: 0.03
@@ -161,11 +158,11 @@ Nodes (37): main(), print_test(), Test POST /api/agent/chat - empty messages ret
 
 ### Community 2 - "Subagent & Skill Specs"
 Cohesion: 0.11
-Nodes (27): CLAUDE.md project rules, api-security subagent spec, Catch-all API route (app/api/[[...path]]/route.js), Firestore composite indexes requirement, billing-stripe subagent spec, current_period_end field-location bug, channels-integrations subagent spec, Encryption key rotation (ENCRYPTION_KEY, v1: prefix, ENCRYPTION_KEY_PREVIOUS) (+19 more)
+Nodes (26): api-security subagent spec, Catch-all API route (app/api/[[...path]]/route.js), Firestore composite indexes requirement, billing-stripe subagent spec, current_period_end field-location bug, channels-integrations subagent spec, Encryption key rotation (ENCRYPTION_KEY, v1: prefix, ENCRYPTION_KEY_PREVIOUS), lead-enricher subagent spec (+18 more)
 
 ### Community 3 - "Calendar & Carousel UI"
-Cohesion: 0.22
-Nodes (7): FormControl, FormDescription, FormFieldContext, FormItem, FormItemContext, FormLabel, FormMessage
+Cohesion: 0.06
+Nodes (26): Calendar(), CalendarDayButton(), Carousel, CarouselContent, CarouselContext, CarouselItem, CarouselNext, CarouselPrevious (+18 more)
 
 ### Community 4 - "Package Scripts"
 Cohesion: 0.07
@@ -340,20 +337,12 @@ Cohesion: 0.83
 Nodes (3): basicAuth(), sendSMS(), testTwilio()
 
 ### Community 115 - "chart.jsx"
-Cohesion: 0.25
-Nodes (5): ChartContainer, ChartContext, ChartLegendContent, ChartTooltipContent, THEMES
+Cohesion: 0.29
+Nodes (6): Commands, DMForge — Project Rules, graphify, Layout, Rules, Stack
 
 ### Community 116 - "Design Context"
 Cohesion: 0.25
 Nodes (7): Aesthetic Direction, Brand Personality, Design Context, Design Principles, DMForge — Impeccable Design Context, Technical Notes, Users
-
-### Community 117 - "carousel.jsx"
-Cohesion: 0.29
-Nodes (6): Carousel, CarouselContent, CarouselContext, CarouselItem, CarouselNext, CarouselPrevious
-
-### Community 118 - "react"
-Cohesion: 0.29
-Nodes (6): useCarousel(), useChart(), useFormField(), useSidebar(), useIsMobile(), react
 
 ### Community 119 - "DMForge — brand tokens (verified from app/globals.css)"
 Cohesion: 0.33
@@ -368,24 +357,24 @@ Cohesion: 0.22
 Nodes (8): Commands, Credentials Vault, DMForge — Project Rules, Layout, Rules, Shared Skills, Stack, This is NOT the Next.js you know
 
 ## Knowledge Gaps
-- **363 isolated node(s):** `Stack`, `Commands`, `Layout`, `Rules`, `Credentials Vault` (+358 more)
+- **369 isolated node(s):** `Stack`, `Commands`, `Layout`, `Rules`, `graphify` (+364 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **48 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **47 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `dependencies` connect `NPM Dependencies` to `Sonner Toaster`, `Input OTP Component`, `Package Scripts`, `Firebase Client Config`, `Firebase Admin & Stripe Init`, `react`?**
-  _High betweenness centrality (0.052) - this node is a cross-community bridge._
-- **Why does `react` connect `react` to `CalendarDayButton`, `NPM Dependencies`, `Toast Hook`?**
-  _High betweenness centrality (0.037) - this node is a cross-community bridge._
-- **Why does `useSidebar()` connect `react` to `Sidebar Component`?**
+- **Why does `dependencies` connect `NPM Dependencies` to `Sonner Toaster`, `Input OTP Component`, `Calendar & Carousel UI`, `Package Scripts`, `Firebase Client Config`, `Firebase Admin & Stripe Init`?**
+  _High betweenness centrality (0.051) - this node is a cross-community bridge._
+- **Why does `react` connect `Calendar & Carousel UI` to `NPM Dependencies`, `Toast Hook`?**
+  _High betweenness centrality (0.036) - this node is a cross-community bridge._
+- **Why does `useSidebar()` connect `Calendar & Carousel UI` to `Sidebar Component`?**
   _High betweenness centrality (0.015) - this node is a cross-community bridge._
 - **What connects `Stack`, `Commands`, `Layout` to the rest of the system?**
-  _382 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _388 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `NPM Dependencies` be split into smaller, more focused modules?**
   _Cohesion score 0.034482758620689655 - nodes in this community are weakly interconnected._
 - **Should `Legacy Python Backend Tests` be split into smaller, more focused modules?**
   _Cohesion score 0.10384068278805121 - nodes in this community are weakly interconnected._
 - **Should `Subagent & Skill Specs` be split into smaller, more focused modules?**
-  _Cohesion score 0.11375661375661375 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11396011396011396 - nodes in this community are weakly interconnected._

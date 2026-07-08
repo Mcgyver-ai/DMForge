@@ -21,20 +21,6 @@
         "source_file": ".claude/DMForge-agent-workflow.md"
       },
       {
-        "id": "prod_verify_skill_mirror",
-        "label": "prod-verify skill mirrored between .claude/skills and .agents/skills",
-        "nodes": [
-          "agents_skills_prod_verify_skill",
-          "agents_skills_prod_verify_references_recipes",
-          "claude_skills_prod_verify_skill",
-          "claude_skills_prod_verify_references_recipes"
-        ],
-        "relation": "form",
-        "confidence": "EXTRACTED",
-        "confidence_score": 1.0,
-        "source_file": "AGENTS.md"
-      },
-      {
         "id": "leads_model_keystone_dependency",
         "label": "leads/prospects model as keystone dependency for channels-integrations auto-triggers and lead-enricher",
         "nodes": [
@@ -53,14 +39,104 @@
   },
   "nodes": [
     {
+      "label": "AGENTS.md",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "agents",
+      "community": 123,
+      "norm_label": "agents.md"
+    },
+    {
+      "label": "DMForge \u2014 Project Rules",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "agents_dmforge_project_rules",
+      "community": 123,
+      "norm_label": "dmforge \u2014 project rules"
+    },
+    {
+      "label": "Stack",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "agents_stack",
+      "community": 123,
+      "norm_label": "stack"
+    },
+    {
+      "label": "Commands",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L13",
+      "_origin": "ast",
+      "id": "agents_commands",
+      "community": 123,
+      "norm_label": "commands"
+    },
+    {
+      "label": "Layout",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L20",
+      "_origin": "ast",
+      "id": "agents_layout",
+      "community": 123,
+      "norm_label": "layout"
+    },
+    {
+      "label": "Rules",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L28",
+      "_origin": "ast",
+      "id": "agents_rules",
+      "community": 123,
+      "norm_label": "rules"
+    },
+    {
+      "label": "Credentials Vault",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L37",
+      "_origin": "ast",
+      "id": "agents_credentials_vault",
+      "community": 123,
+      "norm_label": "credentials vault"
+    },
+    {
+      "label": "Shared Skills",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L47",
+      "_origin": "ast",
+      "id": "agents_shared_skills",
+      "community": 123,
+      "norm_label": "shared skills"
+    },
+    {
+      "label": "This is NOT the Next.js you know",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L52",
+      "_origin": "ast",
+      "id": "agents_this_is_not_the_next_js_you_know",
+      "community": 123,
+      "norm_label": "this is not the next.js you know"
+    },
+    {
       "label": "DESIGN.md",
       "file_type": "document",
       "source_file": "DESIGN.md",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "design",
       "community": 122,
-      "norm_label": "design.md"
+      "norm_label": "design.md",
+      "id": "design"
     },
     {
       "label": "DMForge \u2014 Design Decisions",
@@ -68,9 +144,9 @@
       "source_file": "DESIGN.md",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "design_dmforge_design_decisions",
       "community": 122,
-      "norm_label": "dmforge \u2014 design decisions"
+      "norm_label": "dmforge \u2014 design decisions",
+      "id": "design_dmforge_design_decisions"
     },
     {
       "label": "\u8bbe\u8ba1\u76ee\u6807 (Design Goals)",
@@ -78,9 +154,9 @@
       "source_file": "DESIGN.md",
       "source_location": "L6",
       "_origin": "ast",
-      "id": "design_\u8bbe\u8ba1\u76ee\u6807_design_goals",
       "community": 122,
-      "norm_label": "\u8bbe\u8ba1\u76ee\u6807 (design goals)"
+      "norm_label": "\u8bbe\u8ba1\u76ee\u6807 (design goals)",
+      "id": "design_\u8bbe\u8ba1\u76ee\u6807_design_goals"
     },
     {
       "label": "\u65b9\u6848\u9009\u62e9 (Alternatives Considered)",
@@ -88,9 +164,9 @@
       "source_file": "DESIGN.md",
       "source_location": "L19",
       "_origin": "ast",
-      "id": "design_\u65b9\u6848\u9009\u62e9_alternatives_considered",
       "community": 122,
-      "norm_label": "\u65b9\u6848\u9009\u62e9 (alternatives considered)"
+      "norm_label": "\u65b9\u6848\u9009\u62e9 (alternatives considered)",
+      "id": "design_\u65b9\u6848\u9009\u62e9_alternatives_considered"
     },
     {
       "label": "\u5173\u952e\u51b3\u7b56 (Key Decisions)",
@@ -98,9 +174,9 @@
       "source_file": "DESIGN.md",
       "source_location": "L31",
       "_origin": "ast",
-      "id": "design_\u5173\u952e\u51b3\u7b56_key_decisions",
       "community": 122,
-      "norm_label": "\u5173\u952e\u51b3\u7b56 (key decisions)"
+      "norm_label": "\u5173\u952e\u51b3\u7b56 (key decisions)",
+      "id": "design_\u5173\u952e\u51b3\u7b56_key_decisions"
     },
     {
       "label": "\u5df2\u77e5\u9650\u5236 (Known Limitations)",
@@ -108,9 +184,9 @@
       "source_file": "DESIGN.md",
       "source_location": "L50",
       "_origin": "ast",
-      "id": "design_\u5df2\u77e5\u9650\u5236_known_limitations",
       "community": 122,
-      "norm_label": "\u5df2\u77e5\u9650\u5236 (known limitations)"
+      "norm_label": "\u5df2\u77e5\u9650\u5236 (known limitations)",
+      "id": "design_\u5df2\u77e5\u9650\u5236_known_limitations"
     },
     {
       "label": "\u53d8\u66f4\u5386\u53f2 (Change History)",
@@ -118,9 +194,9 @@
       "source_file": "DESIGN.md",
       "source_location": "L65",
       "_origin": "ast",
-      "id": "design_\u53d8\u66f4\u5386\u53f2_change_history",
       "community": 122,
-      "norm_label": "\u53d8\u66f4\u5386\u53f2 (change history)"
+      "norm_label": "\u53d8\u66f4\u5386\u53f2 (change history)",
+      "id": "design_\u53d8\u66f4\u5386\u53f2_change_history"
     },
     {
       "label": ".impeccable.md",
@@ -6980,7 +7056,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 2,
+      "community": 124,
       "norm_label": "prod-verify skill (antigravity mirror)",
       "id": "agents_skills_prod_verify_skill"
     },
@@ -6993,7 +7069,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 2,
+      "community": 124,
       "norm_label": "prod-verify recipes (antigravity mirror)",
       "id": "agents_skills_prod_verify_references_recipes"
     },
@@ -7125,7 +7201,7 @@
       "contributor": null,
       "community": 2,
       "norm_label": "emergent.yml env image config",
-      "id": "emergent_emergent_emergent_emergent_emergent"
+      "id": "emergent_emergent_emergent_emergent_emergent_emergent"
     },
     {
       "label": "CI workflow (build check)",
@@ -7178,19 +7254,6 @@
       "community": 2,
       "norm_label": "e2e (playwright) workflow",
       "id": "github_workflows_e2e"
-    },
-    {
-      "label": "AGENTS.md project rules",
-      "file_type": "document",
-      "source_file": "AGENTS.md",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "community": 2,
-      "norm_label": "agents.md project rules",
-      "id": "agents"
     },
     {
       "label": "CLAUDE.md project rules",
@@ -7379,12 +7442,92 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "agents",
+      "target": "agents_dmforge_project_rules",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L52",
+      "weight": 1.0,
+      "source": "agents",
+      "target": "agents_this_is_not_the_next_js_you_know",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "agents_dmforge_project_rules",
+      "target": "agents_commands",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L37",
+      "weight": 1.0,
+      "source": "agents_dmforge_project_rules",
+      "target": "agents_credentials_vault",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "agents_dmforge_project_rules",
+      "target": "agents_layout",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "agents_dmforge_project_rules",
+      "target": "agents_rules",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L47",
+      "weight": 1.0,
+      "source": "agents_dmforge_project_rules",
+      "target": "agents_shared_skills",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "agents_dmforge_project_rules",
+      "target": "agents_stack",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "DESIGN.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "design",
-      "target": "design_dmforge_design_decisions",
-      "confidence_score": 1.0
+      "target": "design_dmforge_design_decisions"
     },
     {
       "relation": "contains",
@@ -7392,9 +7535,9 @@
       "source_file": "DESIGN.md",
       "source_location": "L31",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "design_dmforge_design_decisions",
-      "target": "design_\u5173\u952e\u51b3\u7b56_key_decisions",
-      "confidence_score": 1.0
+      "target": "design_\u5173\u952e\u51b3\u7b56_key_decisions"
     },
     {
       "relation": "contains",
@@ -7402,9 +7545,9 @@
       "source_file": "DESIGN.md",
       "source_location": "L65",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "design_dmforge_design_decisions",
-      "target": "design_\u53d8\u66f4\u5386\u53f2_change_history",
-      "confidence_score": 1.0
+      "target": "design_\u53d8\u66f4\u5386\u53f2_change_history"
     },
     {
       "relation": "contains",
@@ -7412,9 +7555,9 @@
       "source_file": "DESIGN.md",
       "source_location": "L50",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "design_dmforge_design_decisions",
-      "target": "design_\u5df2\u77e5\u9650\u5236_known_limitations",
-      "confidence_score": 1.0
+      "target": "design_\u5df2\u77e5\u9650\u5236_known_limitations"
     },
     {
       "relation": "contains",
@@ -7422,9 +7565,9 @@
       "source_file": "DESIGN.md",
       "source_location": "L19",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "design_dmforge_design_decisions",
-      "target": "design_\u65b9\u6848\u9009\u62e9_alternatives_considered",
-      "confidence_score": 1.0
+      "target": "design_\u65b9\u6848\u9009\u62e9_alternatives_considered"
     },
     {
       "relation": "contains",
@@ -7432,9 +7575,9 @@
       "source_file": "DESIGN.md",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "design_dmforge_design_decisions",
-      "target": "design_\u8bbe\u8ba1\u76ee\u6807_design_goals",
-      "confidence_score": 1.0
+      "target": "design_\u8bbe\u8ba1\u76ee\u6807_design_goals"
     },
     {
       "relation": "contains",
@@ -14294,40 +14437,10 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
-      "source_file": "AGENTS.md",
-      "source_location": null,
-      "weight": 1.0,
-      "source": "agents",
-      "target": "agents_skills_prod_verify_skill"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
       "source_file": ".agents/skills/prod-verify/SKILL.md",
       "source_location": null,
       "weight": 1.0,
       "source": "agents_skills_prod_verify_skill",
-      "target": "agents_skills_prod_verify_references_recipes"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "AGENTS.md",
-      "source_location": null,
-      "weight": 1.0,
-      "source": "claude_skills_prod_verify_skill",
-      "target": "agents_skills_prod_verify_skill"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "AGENTS.md",
-      "source_location": null,
-      "weight": 1.0,
-      "source": "claude_skills_prod_verify_references_recipes",
       "target": "agents_skills_prod_verify_references_recipes"
     },
     {
@@ -14614,16 +14727,6 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
-      "source_file": "AGENTS.md",
-      "source_location": null,
-      "weight": 1.0,
-      "source": "agents",
-      "target": "claude_skills_prod_verify_skill"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
       "source_file": "CLAUDE.md",
       "source_location": null,
       "weight": 1.0,
@@ -14657,7 +14760,7 @@
       "source_file": ".emergent/emergent.yml",
       "source_location": null,
       "weight": 1.0,
-      "source": "emergent_emergent_emergent_emergent_emergent",
+      "source": "emergent_emergent_emergent_emergent_emergent_emergent",
       "target": "test_result"
     },
     {
@@ -14790,20 +14893,6 @@
       "source_file": ".claude/DMForge-agent-workflow.md"
     },
     {
-      "id": "prod_verify_skill_mirror",
-      "label": "prod-verify skill mirrored between .claude/skills and .agents/skills",
-      "nodes": [
-        "agents_skills_prod_verify_skill",
-        "agents_skills_prod_verify_references_recipes",
-        "claude_skills_prod_verify_skill",
-        "claude_skills_prod_verify_references_recipes"
-      ],
-      "relation": "form",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "AGENTS.md"
-    },
-    {
       "id": "leads_model_keystone_dependency",
       "label": "leads/prospects model as keystone dependency for channels-integrations auto-triggers and lead-enricher",
       "nodes": [
@@ -14819,5 +14908,5 @@
       "source_file": ".claude/agents/leads-model.md"
     }
   ],
-  "built_at_commit": "a5f61d895ebadee72edf3c9402ec0821448dd59b"
+  "built_at_commit": "336063dadc608926b4dc3fe9619546a82486fca9"
 }
