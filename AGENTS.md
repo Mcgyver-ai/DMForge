@@ -34,6 +34,16 @@ AI DM appointment-setter SaaS for online coaches. Next.js App Router serverless 
 5. **Commits**: Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`), imperative mood, small and scoped.
 6. **Tracked work**: sprint/task state lives in [TASKS.md](TASKS.md) — update it when completing a tracked task.
 
+## Credentials Vault
+
+Live keys for this project (Stripe, Firebase service accounts, Vercel token, etc.) are
+stored outside this repo in `D:\Dev\Secrets`, indexed at `D:\Dev\Secrets\INDEX.md`.
+Never `Read` files in that folder directly — route the request through the global
+`vault-keeper` agent (`~/.claude/agents/vault-keeper.md`), which is the only agent
+authorized to open them and never echoes values into chat or logs. This is separate from
+rule 1 above: rule 1 governs env vars once they're already in Vercel/CI; this governs the
+local plaintext copies the vault agent draws from.
+
 ## Shared Skills
 
 Skills in `.agents/skills/` are shared across agents (Antigravity, Claude Code). The canonical source is `.claude/skills/`; the `.agents/skills/` copies mirror them for Antigravity discovery. When adding or updating a skill, update both locations or use the sync reference in `.agents/skills.json`.
