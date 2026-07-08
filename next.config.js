@@ -24,6 +24,21 @@ const nextConfig = {
     pagesBufferLength: 2,
   },
   async headers() {
+    // ponytail: unsafe-inline required for Next.js App Router hydration scripts + Tailwind inline styles.
+    // Upgrade to nonce-based CSP when/if a stricter posture is needed.
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' https://js.stripe.com",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: https:",
+      "font-src 'self'",
+      "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://api.stripe.com https://m.stripe.com https://m.stripe.network https://q.stripe.com",
+      "frame-src https://js.stripe.com https://accounts.google.com",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+    ].join('; ');
+
     return [
       {
         source: "/(.*)",
@@ -32,6 +47,7 @@ const nextConfig = {
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          { key: "Content-Security-Policy", value: csp },
         ],
       },
       // CORS for /api is handled by handleCORS() in app/api/[[...path]]/route.js

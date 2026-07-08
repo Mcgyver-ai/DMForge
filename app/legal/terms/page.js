@@ -20,10 +20,10 @@ export default function TermsPage() {
 
       <h2>1. The Service</h2>
       <p>
-        DMForge provides an AI-powered campaign and NPC generation tool for tabletop
-        RPG players and Dungeon Masters. The service is provided &quot;as is&quot;. AI
-        outputs are generated and may contain errors, inconsistencies, or content
-        unsuitable for your specific use — always review before use at the table.
+        DMForge provides an AI-powered outreach and appointment-setting platform for
+        online coaches and service businesses. The service is provided &quot;as is&quot;.
+        AI-generated conversation messages may require review before sending — always
+        ensure they reflect your voice and comply with the recipient platform&apos;s terms.
       </p>
 
       <h2>2. Eligibility</h2>

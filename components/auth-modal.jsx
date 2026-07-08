@@ -1,5 +1,7 @@
 'use client'
 import { useState } from 'react'
+import { sendPasswordResetEmail } from 'firebase/auth'
+import { auth } from '@/lib/firebase'
 import { useAuth } from '@/lib/auth-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,6 +14,7 @@ export function AuthModal({ open, onClose, defaultMode = 'login' }) {
   const [mode, setMode] = useState(defaultMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [busy, setBusy] = useState(false)
 
   if (!open) return null
@@ -40,6 +43,17 @@ export function AuthModal({ open, onClose, defaultMode = 'login' }) {
     } finally { setBusy(false) }
   }
 
+  async function resetPassword() {
+    if (!email) { toast.error('Enter your email above first'); return }
+    setBusy(true)
+    try {
+      await sendPasswordResetEmail(auth, email)
+      toast.success('Reset email sent — check your inbox')
+    } catch (err) {
+      toast.error(err.code?.replace('auth/','').replace(/-/g,' ') || err.message)
+    } finally { setBusy(false) }
+  }
+
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center px-4" onClick={onClose}>
       <Card className="bg-[#161630] border-[#2A2A55] p-8 w-full max-w-md relative elevate-coral" onClick={e => e.stopPropagation()}>
@@ -60,8 +74,26 @@ export function AuthModal({ open, onClose, defaultMode = 'login' }) {
 
         <form onSubmit={submit} className="space-y-3">
           <Input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@coach.com" className="bg-[#0B0B1A] border-[#2A2A55]" />
-          <Input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder="Password (min 6 chars)" className="bg-[#0B0B1A] border-[#2A2A55]" />
-          <Button type="submit" disabled={busy} className="btn-primary border-0 w-full font-semibold">{busy ? 'Loading…' : (mode === 'signup' ? 'Create account' : 'Sign in')}</Button>
+          <div>
+            <Input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder="Password (min 6 chars)" className="bg-[#0B0B1A] border-[#2A2A55]" />
+            {mode === 'login' && (
+              <button type="button" onClick={resetPassword} disabled={busy} className="text-xs text-[#A0A0C8] hover:text-white mt-1.5 float-right">
+                Forgot password?
+              </button>
+            )}
+          </div>
+          {mode === 'signup' && (
+            <label className="flex items-start gap-2 text-sm text-[#A0A0C8] cursor-pointer">
+              <input type="checkbox" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)} className="mt-0.5 accent-[#FF4D6D]" />
+              I agree to the{' '}
+              <a href="/legal/terms" target="_blank" className="text-[#FF4D6D] hover:underline">Terms of Service</a>
+              {' '}and{' '}
+              <a href="/legal/privacy" target="_blank" className="text-[#FF4D6D] hover:underline">Privacy Policy</a>
+            </label>
+          )}
+          <Button type="submit" disabled={busy || (mode === 'signup' && !agreedToTerms)} className="btn-primary border-0 w-full font-semibold">
+            {busy ? 'Loading…' : (mode === 'signup' ? 'Create account' : 'Sign in')}
+          </Button>
         </form>
 
         <p className="text-center text-sm text-[#A0A0C8] mt-5">
