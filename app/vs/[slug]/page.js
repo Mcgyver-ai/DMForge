@@ -47,7 +47,7 @@ export default async function VsPage({ params }) {
 
       <div className="max-w-5xl mx-auto px-5 py-16">
         <p className="text-[#FF4D6D] text-sm font-semibold uppercase tracking-widest">Comparison</p>
-        <h1 className="font-display text-5xl font-bold mt-2">DMForge vs <span className="grad-text">{c.name}</span></h1>
+        <h1 className="font-display text-5xl font-bold mt-2">DMForge vs <span className="text-[#FF4D6D]">{c.name}</span></h1>
         <p className="text-[#A0A0C8] mt-3 max-w-2xl text-lg">{c.tagline}. Honest side-by-side — what they do well, where we win, and which one you should pick.</p>
 
         <div className="grid md:grid-cols-2 gap-5 mt-10">
@@ -62,7 +62,7 @@ export default async function VsPage({ params }) {
             <ul className="text-sm space-y-1">{c.weaknesses.map((s,i)=> <li key={i} className="text-[#A0A0C8]">– {s}</li>)}</ul>
           </div>
 
-          <div className="bg-gradient-to-br from-[#FF4D6D]/10 to-[#6B5BFF]/10 border border-[#FF4D6D]/40 rounded-xl p-6 glow-coral">
+          <div className="bg-[#FF4D6D]/[0.08] border border-[#FF4D6D]/40 rounded-xl p-6 elevate-coral">
             <h3 className="font-display text-xl font-bold mb-3">DMForge</h3>
             <p className="text-sm text-[#A0A0C8] mb-2"><span className="font-semibold text-white">Price:</span> $39/mo flat, $390/yr</p>
             <p className="text-sm text-[#A0A0C8] mb-2"><span className="font-semibold text-white">Free tier:</span> Forever, no credit card</p>
@@ -89,7 +89,7 @@ export default async function VsPage({ params }) {
           </div>
         </div>
 
-        <div className="mt-14 text-center bg-gradient-to-br from-[#FF4D6D]/15 to-[#6B5BFF]/15 border border-[#FF4D6D]/40 rounded-xl p-10 glow-coral">
+        <div className="mt-14 text-center bg-[#FF4D6D]/10 border border-[#FF4D6D]/40 rounded-xl p-10 elevate-coral">
           <h2 className="font-display text-3xl font-bold">Try DMForge in 60 seconds.</h2>
           <p className="text-[#A0A0C8] mt-2">No card. No Meta approval. Just chat with your own AI setter.</p>
           <Link href="/" className="inline-block mt-5 px-6 py-3 btn-primary rounded-lg font-semibold">Build my AI setter →</Link>

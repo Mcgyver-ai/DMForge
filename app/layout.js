@@ -1,13 +1,13 @@
 import './globals.css'
 import { Providers } from './providers'
 import { SupportChat } from '@/components/support-chat'
-import { Inter, Space_Grotesk } from 'next/font/google'
+import { IBM_Plex_Sans, Fraunces } from 'next/font/google'
 import { getBaseUrl } from '@/lib/baseUrl'
 
 const baseUrl = getBaseUrl()
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-body', display: 'swap' })
-const display = Space_Grotesk({ subsets: ['latin'], variable: '--font-display', display: 'swap', weight: ['500','600','700'] })
+const body = IBM_Plex_Sans({ subsets: ['latin'], variable: '--font-body', display: 'swap', weight: ['400','500','600'] })
+const display = Fraunces({ subsets: ['latin'], variable: '--font-display', display: 'swap', weight: ['500','600','700'], style: ['normal'] })
 
 export const metadata = {
   metadataBase: new URL(baseUrl),
@@ -26,7 +26,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${inter.variable} ${display.variable} dark`}>
+    <html lang="en" className={`${body.variable} ${display.variable} dark`}>
       <head>
         <script dangerouslySetInnerHTML={{__html:'window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);'}} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{__html: JSON.stringify({

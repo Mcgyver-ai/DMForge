@@ -14,12 +14,13 @@
 | border | `#2A2A55` | borders |
 | text / muted | `#F5F5FA` / `#A0A0C8` | text |
 
-Gradients: CTA/flame `linear-gradient(135deg,#FF4D6D,#FF7A3D)` · hero text `#FF4D6D → #FFB347 → #6B5BFF`
+Gradients: none — `.grad-text`/`.grad-bg` removed in the anti-slop pass (2026-07-07); featured surfaces
+use `.elevate-coral`/`.elevate-purple` tinted elevation instead. `.btn-primary` is solid coral.
 Radius: `12px` (UI). App icon uses a larger ~22% tile radius.
 
 ## Type
 
-Display: **Space Grotesk** (500/600/700, letter-spacing -0.02em) · Body: **Inter**
+Display: **Fraunces** (500/600/700) · Body: **IBM Plex Sans** (400/500/600)
 
 ## Logo files
 
@@ -28,10 +29,10 @@ Display: **Space Grotesk** (500/600/700, letter-spacing -0.02em) · Body: **Inte
 - Wordmark: `dmforge-wordmark-dark.png` (primary, dark UI), `-onlight.png` (light bg), `-white.png` (photos)
 - `favicon.ico` (multi-size)
 
-## Fix before /design-sync (token bug found in repo)
+## Token bug — FIXED (2026-07-07)
 
-`tailwind.config.js` maps `hsl(var(--primary))` etc., but `globals.css` defines `--primary` as a **hex**
-and uses `--bg` (not `--background`), so shadcn color utilities (`bg-primary`, `bg-background`…) resolve to
-invalid CSS and don't work. Either (a) convert the `:root` vars to HSL triples the shadcn config expects,
-or (b) drop the `hsl()` wrapper and reference the hex vars directly. The live site works only via the
-hand-rolled `.btn-primary` / `.grad-text` classes and inline `bg-[#0B0B1A]`.
+`globals.css` now defines the full shadcn token set as HSL triples (`--background: 240 41% 7%` etc.),
+so `bg-primary`, `bg-card`, `border-border`… resolve correctly. The old hex vars, `.grad-text`,
+`.glow-coral`/`.glow-purple` and `.grad-bg` were removed per `.impeccable.md` (anti-slop pass);
+featured surfaces use `.elevate-coral`/`.elevate-purple` tinted elevation instead, and `.btn-primary`
+is solid coral with near-navy text for WCAG AA.

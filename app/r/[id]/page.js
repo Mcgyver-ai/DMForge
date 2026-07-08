@@ -95,7 +95,7 @@ export default async function ResultPage({ params }) {
           <a href={`https://www.reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent('I built an AI DM setter in 60s with DMForge')}`} target="_blank" rel="noopener" className="px-4 py-2 bg-[#161630] border border-[#2A2A55] hover:border-[#FF4D6D] rounded-lg text-sm">Reddit</a>
         </div>
 
-        <div className="mt-12 text-center bg-gradient-to-br from-[#FF4D6D]/15 to-[#6B5BFF]/15 border border-[#FF4D6D]/40 rounded-xl p-10">
+        <div className="mt-12 text-center bg-[#FF4D6D]/10 border border-[#FF4D6D]/40 rounded-xl p-10">
           <h2 className="font-display text-3xl font-bold">Build your own AI setter in 60 seconds.</h2>
           <p className="text-[#A0A0C8] mt-2">Free forever. No credit card.</p>
           <Link href="/" className="inline-block mt-5 px-6 py-3 btn-primary rounded-lg font-semibold">Make my AI setter →</Link>

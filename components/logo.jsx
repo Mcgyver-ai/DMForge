@@ -3,32 +3,17 @@
 import Link from 'next/link'
 
 /**
- * Brand icon — coral-to-orange gradient tile with a white speech-bubble
- * containing a flame, matching the official DMForge app icon.
+ * Brand icon — solid coral tile with a white anvil mark. The wordmark
+ * already spells out "DM", so the icon carries "Forge" on its own —
+ * no flame, no gradient, one clean shape that reads at 32px.
  */
 function BrandIcon() {
   return (
-    <div className="w-8 h-8 rounded-lg flex items-center justify-center btn-primary glow-coral relative">
-      {/* White speech bubble */}
-      <svg
-        viewBox="0 0 24 24"
-        fill="white"
-        className="w-5 h-5"
-        aria-hidden="true"
-      >
-        {/* Rounded speech bubble shape */}
-        <path d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8l-4 4V6a2 2 0 0 1 2-2z" fill="white" />
-        {/* Flame inside the bubble */}
-        <path
-          d="M12 7q.6 2.4 2.4 3.9t1.8 3.3a.6.6 0 0 1-8.4 0 3 3 0 0 1 .6-1.8.6.6 0 0 0 3 0c0-1.2-.9-1.8-.9-3q0-1.2 1.5-2.4"
-          fill="url(#flame-grad)"
-        />
-        <defs>
-          <linearGradient id="flame-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#FBBF24" />
-            <stop offset="100%" stopColor="#FF4D6D" />
-          </linearGradient>
-        </defs>
+    <div className="w-8 h-8 rounded-lg flex items-center justify-center btn-primary">
+      <svg viewBox="0 0 24 24" fill="white" className="w-[19px] h-[19px]" aria-hidden="true">
+        <polygon points="3,10 9,8 20,8 20,12 9,12" />
+        <rect x="12" y="12" width="4" height="3" />
+        <polygon points="10,15 18,15 20,19 8,19" />
       </svg>
     </div>
   )
@@ -48,9 +33,8 @@ function BrandName() {
 }
 
 /**
- * Shared brand logo — speech-bubble-flame icon tile + "DMForge" wordmark.
- * Matches the official DMForge brand (coral gradient tile, speech bubble with flame,
- * "DM" in coral + "Forge" in muted, Space Grotesk display font).
+ * Shared brand logo — coral anvil-tile icon + "DMForge" wordmark.
+ * "DM" in coral + "Forge" in muted, Fraunces display font.
  *
  * @param {{ href?: string, whiteLabel?: { logoUrl?: string, brandName?: string, hideParentBranding?: boolean } }} props
  *   - href: where the logo links (default "/")

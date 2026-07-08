@@ -42,7 +42,7 @@ export function AuthModal({ open, onClose, defaultMode = 'login' }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center px-4" onClick={onClose}>
-      <Card className="bg-[#161630] border-[#2A2A55] p-8 w-full max-w-md relative glow-coral" onClick={e => e.stopPropagation()}>
+      <Card className="bg-[#161630] border-[#2A2A55] p-8 w-full max-w-md relative elevate-coral" onClick={e => e.stopPropagation()}>
         <button onClick={onClose} className="absolute top-3 right-3 text-[#A0A0C8] hover:text-white"><X className="w-5 h-5" /></button>
         <div className="flex items-center gap-2 mb-2">
           <div className="w-8 h-8 rounded-lg btn-primary flex items-center justify-center"><Flame className="w-5 h-5" /></div>

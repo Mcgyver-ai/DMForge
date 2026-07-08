@@ -115,10 +115,10 @@ function ChatSimulator({ agent, onSave }) {
   }
 
   return (
-    <Card className="bg-[#161630] border-[#2A2A55] p-0 overflow-hidden flex flex-col h-[640px] w-full max-w-md mx-auto glow-purple">
+    <Card className="bg-[#161630] border-[#2A2A55] p-0 overflow-hidden flex flex-col h-[640px] w-full max-w-md mx-auto elevate-purple">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-[#2A2A55] bg-gradient-to-r from-[#FF4D6D]/10 to-[#6B5BFF]/10">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF4D6D] to-[#6B5BFF] flex items-center justify-center font-bold">{agent?.agentName?.[0]?.toUpperCase() || 'C'}</div>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-[#2A2A55] bg-[#FF4D6D]/[0.06]">
+        <div className="w-10 h-10 rounded-full bg-[#FF4D6D] text-[#0B0B1A] flex items-center justify-center font-bold">{agent?.agentName?.[0]?.toUpperCase() || 'C'}</div>
         <div className="flex-1">
           <div className="font-semibold text-sm">{agent?.agentName || 'Coach'} • <span className="text-[#34D399] text-xs">AI active</span></div>
           <div className="text-xs text-[#A0A0C8]">Instagram DM • Live simulator</div>
@@ -182,7 +182,7 @@ function Wizard({ onCreated }) {
       <div className="flex items-center gap-2 text-xs text-[#A0A0C8] mb-4">
         {['Niche','Offer','Qualify','Tone'].map((s,i) => (
           <div key={s} className={`flex items-center gap-2 ${i === step ? 'text-white' : ''}`}>
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${i <= step ? 'bg-[#FF4D6D] text-white' : 'bg-[#2A2A55]'}`}>{i+1}</div>
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${i <= step ? 'bg-[#FF4D6D] text-[#0B0B1A]' : 'bg-[#2A2A55]'}`}>{i+1}</div>
             <span>{s}</span>
             {i < 3 && <ChevronRight className="w-3 h-3 opacity-50" />}
           </div>
@@ -233,29 +233,42 @@ function Wizard({ onCreated }) {
 }
 
 function FeaturesGrid() {
-  const features = [
-    { icon: <Zap className="w-5 h-5" />, title: '60-second setup', body: 'No Meta approval, no Instagram login required to start. Build and live-test in under a minute.' },
-    { icon: <MessageCircle className="w-5 h-5" />, title: 'Live test simulator', body: 'Chat with your AI before you connect anything. Tweak the prompt in plain English until it sells like you.' },
-    { icon: <Globe className="w-5 h-5" />, title: 'Multi-channel from day one', body: 'Instagram, WhatsApp, Messenger, website widget, SMS and email. One agent, every inbox.' },
-    { icon: <Calendar className="w-5 h-5" />, title: 'In-chat booking', body: 'Calendly, Cal.com, GHL, iClosed. The agent shares real slots and books in the conversation — no links to paste.' },
-    { icon: <Mic className="w-5 h-5" />, title: 'Your voice, cloned', body: 'Optional ElevenLabs voice clone for natural audio replies that sound exactly like you.' },
-    { icon: <Shield className="w-5 h-5" />, title: 'Open prompt', body: 'See the full prompt your AI uses. Edit any line, any time. No black box.' },
-    { icon: <Share2 className="w-5 h-5" />, title: 'Viral share links', body: 'Every transcript gets a branded /r/[id] page. Show off the calls your AI booked while you slept.' },
-    { icon: <Bot className="w-5 h-5" />, title: 'Plain-English tuning', body: 'Say "be more direct" or "ask about budget on turn 3". The AI rewrites itself.' },
+  const featured = [
+    { icon: <MessageCircle className="w-6 h-6" />, title: 'Live test simulator', body: 'Chat with your AI before you connect anything. Tweak the prompt in plain English until it sells like you — this is the whole reason coaches trust it enough to go live.', tone: 'coral' },
+    { icon: <Shield className="w-6 h-6" />, title: 'Open prompt', body: 'See the full prompt your AI uses. Edit any line, any time. Every other setter on the market is a black box — this one isn’t.', tone: 'purple' },
+  ]
+  const rest = [
+    { icon: <Zap className="w-5 h-5" />, title: '60-second setup', body: 'No Meta approval, no Instagram login required to start.' },
+    { icon: <Globe className="w-5 h-5" />, title: 'Multi-channel from day one', body: 'Instagram, WhatsApp, Messenger, website widget, SMS and email.' },
+    { icon: <Calendar className="w-5 h-5" />, title: 'In-chat booking', body: 'Calendly, Cal.com, GHL, iClosed — real slots booked in the conversation.' },
+    { icon: <Mic className="w-5 h-5" />, title: 'Your voice, cloned', body: 'Optional ElevenLabs clone for audio replies that sound exactly like you.' },
+    { icon: <Share2 className="w-5 h-5" />, title: 'Viral share links', body: 'Every transcript gets a branded /r/[id] page to show off what it booked.' },
+    { icon: <Bot className="w-5 h-5" />, title: 'Plain-English tuning', body: 'Say "be more direct" or "ask about budget on turn 3." It rewrites itself.' },
   ]
   return (
     <section id="features" className="max-w-7xl mx-auto px-5 py-24">
-      <div className="text-center mb-14">
+      <div className="mb-14 max-w-2xl">
         <p className="text-[#FF4D6D] text-sm font-semibold uppercase tracking-widest mb-3">Features</p>
-        <h2 className="font-display text-4xl md:text-5xl font-bold">Everything a $99/mo setter does. <span className="grad-text">Plus the parts they got wrong.</span></h2>
+        <h2 className="font-display text-4xl md:text-5xl font-bold">Everything a $99/mo setter does. <span className="text-[#FF4D6D]">Plus the parts they got wrong.</span></h2>
       </div>
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {features.map((f,i) => (
-          <Card key={i} className="bg-[#161630] border-[#2A2A55] p-5 hover:border-[#FF4D6D]/60 transition">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#FF4D6D] to-[#6B5BFF] flex items-center justify-center mb-3">{f.icon}</div>
-            <h3 className="font-display font-bold text-lg mb-1">{f.title}</h3>
-            <p className="text-sm text-[#A0A0C8]">{f.body}</p>
+      <div className="grid lg:grid-cols-2 gap-5 mb-12">
+        {featured.map((f,i) => (
+          <Card key={i} className={`p-8 ${f.tone === 'coral' ? 'bg-[#FF4D6D]/[0.07] border-[#FF4D6D]/40 elevate-coral' : 'bg-[#6B5BFF]/[0.07] border-[#6B5BFF]/40 elevate-purple'}`}>
+            <div className={`w-11 h-11 rounded-lg flex items-center justify-center mb-5 ${f.tone === 'coral' ? 'bg-[#FF4D6D] text-[#0B0B1A]' : 'bg-[#6B5BFF] text-white'}`}>{f.icon}</div>
+            <h3 className="font-display font-bold text-xl mb-2">{f.title}</h3>
+            <p className="text-[#A0A0C8] leading-relaxed">{f.body}</p>
           </Card>
+        ))}
+      </div>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-7 border-t border-[#2A2A55] pt-10">
+        {rest.map((f,i) => (
+          <div key={i} className="flex gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#1F1F42] text-[#A0A0C8] flex items-center justify-center shrink-0">{f.icon}</div>
+            <div>
+              <h4 className="font-semibold text-sm mb-1">{f.title}</h4>
+              <p className="text-sm text-[#A0A0C8]">{f.body}</p>
+            </div>
+          </div>
         ))}
       </div>
     </section>
@@ -276,7 +289,7 @@ function WhyBetter() {
     <section id="why" className="max-w-6xl mx-auto px-5 py-24">
       <div className="text-center mb-12">
         <p className="text-[#FF4D6D] text-sm font-semibold uppercase tracking-widest mb-3">Why DMForge</p>
-        <h2 className="font-display text-4xl md:text-5xl font-bold">DMForge <span className="grad-text">vs SetSmart</span></h2>
+        <h2 className="font-display text-4xl md:text-5xl font-bold">DMForge <span className="text-[#FF4D6D]">vs SetSmart</span></h2>
         <p className="text-[#A0A0C8] mt-3">An honest, point-by-point comparison.</p>
       </div>
       <Card className="bg-[#161630] border-[#2A2A55] overflow-hidden">
@@ -326,7 +339,7 @@ function Pricing({ onTry }) {
     <section id="pricing" className="max-w-6xl mx-auto px-5 py-24">
       <div className="text-center mb-12">
         <p className="text-[#FF4D6D] text-sm font-semibold uppercase tracking-widest mb-3">Pricing</p>
-        <h2 className="font-display text-4xl md:text-5xl font-bold">Flat pricing. <span className="grad-text">Zero surprises.</span></h2>
+        <h2 className="font-display text-4xl md:text-5xl font-bold">Flat pricing. <span className="text-[#FF4D6D]">Zero surprises.</span></h2>
         <p className="text-[#A0A0C8] mt-3">No per-message charges, ever. Cancel any time.</p>
       </div>
       <div className="grid md:grid-cols-3 gap-5">
@@ -338,8 +351,8 @@ function Pricing({ onTry }) {
           <Button onClick={onTry} className="w-full bg-[#1F1F42] hover:bg-[#2A2A55] border-0">Start free</Button>
           <ul className="mt-6 space-y-2 text-sm text-[#A0A0C8]"><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />1 AI setter</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />Unlimited live simulator</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />50 real conversations / mo</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />Public share links</li></ul>
         </Card>
-        <Card className="bg-gradient-to-br from-[#FF4D6D]/10 to-[#6B5BFF]/10 border-[#FF4D6D] p-7 relative glow-coral">
-          <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#FF4D6D] text-white border-0">Most popular</Badge>
+        <Card className="bg-[#FF4D6D]/[0.08] border-[#FF4D6D] p-7 relative elevate-coral">
+          <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#FF4D6D] text-[#0B0B1A] border-0">Most popular</Badge>
           <h3 className="font-display text-2xl font-bold">Pro</h3>
           <p className="text-[#A0A0C8] mb-5">For coaches running real ads.</p>
           <div className="text-4xl font-display font-bold mb-1">$39<span className="text-base text-[#A0A0C8] font-normal">/mo</span></div>
@@ -427,14 +440,14 @@ function App() {
       <Nav onTry={scrollToBuilder} onAuthOpen={() => setAuthOpen(true)} />
 
       {/* HERO */}
-      <section ref={heroRef} className="grad-bg relative overflow-hidden">
+      <section ref={heroRef} className="relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-5 pt-16 pb-20 grid lg:grid-cols-2 gap-12 items-center">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1F1F42] border border-[#2A2A55] text-xs text-[#A0A0C8] mb-6">
               <span className="w-2 h-2 rounded-full bg-[#34D399] animate-pulse" /> 500+ coaches built their setter this week
             </div>
             <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.03] tracking-tight">
-              Build, test &amp; ship an <span className="grad-text">AI DM setter</span> in 60 seconds.
+              Build, test &amp; ship an <span className="text-[#FF4D6D]">AI DM setter</span> in 60 seconds.
             </h1>
             <p className="text-lg text-[#A0A0C8] mt-6 max-w-xl">
               Replies to your Instagram DMs, qualifies your leads, books your sales calls. <span className="text-white">Test it live right here</span> before you connect anything. No card, no Meta approval.
@@ -446,7 +459,7 @@ function App() {
             </div>
             <div className="mt-8 flex items-center gap-3">
               <div className="flex -space-x-2">
-                {['F','S','A','M','T'].map((c,i) => <div key={i} className="w-8 h-8 rounded-full border-2 border-[#0B0B1A] bg-gradient-to-br from-[#FF4D6D] to-[#6B5BFF] flex items-center justify-center text-xs font-bold">{c}</div>)}
+                {['F','S','A','M','T'].map((c,i) => <div key={i} className="w-8 h-8 rounded-full border-2 border-[#0B0B1A] bg-[#FF4D6D] text-[#0B0B1A] flex items-center justify-center text-xs font-bold">{c}</div>)}
               </div>
               <div className="flex items-center gap-1 text-sm"><Star className="w-4 h-4 fill-[#FBBF24] text-[#FBBF24]" /><Star className="w-4 h-4 fill-[#FBBF24] text-[#FBBF24]" /><Star className="w-4 h-4 fill-[#FBBF24] text-[#FBBF24]" /><Star className="w-4 h-4 fill-[#FBBF24] text-[#FBBF24]" /><Star className="w-4 h-4 fill-[#FBBF24] text-[#FBBF24]" /><span className="ml-2 text-[#A0A0C8]">4.9 • first 500 coaches</span></div>
             </div>
@@ -481,7 +494,7 @@ function App() {
 
       {/* Final CTA */}
       <section className="max-w-5xl mx-auto px-5 py-24 text-center">
-        <Card className="bg-gradient-to-br from-[#FF4D6D]/15 to-[#6B5BFF]/15 border-[#FF4D6D]/40 p-12 glow-coral">
+        <Card className="bg-[#FF4D6D]/10 border-[#FF4D6D]/40 p-12 elevate-coral">
           <h2 className="font-display text-4xl md:text-5xl font-bold">Stop losing leads at 11pm.</h2>
           <p className="text-[#A0A0C8] mt-3 max-w-xl mx-auto">Forge your AI setter in the next 60 seconds. Live-test it right now. No credit card, no Meta hoops.</p>
           <Button onClick={scrollToBuilder} className="btn-primary border-0 mt-6 font-semibold px-8 h-12">Build my AI setter <ArrowRight className="w-4 h-4 ml-2" /></Button>

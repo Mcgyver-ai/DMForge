@@ -54,7 +54,7 @@ export default async function PostPage({ params }) {
         <div className="text-xs uppercase tracking-widest text-[#FF4D6D] font-semibold mb-3">{p.category}</div>
         <h1 className="font-display text-4xl md:text-5xl font-bold leading-tight">{p.title}</h1>
         <div className="flex items-center gap-3 mt-6 text-sm text-[#A0A0C8]">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#FF4D6D] to-[#6B5BFF] flex items-center justify-center">{AUTHOR.avatar}</div>
+          <div className="w-9 h-9 rounded-full bg-[#FF4D6D] text-[#0B0B1A] flex items-center justify-center">{AUTHOR.avatar}</div>
           <div><span className="text-white font-medium">{AUTHOR.name}</span> • {new Date(p.date).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</div>
         </div>
 
@@ -81,7 +81,7 @@ export default async function PostPage({ params }) {
         </div>
 
         {/* CTA */}
-        <div className="mt-14 bg-gradient-to-br from-[#FF4D6D]/15 to-[#6B5BFF]/15 border border-[#FF4D6D]/40 rounded-xl p-8 text-center glow-coral">
+        <div className="mt-14 bg-[#FF4D6D]/10 border border-[#FF4D6D]/40 rounded-xl p-8 text-center elevate-coral">
           <h3 className="font-display text-2xl font-bold">Build your own AI DM setter in 60 seconds.</h3>
           <p className="text-[#A0A0C8] mt-2">Free forever. No credit card. No Meta approval.</p>
           <Link href="/" className="inline-block mt-5 px-6 py-3 btn-primary rounded-lg font-semibold">Try DMForge →</Link>

@@ -2,33 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
+/* DMForge palette as shadcn tokens — HSL triplets, consumed as hsl(var(--*)) by tailwind.config.js */
 :root {
-  --bg: #0B0B1A;
-  --surface: #161630;
-  --surface-2: #1F1F42;
-  --border: #2A2A55;
-  --text: #F5F5FA;
-  --text-muted: #A0A0C8;
-  --primary: #FF4D6D;
-  --primary-hover: #FF6B85;
-  --accent: #6B5BFF;
-  --success: #34D399;
-  --warn: #FBBF24;
+  --background: 240 41% 7%;        /* #0B0B1A */
+  --foreground: 240 33% 97%;       /* #F5F5FA */
+  --card: 240 37% 14%;             /* #161630 */
+  --card-foreground: 240 33% 97%;
+  --popover: 240 37% 14%;
+  --popover-foreground: 240 33% 97%;
+  --primary: 349 100% 65%;         /* #FF4D6D */
+  --primary-foreground: 240 41% 7%;
+  --secondary: 240 36% 19%;        /* #1F1F42 */
+  --secondary-foreground: 240 33% 97%;
+  --muted: 240 36% 19%;
+  --muted-foreground: 240 27% 71%; /* #A0A0C8 */
+  --accent: 246 100% 68%;          /* #6B5BFF */
+  --accent-foreground: 240 33% 97%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 240 33% 97%;
+  --border: 240 34% 25%;           /* #2A2A55 */
+  --input: 240 34% 25%;
+  --ring: 349 100% 65%;
+  --chart-1: 349 100% 65%;
+  --chart-2: 246 100% 68%;
+  --chart-3: 158 64% 52%;          /* #34D399 */
+  --chart-4: 43 96% 56%;           /* #FBBF24 */
+  --chart-5: 22 100% 62%;          /* #FF7A3D */
+  --sidebar-background: 240 41% 7%;
+  --sidebar-foreground: 240 33% 97%;
+  --sidebar-primary: 349 100% 65%;
+  --sidebar-primary-foreground: 240 41% 7%;
+  --sidebar-accent: 240 36% 19%;
+  --sidebar-accent-foreground: 240 33% 97%;
+  --sidebar-border: 240 34% 25%;
+  --sidebar-ring: 349 100% 65%;
   --radius: 12px;
 }
 
-html, body { background: var(--bg); color: var(--text); }
+html, body { background: hsl(var(--background)); color: hsl(var(--foreground)); }
 
 .font-display { font-family: var(--font-display), ui-sans-serif, system-ui; letter-spacing: -0.02em; }
 .font-body { font-family: var(--font-body), ui-sans-serif, system-ui; }
 
-.glow-coral { box-shadow: 0 0 60px -10px rgba(255,77,109,0.55), 0 0 0 1px rgba(255,77,109,0.25); }
-.glow-purple { box-shadow: 0 0 60px -10px rgba(107,91,255,0.55), 0 0 0 1px rgba(107,91,255,0.25); }
-.grad-text { background: linear-gradient(135deg, #FF4D6D 0%, #FFB347 50%, #6B5BFF 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.grad-bg { background: radial-gradient(1200px 600px at 80% -10%, rgba(255,77,109,0.18), transparent 60%), radial-gradient(900px 500px at 10% 10%, rgba(107,91,255,0.18), transparent 60%); }
+/* Brand-tinted directional elevation for featured surfaces */
+.elevate-coral { box-shadow: 0 16px 40px -24px rgba(255, 77, 109, 0.45); }
+.elevate-purple { box-shadow: 0 16px 40px -24px rgba(107, 91, 255, 0.45); }
 
-.btn-primary { background: linear-gradient(135deg, #FF4D6D, #FF7A3D); color: white; }
-.btn-primary:hover { filter: brightness(1.08); }
+.btn-primary { background: #FF4D6D; color: #0B0B1A; }
+.btn-primary:hover { background: #FF6B85; }
 
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -37,3 +58,7 @@ html, body { background: var(--bg); color: var(--text); }
 .typing-dot { animation: typing-dot 1.4s infinite; }
 .typing-dot:nth-child(2) { animation-delay: .2s }
 .typing-dot:nth-child(3) { animation-delay: .4s }
+
+@media (prefers-reduced-motion: reduce) {
+  .typing-dot { animation: none; opacity: .6; }
+}

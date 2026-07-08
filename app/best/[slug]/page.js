@@ -112,11 +112,11 @@ export default async function BestPage({ params }) {
 
         <div className="mt-10 space-y-4">
           {expanded.map((tool, i) => (
-            <div key={i} className={`border rounded-xl p-6 ${i === 0 ? 'bg-gradient-to-br from-[#FF4D6D]/10 to-[#6B5BFF]/10 border-[#FF4D6D]/40 glow-coral' : 'bg-[#161630] border-[#2A2A55]'}`}>
+            <div key={i} className={`border rounded-xl p-6 ${i === 0 ? 'bg-[#FF4D6D]/[0.08] border-[#FF4D6D]/40 elevate-coral' : 'bg-[#161630] border-[#2A2A55]'}`}>
               <div className="flex items-baseline gap-3 mb-2">
-                <span className={`font-display text-3xl font-bold ${i === 0 ? 'grad-text' : 'text-[#A0A0C8]'}`}>#{i+1}</span>
+                <span className={`font-display text-3xl font-bold ${i === 0 ? 'text-[#FF4D6D]' : 'text-[#A0A0C8]'}`}>#{i+1}</span>
                 <h2 className="font-display text-2xl font-bold">{tool.name}</h2>
-                {i === 0 && <span className="text-xs bg-[#FF4D6D] text-white px-2 py-0.5 rounded-full font-semibold">EDITOR'S PICK</span>}
+                {i === 0 && <span className="text-xs bg-[#FF4D6D] text-[#0B0B1A] px-2 py-0.5 rounded-full font-semibold">EDITOR'S PICK</span>}
               </div>
               <p className="text-[#A0A0C8] mb-3">{tool.tagline}</p>
               <p className="text-sm mb-4"><span className="text-[#A0A0C8]">Pricing:</span> <span className="text-white font-medium">{tool.price}</span></p>
@@ -144,7 +144,7 @@ export default async function BestPage({ params }) {
           </div>
         </div>
 
-        <div className="mt-14 text-center bg-gradient-to-br from-[#FF4D6D]/15 to-[#6B5BFF]/15 border border-[#FF4D6D]/40 rounded-xl p-10 glow-coral">
+        <div className="mt-14 text-center bg-[#FF4D6D]/10 border border-[#FF4D6D]/40 rounded-xl p-10 elevate-coral">
           <h2 className="font-display text-3xl font-bold">Try the #1 pick in 60 seconds.</h2>
           <p className="text-[#A0A0C8] mt-2">No card, no Meta approval.</p>
           <Link href="/" className="inline-block mt-5 px-6 py-3 btn-primary rounded-lg font-semibold">Build my AI setter →</Link>
