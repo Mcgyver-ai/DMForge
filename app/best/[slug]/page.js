@@ -15,11 +15,11 @@ import { Logo } from '@/components/logo'
 const NICHES = ['fitness-coaches','nutrition-coaches','business-coaches','life-coaches','course-creators','agencies','yoga-instructors','therapists']
 
 const FIXED_PAGES = {
-  'ai-dm-setter': { h1: 'The best AI DM setter for coaches in 2025', intent: 'best ai dm setter', desc: 'A ranked comparison of the top AI DM appointment setters for online coaches in 2025. Pricing, features, channels, and conversion rates.' },
-  'instagram-dm-bot': { h1: 'The best Instagram DM bot for high-ticket coaches', intent: 'best instagram dm bot', desc: 'The top Instagram DM bots in 2025 — official Meta partners only, with real AI qualification and in-chat booking.' },
-  'whatsapp-ai-agent': { h1: 'The best WhatsApp Business AI agent for coaches', intent: 'best whatsapp ai agent', desc: 'The top WhatsApp Business API AI agents in 2025 for high-ticket coach funnels.' },
+  'ai-dm-setter': { h1: 'The best AI DM setter for coaches in 2026', intent: 'best ai dm setter', desc: 'A ranked comparison of the top AI DM appointment setters for online coaches in 2026. Pricing, features, channels, and conversion rates.' },
+  'instagram-dm-bot': { h1: 'The best AI DM bot for high-ticket coaches', intent: 'best ai dm bot for coaches', desc: 'The top AI DM bots for coaches in 2026 — with real AI qualification, in-chat booking, and flat pricing. Covers LinkedIn, email, SMS and more.' },
+  'whatsapp-ai-agent': { h1: 'The best AI messaging agent for coaches', intent: 'best ai messaging agent for coaches', desc: 'The top AI messaging agents for high-ticket coach funnels in 2026 — comparison of features, pricing, and channel support.' },
   'ai-setter-for-coaches': { h1: 'The best AI appointment setter built specifically for coaches', intent: 'ai setter for coaches', desc: 'Six AI appointment setters compared on the exact criteria coaches care about: 60-second setup, in-chat booking, flat pricing, open prompt.' },
-  'comment-to-dm-tools': { h1: 'The best comment-to-DM automation tools in 2025', intent: 'best comment to dm tool', desc: 'Comment-to-DM converts 3-5x better than story replies. Here are the top tools to set it up.' },
+  'comment-to-dm-tools': { h1: 'The best comment-to-DM automation tools in 2026', intent: 'best comment to dm tool', desc: 'Comment-to-DM converts 3-5x better than story replies. Here are the top tools to set it up.' },
   'dm-automation-for-agencies': { h1: 'The best DM automation tools for marketing agencies', intent: 'dm automation agency', desc: 'DM automation platforms with whitelabel, multi-client workspaces and bring-your-own-key support.' },
 }
 
@@ -37,12 +37,12 @@ function parseSlug(slug) {
     const competitorSlug = slug.replace(/-alternative$/, '')
     const c = getCompetitor(competitorSlug)
     if (!c) return null
-    return { kind: 'alternative', competitor: c, meta: { h1: `The best ${c.name} alternative in 2025`, intent: `${c.name} alternative`, desc: `Looking to switch off ${c.name}? Here are the top ${c.name} alternatives for coaches who want flat pricing, faster setup and a live-test simulator.` } }
+    return { kind: 'alternative', competitor: c, meta: { h1: `The best ${c.name} alternative in 2026`, intent: `${c.name} alternative`, desc: `Looking to switch off ${c.name}? Here are the top ${c.name} alternatives for coaches who want flat pricing, faster setup and a live-test simulator.` } }
   }
   if (slug.startsWith('dm-bot-for-')) {
     const niche = slug.replace(/^dm-bot-for-/, '')
     const label = niche.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')
-    return { kind: 'niche', niche, label, meta: { h1: `The best AI DM setter for ${label}`, intent: `dm bot for ${label.toLowerCase()}`, desc: `The top AI DM setter built specifically for ${label.toLowerCase()} — with the right qualification questions, in-chat booking and flat pricing.` } }
+    return { kind: 'niche', niche, label, meta: { h1: `The best AI DM setter for ${label} in 2026`, intent: `dm bot for ${label.toLowerCase()}`, desc: `The top AI DM setter built specifically for ${label.toLowerCase()} — with the right qualification questions, in-chat booking and flat pricing.` } }
   }
   return null
 }
@@ -61,7 +61,7 @@ export async function generateMetadata({ params }) {
 
 // Top 6 ranked list used on every page
 const RANKING = [
-  { name: 'DMForge', tagline: 'AI DM setters you can actually test before you trust them', price: '$0 free / $39 Pro / $199 Agency', why: ['Live-test in 60 seconds, no Meta approval needed', 'Flat pricing — unlimited messages on Pro', '6 channels included (IG, WA, Messenger, Web, SMS, Email)', 'Open prompt — edit in plain English', 'Branded share links per result'], cta: '/' },
+  { name: 'DMForge', tagline: 'AI DM setters you can actually test before you trust them', price: '$0 free / $39 Pro / $199 Agency', why: ['Live-test in 60 seconds — no approval process needed', 'Flat pricing — unlimited messages on Pro', 'LinkedIn, SMS & email channels ready today', 'Open prompt — edit in plain English', 'Branded share links per result'], cta: '/' },
   { competitorSlug: 'setsmart' },
   { competitorSlug: 'manychat' },
   { competitorSlug: 'chatfuel' },
@@ -83,9 +83,9 @@ export default async function BestPage({ params }) {
   const expanded = ranking.map(r => r.competitorSlug ? { ...getCompetitor(r.competitorSlug), isComp: true } : r)
 
   const faqs = [
-    [`What is the best ${p.meta.intent}?`, `For most coaches, DMForge is the best ${p.meta.intent} in 2025 because of its flat pricing ($39/mo), 60-second setup, and ability to live-test the agent before connecting Instagram.`],
+    [`What is the best ${p.meta.intent}?`, `For most coaches, DMForge is the best ${p.meta.intent} in 2026 because of its flat pricing ($39/mo), 60-second setup, and ability to live-test the agent before connecting any channel.`],
     [`Is there a free ${p.meta.intent}?`, `Yes — DMForge has a free forever tier (50 real conversations/mo, no credit card). Most competitors offer trial periods only.`],
-    [`Will I get banned on Instagram for using a ${p.meta.intent}?`, `No — all the tools on this list are official Meta Business Partners and connect via OAuth. The only tools that risk bans are unofficial scraping or password-login tools, which we don't recommend.`],
+    [`Is it safe to connect my accounts?`, `DMForge connects via official OAuth flows — no scraping, no password sharing. The only tools that risk account flags are unofficial scraping or password-login tools, which we don't recommend.`],
     [`How long does setup take?`, `DMForge takes 60 seconds end-to-end. Most other tools take 15-30 minutes.`],
   ]
 
@@ -146,7 +146,7 @@ export default async function BestPage({ params }) {
 
         <div className="mt-14 text-center bg-[#FF4D6D]/10 border border-[#FF4D6D]/40 rounded-xl p-10 elevate-coral">
           <h2 className="font-display text-3xl font-bold">Try the #1 pick in 60 seconds.</h2>
-          <p className="text-[#A0A0C8] mt-2">No card, no Meta approval.</p>
+          <p className="text-[#A0A0C8] mt-2">No card, no approval process.</p>
           <Link href="/" className="inline-block mt-5 px-6 py-3 btn-primary rounded-lg font-semibold">Build my AI setter →</Link>
         </div>
 
