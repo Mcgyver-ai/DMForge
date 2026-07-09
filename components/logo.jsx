@@ -3,17 +3,14 @@
 import Link from 'next/link'
 
 /**
- * Brand icon — solid coral tile with a white anvil mark. The wordmark
- * already spells out "DM", so the icon carries "Forge" on its own —
- * no flame, no gradient, one clean shape that reads at 32px.
+ * Brand icon — coral tile with a white filled send/arrow mark.
+ * Communicates "DM outreach" instantly, sharp at any size.
  */
 function BrandIcon() {
   return (
     <div className="w-8 h-8 rounded-lg flex items-center justify-center btn-primary">
-      <svg viewBox="0 0 24 24" fill="white" className="w-[19px] h-[19px]" aria-hidden="true">
-        <polygon points="3,10 9,8 20,8 20,12 9,12" />
-        <rect x="12" y="12" width="4" height="3" />
-        <polygon points="10,15 18,15 20,19 8,19" />
+      <svg viewBox="0 0 24 24" fill="white" className="w-[18px] h-[18px]" aria-hidden="true">
+        <path d="M3 20l19-8L3 4v6l13 2-13 2v6z" />
       </svg>
     </div>
   )
