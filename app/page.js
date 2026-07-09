@@ -121,7 +121,7 @@ function ChatSimulator({ agent, onSave }) {
         <div className="w-10 h-10 rounded-full bg-[#FF4D6D] text-[#0B0B1A] flex items-center justify-center font-bold">{agent?.agentName?.[0]?.toUpperCase() || 'C'}</div>
         <div className="flex-1">
           <div className="font-semibold text-sm">{agent?.agentName || 'Coach'} • <span className="text-[#34D399] text-xs">AI active</span></div>
-          <div className="text-xs text-[#A0A0C8]">Instagram DM • Live simulator</div>
+          <div className="text-xs text-[#A0A0C8]">DM simulator • Live preview</div>
         </div>
         <div className="flex flex-col gap-1 items-end text-[10px]">
           {state.qualified && <Badge className="bg-[#34D399]/20 text-[#34D399] border-0">Qualified</Badge>}
@@ -238,10 +238,9 @@ function FeaturesGrid() {
     { icon: <Shield className="w-6 h-6" />, title: 'Open prompt', body: 'See the full prompt your AI uses. Edit any line, any time. Every other setter on the market is a black box — this one isn’t.', tone: 'purple' },
   ]
   const rest = [
-    { icon: <Zap className="w-5 h-5" />, title: '60-second setup', body: 'No Meta approval, no Instagram login required to start.' },
-    { icon: <Globe className="w-5 h-5" />, title: 'Multi-channel from day one', body: 'Instagram, WhatsApp, Messenger, website widget, SMS and email.' },
-    { icon: <Calendar className="w-5 h-5" />, title: 'In-chat booking', body: 'Calendly, Cal.com, GHL, iClosed — real slots booked in the conversation.' },
-    { icon: <Mic className="w-5 h-5" />, title: 'Your voice, cloned', body: 'Optional ElevenLabs clone for audio replies that sound exactly like you.' },
+    { icon: <Zap className="w-5 h-5" />, title: '60-second setup', body: 'No platform approval required to start. Build and test in under a minute.' },
+    { icon: <Globe className="w-5 h-5" />, title: 'Multi-channel outreach', body: 'LinkedIn, email, and SMS ready on day one — more channels shipping soon.' },
+    { icon: <Calendar className="w-5 h-5" />, title: 'In-chat booking', body: 'GoHighLevel booking — real slots offered and confirmed inside the conversation.' },
     { icon: <Share2 className="w-5 h-5" />, title: 'Viral share links', body: 'Every transcript gets a branded /r/[id] page to show off what it booked.' },
     { icon: <Bot className="w-5 h-5" />, title: 'Plain-English tuning', body: 'Say "be more direct" or "ask about budget on turn 3." It rewrites itself.' },
   ]
@@ -280,7 +279,7 @@ function WhyBetter() {
     ['Live test before connecting', 'Yes — in 60 seconds', 'No — only after Meta connection'],
     ['Free forever tier', 'Yes — no card required', '7-day trial, card required'],
     ['Pricing model', 'Flat $39/mo, all-in', '$99/mo + per-message'],
-    ['Channels', 'IG, WA, Messenger, Web, SMS, Email', 'IG, WhatsApp, Messenger'],
+    ['Channels', 'LinkedIn, SMS, Email', 'IG, WhatsApp, Messenger'],
     ['Open prompt editing', 'Full visibility, line-by-line', 'Black-box prompt'],
     ['Public share links', 'Every result has /r/[id]', 'No'],
     ['Setup time', 'Under 60 seconds', '15-30 minutes'],
@@ -359,7 +358,7 @@ function Pricing({ onTry }) {
           <div className="text-[#A0A0C8] mb-6">or $390/yr (save $78)</div>
           <Button onClick={() => checkout('pro_monthly')} disabled={busy==='pro_monthly'} className="btn-primary border-0 w-full font-semibold">{busy==='pro_monthly' ? 'Loading…' : 'Get Pro monthly'}</Button>
           <Button onClick={() => checkout('pro_annual')} disabled={busy==='pro_annual'} variant="outline" className="bg-transparent border-[#FF4D6D]/50 hover:bg-[#FF4D6D]/10 w-full font-semibold mt-2">{busy==='pro_annual' ? 'Loading…' : 'Pay annually — save $78'}</Button>
-          <ul className="mt-6 space-y-2 text-sm"><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />Unlimited AI setters</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />5,000 real conversations / mo</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />Instagram, WhatsApp, Messenger</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />Web widget + SMS + email</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />Calendly / Cal.com / GHL booking</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />ElevenLabs voice clone</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />REST API + webhooks + MCP</li></ul>
+          <ul className="mt-6 space-y-2 text-sm"><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />Unlimited AI setters</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />5,000 real conversations / mo</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />LinkedIn + SMS + email channels</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />GHL booking</li><li className="flex gap-2"><Check className="w-4 h-4 text-[#34D399] mt-0.5" />REST API + webhooks + MCP</li></ul>
         </Card>
         <Card className="bg-[#161630] border-[#2A2A55] p-7">
           <h3 className="font-display text-2xl font-bold">Agency</h3>
@@ -380,7 +379,7 @@ function Faq() {
   const faqs = [
     ['Do I really not need a credit card?', 'Right. Free forever tier, no card. You can build an agent, run unlimited simulations and post up to 50 real conversations per month without paying us a cent.'],
     ['How is this different from SetSmart, ManyChat, Chatfuel?', "Most are flow-builders or charge per-message. We're AI-native with flat pricing and you can live-test the agent before connecting any account."],
-    ['Will Instagram ban me?', 'No — we connect through official Meta Business APIs, like every other approved partner. No scraping, no risk.'],
+    ['Which channels can I connect?', 'LinkedIn DMs, email (Gmail or any SMTP inbox), and SMS via Twilio. GoHighLevel webhook sync is already live. More channels are in the pipeline.'],
     ['Can I take over a conversation?', 'Yes — one-tap pause, jump in, and the AI hands the thread to you. Resume the AI whenever.'],
     ['Which AI powers the agent?', 'Gemini 2.5 Flash by default — the fastest, cheapest, capable model. Pro accounts can switch to Claude or GPT in one click.'],
     ['Can I cancel any time?', 'One click in the billing portal. No emails, no "are you sure?" loops.'],
@@ -423,7 +422,7 @@ function Footer() {
           <ul className="space-y-2 text-[#A0A0C8]"><li><a href="#">About</a></li><li><a href="mailto:support@dmforge.org">Contact</a></li><li><a href="#">Privacy</a></li><li><a href="#">Terms</a></li></ul>
         </div>
       </div>
-      <div className="text-center text-xs text-[#A0A0C8] pb-8">© 2025 DMForge • Built for coaches who close on calls.</div>
+      <div className="text-center text-xs text-[#A0A0C8] pb-8">© 2026 DMForge • Built for coaches who close on calls.</div>
     </footer>
   )
 }
@@ -450,12 +449,12 @@ function App() {
               Build, test &amp; ship an <span className="text-[#FF4D6D]">AI DM setter</span> in 60 seconds.
             </h1>
             <p className="text-lg text-[#A0A0C8] mt-6 max-w-xl">
-              Replies to your Instagram DMs, qualifies your leads, books your sales calls. <span className="text-white">Test it live right here</span> before you connect anything. No card, no Meta approval.
+              Qualifies your leads and books your calls — over LinkedIn, email, and SMS. <span className="text-white">Test it live right here</span> before you connect anything. No card required.
             </p>
             <div className="flex flex-wrap gap-3 mt-8">
               <div className="flex items-center gap-2 text-sm text-[#A0A0C8]"><Check className="w-4 h-4 text-[#34D399]" /> Free forever tier</div>
               <div className="flex items-center gap-2 text-sm text-[#A0A0C8]"><Check className="w-4 h-4 text-[#34D399]" /> Flat pricing</div>
-              <div className="flex items-center gap-2 text-sm text-[#A0A0C8]"><Check className="w-4 h-4 text-[#34D399]" /> 6 channels included</div>
+              <div className="flex items-center gap-2 text-sm text-[#A0A0C8]"><Check className="w-4 h-4 text-[#34D399]" /> LinkedIn, SMS &amp; email</div>
             </div>
             <div className="mt-8 flex items-center gap-3">
               <div className="flex -space-x-2">
@@ -476,13 +475,10 @@ function App() {
       {/* Social proof strip */}
       <section className="border-y border-[#2A2A55]/60 py-6">
         <div className="max-w-7xl mx-auto px-5 flex flex-wrap items-center justify-center gap-x-10 gap-y-3 text-[#A0A0C8] text-sm">
-          <span>Trusted by coaches who run on:</span>
-          <span className="font-semibold text-white">Instagram</span>
-          <span className="font-semibold text-white">WhatsApp</span>
-          <span className="font-semibold text-white">Messenger</span>
-          <span className="font-semibold text-white">Calendly</span>
+          <span>Used by coaches who run on:</span>
+          <span className="font-semibold text-white">LinkedIn</span>
           <span className="font-semibold text-white">GoHighLevel</span>
-          <span className="font-semibold text-white">iClosed</span>
+          <span className="font-semibold text-white">Twilio SMS</span>
           <span className="font-semibold text-white">Zapier</span>
         </div>
       </section>
