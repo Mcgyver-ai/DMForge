@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { LogOut, ExternalLink, MessageCircle, Share2, CreditCard, Sparkles, Plus, Check, ChevronDown, RefreshCw } from 'lucide-react'
+import { LogOut, ExternalLink, MessageCircle, Share2, CreditCard, Sparkles, Plus, Check, ChevronDown, RefreshCw, Flame } from 'lucide-react'
 import { Logo } from '@/components/logo'
 
 export default function Dashboard() {

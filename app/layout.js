@@ -13,7 +13,7 @@ const display = Fraunces({ subsets: ['latin'], variable: '--font-display', displ
 export const metadata = {
   metadataBase: new URL(baseUrl),
   title: 'DMForge — Build, test & ship AI DM setters in 60 seconds',
-  description: 'The fastest way to build, test and deploy an AI appointment setter for Instagram, WhatsApp, Messenger, web and SMS. Test your agent live before connecting any account. Free forever tier — no credit card.',
+  description: 'The fastest way to build, test and deploy an AI appointment setter over LinkedIn, email, and SMS. Test your agent live before connecting any account. Free forever tier — no credit card.',
   openGraph: {
     title: 'DMForge — AI DM setters you can actually test before you trust them',
     description: 'Build and live-test an AI appointment setter in 60 seconds. Flat pricing, multi-channel, open prompt.',

@@ -29,7 +29,7 @@ export default function PrivacyPage() {
         <li><strong>Account data:</strong> email address when you register or sign in.</li>
         <li><strong>Payment data:</strong> billing information processed by Stripe. We do not store card details — Stripe handles this under their own privacy policy.</li>
         <li><strong>Usage data:</strong> pages visited, features used, session timestamps, IP address (collected via hosting infrastructure on Vercel).</li>
-        <li><strong>Content you create:</strong> campaign prompts, NPC descriptions, and other inputs you submit to the AI generator.</li>
+        <li><strong>Content you create:</strong> agent prompts, qualification criteria, DM scripts, and other content you submit to the AI system.</li>
         <li><strong>Communications:</strong> emails you send to us.</li>
       </ul>
 

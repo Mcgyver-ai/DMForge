@@ -401,31 +401,6 @@ function Faq() {
   )
 }
 
-function Footer() {
-  return (
-    <footer className="border-t border-[#2A2A55]/60 mt-16">
-      <div className="max-w-7xl mx-auto px-5 py-12 grid md:grid-cols-4 gap-8 text-sm">
-        <div>
-          <Logo />
-          <p className="text-[#A0A0C8] mt-3">AI DM setters you can actually test before you trust them.</p>
-        </div>
-        <div>
-          <p className="font-semibold mb-3">Product</p>
-          <ul className="space-y-2 text-[#A0A0C8]"><li><a href="#features">Features</a></li><li><a href="#pricing">Pricing</a></li><li><a href="#faq">FAQ</a></li></ul>
-        </div>
-        <div>
-          <p className="font-semibold mb-3">Compare</p>
-          <ul className="space-y-2 text-[#A0A0C8]"><li><a href="/vs/setsmart">vs SetSmart</a></li><li><a href="/vs/manychat">vs ManyChat</a></li><li><a href="/vs/chatfuel">vs Chatfuel</a></li><li><a href="/vs/gohighlevel">vs GoHighLevel</a></li></ul>
-        </div>
-        <div>
-          <p className="font-semibold mb-3">Company</p>
-          <ul className="space-y-2 text-[#A0A0C8]"><li><a href="#">About</a></li><li><a href="mailto:support@dmforge.org">Contact</a></li><li><a href="#">Privacy</a></li><li><a href="#">Terms</a></li></ul>
-        </div>
-      </div>
-      <div className="text-center text-xs text-[#A0A0C8] pb-8">© 2026 DMForge • Built for coaches who close on calls.</div>
-    </footer>
-  )
-}
 
 function App() {
   const [agent, setAgent] = useState(null)
@@ -497,7 +472,6 @@ function App() {
         </Card>
       </section>
 
-      <Footer />
     </div>
   )
 }
