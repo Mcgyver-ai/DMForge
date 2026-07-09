@@ -93,6 +93,19 @@ test-results/
 .env*
 
 # graphify (local run metadata; graphify-out/ itself is committed)
-graphify-out/**/cost.json
-graphify-out/.graphify_python
-graphify-out/.graphify_root
+/graphify-out/
+!/graphify-out/**/cost.json
+!/graphify-out/**/.graphify-cache/
+!/graphify-out/**/.graph.json
+!/graphify-out/**/.graph.html
+!/graphify-out/**/**.md
+!graphify-out/.graphify_labels.json
+!graphify-out/manifest.json
+graphify-out/.graphify_labels.json
+graphify-out/graph.html
+graphify-out/manifest.json
+graphify-out/2026-07-08/.graphify_labels.json
+graphify-out/2026-07-08/GRAPH_REPORT.md
+graphify-out/2026-07-08/graph.json
+graphify-out/cache/stat-index.json
+!

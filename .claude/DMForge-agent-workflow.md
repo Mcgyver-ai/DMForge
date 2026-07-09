@@ -1,6 +1,7 @@
 # DMForge — Ship-Faster Agent Workflow
 
 > Built 2026-07-02. Two things in one doc:
+>
 > 1. **Bright Data onboarding** — set up as lead-enrichment infrastructure for DMForge.
 > 2. **Area-scoped agents** — a set of specialized Claude Code agents (one per slice of
 >    DMForge) plus the dispatch model that actually parallelizes shipping.
@@ -166,6 +167,7 @@ agents have no `Write`/`Edit`; mechanical agents can drop to a cheaper model).
    the strategy layer. Feed it to CC.
 2. **Parallelize the non-overlapping areas** via `claude-bridge`, one CC session per **git
    worktree** so they don't fight over files:
+
    ```bash
    git worktree add ../dmforge-leads   -b feat/leads-model
    git worktree add ../dmforge-billing -b fix/stripe-period-end
@@ -173,6 +175,7 @@ agents have no `Write`/`Edit`; mechanical agents can drop to a cheaper model).
    # remember DMForge's real path is D:\Dev\Workspaces\Active\DMForge — earlier dispatch
    # examples used a wrong path)
    ```
+
    Keep `api-security` **serialized** if other work touches the monolithic route — that
    file is the collision point.
 3. **Inside each session**, the matching subagent auto-engages (or invoke by name:

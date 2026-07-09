@@ -1,0 +1,11 @@
+# .graphifyignore
+node_modules/
+dist/
+*.generated.py
+
+.vscode# only index src/, ignore everything else
+*
+!src/
+!src/**
+graphify-out/cache/         # optional: commit for speed, keep repo small
+.graphifyignore

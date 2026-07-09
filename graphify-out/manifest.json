@@ -55,9 +55,9 @@
     "semantic_hash": "54a91d776ff7bc5ef4ebce02a724d86c"
   },
   "app/layout.js": {
-    "mtime": 1783482842.8172088,
-    "ast_hash": "bdca31f89f42a0dfa68dc90858824e02",
-    "semantic_hash": "bdca31f89f42a0dfa68dc90858824e02"
+    "mtime": 1783510748.0490787,
+    "ast_hash": "b52aa3125ab686a0db28ef17e47a2d49",
+    "semantic_hash": ""
   },
   "app/not-found.js": {
     "mtime": 1783427583.6262002,
@@ -125,9 +125,9 @@
     "semantic_hash": "efa621f15df66f6867a21dddab56dd3f"
   },
   "components/auth-modal.jsx": {
-    "mtime": 1783427611.1502523,
-    "ast_hash": "6a6579521d64e11ea8d886a130a4b28f",
-    "semantic_hash": "6a6579521d64e11ea8d886a130a4b28f"
+    "mtime": 1783553325.1804612,
+    "ast_hash": "c397ef729f865710f1747e2298542ea5",
+    "semantic_hash": ""
   },
   "components/error-boundary.jsx": {
     "mtime": 1782432046.1887488,
@@ -515,9 +515,9 @@
     "semantic_hash": "62c720bd63beba67827bffdcb2f20038"
   },
   "next.config.js": {
-    "mtime": 1783039864.0572095,
-    "ast_hash": "424316afee136634dff93cc621b4fb68",
-    "semantic_hash": "424316afee136634dff93cc621b4fb68"
+    "mtime": 1783553343.0931723,
+    "ast_hash": "c28212cd7f061df6bd470e1a08c8f4e1",
+    "semantic_hash": ""
   },
   "package.json": {
     "mtime": 1783322666.4951897,
@@ -615,9 +615,9 @@
     "semantic_hash": "0f9de891bfc09e0d26d8421d5d3e2dbf"
   },
   ".claude/DMForge-agent-workflow.md": {
-    "mtime": 1783182754.0474837,
-    "ast_hash": "1529b1870c302358be547fb28cd4ca46",
-    "semantic_hash": "1529b1870c302358be547fb28cd4ca46"
+    "mtime": 1783554139.5021825,
+    "ast_hash": "073c6ddc404e67b60e03dcec44016718",
+    "semantic_hash": ""
   },
   ".claude/agents/api-security.md": {
     "mtime": 1783182753.93356,
@@ -690,7 +690,7 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1783472095.351696,
+    "mtime": 1783551839.937727,
     "ast_hash": "292135cc70b7425129de1b1c11354ba4",
     "semantic_hash": "292135cc70b7425129de1b1c11354ba4"
   },
@@ -732,6 +732,36 @@
   ".claude/settings.json": {
     "mtime": 1783484432.7355807,
     "ast_hash": "43c6a8cd4109862c317e538fe61b3f69",
+    "semantic_hash": ""
+  },
+  "app/about/page.js": {
+    "mtime": 1783553276.5265317,
+    "ast_hash": "ea097a4c14a469e39c2c139aeae7bb0c",
+    "semantic_hash": ""
+  },
+  "app/contact/page.js": {
+    "mtime": 1783510656.1573727,
+    "ast_hash": "5d5f1a4a1e967ca253e3349eb03a9fca",
+    "semantic_hash": ""
+  },
+  "app/legal/privacy/page.js": {
+    "mtime": 1783510679.5353513,
+    "ast_hash": "4914e88dcc90b58f346e0f02fbd6c9c9",
+    "semantic_hash": ""
+  },
+  "app/legal/terms/page.js": {
+    "mtime": 1783553297.151888,
+    "ast_hash": "07e97a2564e08aabde7f8855d878dc8f",
+    "semantic_hash": ""
+  },
+  "components/footer.js": {
+    "mtime": 1783510732.00609,
+    "ast_hash": "581126331f64e9f659a3d582740e5620",
+    "semantic_hash": ""
+  },
+  ".agents/rules/verification-before-completion.md": {
+    "mtime": 1783551512.0525684,
+    "ast_hash": "5723e07613c047d68da0d101144c5d7a",
     "semantic_hash": ""
   }
 }

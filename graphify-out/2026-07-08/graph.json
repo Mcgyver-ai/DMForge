@@ -39,14 +39,84 @@
   },
   "nodes": [
     {
+      "label": "CLAUDE.md",
+      "file_type": "document",
+      "source_file": "CLAUDE.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "claude",
+      "community": 115,
+      "norm_label": "claude.md"
+    },
+    {
+      "label": "DMForge \u2014 Project Rules",
+      "file_type": "document",
+      "source_file": "CLAUDE.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "claude_dmforge_project_rules",
+      "community": 115,
+      "norm_label": "dmforge \u2014 project rules"
+    },
+    {
+      "label": "Stack",
+      "file_type": "document",
+      "source_file": "CLAUDE.md",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "claude_stack",
+      "community": 115,
+      "norm_label": "stack"
+    },
+    {
+      "label": "Commands",
+      "file_type": "document",
+      "source_file": "CLAUDE.md",
+      "source_location": "L13",
+      "_origin": "ast",
+      "id": "claude_commands",
+      "community": 115,
+      "norm_label": "commands"
+    },
+    {
+      "label": "Layout",
+      "file_type": "document",
+      "source_file": "CLAUDE.md",
+      "source_location": "L20",
+      "_origin": "ast",
+      "id": "claude_layout",
+      "community": 115,
+      "norm_label": "layout"
+    },
+    {
+      "label": "Rules",
+      "file_type": "document",
+      "source_file": "CLAUDE.md",
+      "source_location": "L28",
+      "_origin": "ast",
+      "id": "claude_rules",
+      "community": 115,
+      "norm_label": "rules"
+    },
+    {
+      "label": "graphify",
+      "file_type": "document",
+      "source_file": "CLAUDE.md",
+      "source_location": "L37",
+      "_origin": "ast",
+      "id": "claude_graphify",
+      "community": 115,
+      "norm_label": "graphify"
+    },
+    {
       "label": "AGENTS.md",
       "file_type": "document",
       "source_file": "AGENTS.md",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "agents",
       "community": 123,
-      "norm_label": "agents.md"
+      "norm_label": "agents.md",
+      "id": "agents"
     },
     {
       "label": "DMForge \u2014 Project Rules",
@@ -54,9 +124,9 @@
       "source_file": "AGENTS.md",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "agents_dmforge_project_rules",
       "community": 123,
-      "norm_label": "dmforge \u2014 project rules"
+      "norm_label": "dmforge \u2014 project rules",
+      "id": "agents_dmforge_project_rules"
     },
     {
       "label": "Stack",
@@ -64,9 +134,9 @@
       "source_file": "AGENTS.md",
       "source_location": "L5",
       "_origin": "ast",
-      "id": "agents_stack",
       "community": 123,
-      "norm_label": "stack"
+      "norm_label": "stack",
+      "id": "agents_stack"
     },
     {
       "label": "Commands",
@@ -74,9 +144,9 @@
       "source_file": "AGENTS.md",
       "source_location": "L13",
       "_origin": "ast",
-      "id": "agents_commands",
       "community": 123,
-      "norm_label": "commands"
+      "norm_label": "commands",
+      "id": "agents_commands"
     },
     {
       "label": "Layout",
@@ -84,9 +154,9 @@
       "source_file": "AGENTS.md",
       "source_location": "L20",
       "_origin": "ast",
-      "id": "agents_layout",
       "community": 123,
-      "norm_label": "layout"
+      "norm_label": "layout",
+      "id": "agents_layout"
     },
     {
       "label": "Rules",
@@ -94,9 +164,9 @@
       "source_file": "AGENTS.md",
       "source_location": "L28",
       "_origin": "ast",
-      "id": "agents_rules",
       "community": 123,
-      "norm_label": "rules"
+      "norm_label": "rules",
+      "id": "agents_rules"
     },
     {
       "label": "Credentials Vault",
@@ -104,9 +174,9 @@
       "source_file": "AGENTS.md",
       "source_location": "L37",
       "_origin": "ast",
-      "id": "agents_credentials_vault",
       "community": 123,
-      "norm_label": "credentials vault"
+      "norm_label": "credentials vault",
+      "id": "agents_credentials_vault"
     },
     {
       "label": "Shared Skills",
@@ -114,9 +184,9 @@
       "source_file": "AGENTS.md",
       "source_location": "L47",
       "_origin": "ast",
-      "id": "agents_shared_skills",
       "community": 123,
-      "norm_label": "shared skills"
+      "norm_label": "shared skills",
+      "id": "agents_shared_skills"
     },
     {
       "label": "This is NOT the Next.js you know",
@@ -124,9 +194,9 @@
       "source_file": "AGENTS.md",
       "source_location": "L52",
       "_origin": "ast",
-      "id": "agents_this_is_not_the_next_js_you_know",
       "community": 123,
-      "norm_label": "this is not the next.js you know"
+      "norm_label": "this is not the next.js you know",
+      "id": "agents_this_is_not_the_next_js_you_know"
     },
     {
       "label": "DESIGN.md",
@@ -2303,7 +2373,7 @@
       "source_file": "components/ui/calendar.jsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 120,
+      "community": 3,
       "norm_label": "calendar.jsx",
       "id": "components_ui_calendar"
     },
@@ -2313,7 +2383,7 @@
       "source_file": "components/ui/calendar.jsx",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 120,
+      "community": 3,
       "norm_label": "calendar()",
       "id": "components_ui_calendar_calendar"
     },
@@ -2323,7 +2393,7 @@
       "source_file": "components/ui/calendar.jsx",
       "source_location": "L138",
       "_origin": "ast",
-      "community": 120,
+      "community": 3,
       "norm_label": "calendardaybutton()",
       "id": "components_ui_calendar_calendardaybutton"
     },
@@ -2403,7 +2473,7 @@
       "source_file": "components/ui/carousel.jsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 117,
+      "community": 3,
       "norm_label": "carousel.jsx",
       "id": "components_ui_carousel"
     },
@@ -2413,7 +2483,7 @@
       "source_file": "components/ui/carousel.jsx",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 117,
+      "community": 3,
       "norm_label": "carouselcontext",
       "id": "components_ui_carousel_carouselcontext"
     },
@@ -2423,7 +2493,7 @@
       "source_file": "components/ui/carousel.jsx",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 118,
+      "community": 3,
       "norm_label": "usecarousel()",
       "id": "components_ui_carousel_usecarousel"
     },
@@ -2433,7 +2503,7 @@
       "source_file": "components/ui/carousel.jsx",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 117,
+      "community": 3,
       "norm_label": "carousel",
       "id": "components_ui_carousel_carousel"
     },
@@ -2443,7 +2513,7 @@
       "source_file": "components/ui/carousel.jsx",
       "source_location": "L116",
       "_origin": "ast",
-      "community": 117,
+      "community": 3,
       "norm_label": "carouselcontent",
       "id": "components_ui_carousel_carouselcontent"
     },
@@ -2453,7 +2523,7 @@
       "source_file": "components/ui/carousel.jsx",
       "source_location": "L134",
       "_origin": "ast",
-      "community": 117,
+      "community": 3,
       "norm_label": "carouselitem",
       "id": "components_ui_carousel_carouselitem"
     },
@@ -2463,7 +2533,7 @@
       "source_file": "components/ui/carousel.jsx",
       "source_location": "L152",
       "_origin": "ast",
-      "community": 117,
+      "community": 3,
       "norm_label": "carouselprevious",
       "id": "components_ui_carousel_carouselprevious"
     },
@@ -2473,7 +2543,7 @@
       "source_file": "components/ui/carousel.jsx",
       "source_location": "L173",
       "_origin": "ast",
-      "community": 117,
+      "community": 3,
       "norm_label": "carouselnext",
       "id": "components_ui_carousel_carouselnext"
     },
@@ -2483,7 +2553,7 @@
       "source_file": "components/ui/chart.jsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 115,
+      "community": 3,
       "norm_label": "chart.jsx",
       "id": "components_ui_chart"
     },
@@ -2493,7 +2563,7 @@
       "source_file": "components/ui/chart.jsx",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 115,
+      "community": 3,
       "norm_label": "themes",
       "id": "components_ui_chart_themes"
     },
@@ -2503,7 +2573,7 @@
       "source_file": "components/ui/chart.jsx",
       "source_location": "L16",
       "_origin": "ast",
-      "community": 115,
+      "community": 3,
       "norm_label": "chartcontext",
       "id": "components_ui_chart_chartcontext"
     },
@@ -2513,7 +2583,7 @@
       "source_file": "components/ui/chart.jsx",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 118,
+      "community": 3,
       "norm_label": "usechart()",
       "id": "components_ui_chart_usechart"
     },
@@ -2523,7 +2593,7 @@
       "source_file": "components/ui/chart.jsx",
       "source_location": "L28",
       "_origin": "ast",
-      "community": 115,
+      "community": 3,
       "norm_label": "chartcontainer",
       "id": "components_ui_chart_chartcontainer"
     },
@@ -2533,7 +2603,7 @@
       "source_file": "components/ui/chart.jsx",
       "source_location": "L52",
       "_origin": "ast",
-      "community": 115,
+      "community": 3,
       "norm_label": "chartstyle()",
       "id": "components_ui_chart_chartstyle"
     },
@@ -2543,7 +2613,7 @@
       "source_file": "components/ui/chart.jsx",
       "source_location": "L87",
       "_origin": "ast",
-      "community": 115,
+      "community": 3,
       "norm_label": "charttooltipcontent",
       "id": "components_ui_chart_charttooltipcontent"
     },
@@ -2553,7 +2623,7 @@
       "source_file": "components/ui/chart.jsx",
       "source_location": "L224",
       "_origin": "ast",
-      "community": 115,
+      "community": 3,
       "norm_label": "chartlegendcontent",
       "id": "components_ui_chart_chartlegendcontent"
     },
@@ -2563,7 +2633,7 @@
       "source_file": "components/ui/chart.jsx",
       "source_location": "L271",
       "_origin": "ast",
-      "community": 115,
+      "community": 3,
       "norm_label": "getpayloadconfigfrompayload()",
       "id": "components_ui_chart_getpayloadconfigfrompayload"
     },
@@ -3083,7 +3153,7 @@
       "source_file": "components/ui/form.jsx",
       "source_location": "L25",
       "_origin": "ast",
-      "community": 118,
+      "community": 3,
       "norm_label": "useformfield()",
       "id": "components_ui_form_useformfield"
     },
@@ -3933,7 +4003,7 @@
       "source_file": "components/ui/sidebar.jsx",
       "source_location": "L36",
       "_origin": "ast",
-      "community": 118,
+      "community": 3,
       "norm_label": "usesidebar()",
       "id": "components_ui_sidebar_usesidebar"
     },
@@ -4643,7 +4713,7 @@
       "source_file": "hooks/use-mobile.jsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 118,
+      "community": 3,
       "norm_label": "use-mobile.jsx",
       "id": "hooks_use_mobile"
     },
@@ -4653,7 +4723,7 @@
       "source_file": "hooks/use-mobile.jsx",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 118,
+      "community": 3,
       "norm_label": "useismobile()",
       "id": "hooks_use_mobile_useismobile"
     },
@@ -6393,7 +6463,7 @@
       "source_file": "package.json",
       "source_location": "L60",
       "_origin": "ast",
-      "community": 118,
+      "community": 3,
       "norm_label": "react",
       "id": "package_dependencies_react"
     },
@@ -7201,7 +7271,7 @@
       "contributor": null,
       "community": 2,
       "norm_label": "emergent.yml env image config",
-      "id": "emergent_emergent_emergent_emergent_emergent_emergent"
+      "id": "emergent_emergent_emergent_emergent_emergent_emergent_emergent"
     },
     {
       "label": "CI workflow (build check)",
@@ -7254,19 +7324,6 @@
       "community": 2,
       "norm_label": "e2e (playwright) workflow",
       "id": "github_workflows_e2e"
-    },
-    {
-      "label": "CLAUDE.md project rules",
-      "file_type": "document",
-      "source_file": "CLAUDE.md",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "community": 2,
-      "norm_label": "claude.md project rules",
-      "id": "claude"
     },
     {
       "label": "E2E-SETUP.md Playwright guide",
@@ -7442,12 +7499,72 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "CLAUDE.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "claude",
+      "target": "claude_dmforge_project_rules",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "CLAUDE.md",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "claude_dmforge_project_rules",
+      "target": "claude_commands",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "CLAUDE.md",
+      "source_location": "L37",
+      "weight": 1.0,
+      "source": "claude_dmforge_project_rules",
+      "target": "claude_graphify",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "CLAUDE.md",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "claude_dmforge_project_rules",
+      "target": "claude_layout",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "CLAUDE.md",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "claude_dmforge_project_rules",
+      "target": "claude_rules",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "CLAUDE.md",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "claude_dmforge_project_rules",
+      "target": "claude_stack",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "AGENTS.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "agents",
-      "target": "agents_dmforge_project_rules",
-      "confidence_score": 1.0
+      "target": "agents_dmforge_project_rules"
     },
     {
       "relation": "contains",
@@ -7455,9 +7572,9 @@
       "source_file": "AGENTS.md",
       "source_location": "L52",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "agents",
-      "target": "agents_this_is_not_the_next_js_you_know",
-      "confidence_score": 1.0
+      "target": "agents_this_is_not_the_next_js_you_know"
     },
     {
       "relation": "contains",
@@ -7465,9 +7582,9 @@
       "source_file": "AGENTS.md",
       "source_location": "L13",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "agents_dmforge_project_rules",
-      "target": "agents_commands",
-      "confidence_score": 1.0
+      "target": "agents_commands"
     },
     {
       "relation": "contains",
@@ -7475,9 +7592,9 @@
       "source_file": "AGENTS.md",
       "source_location": "L37",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "agents_dmforge_project_rules",
-      "target": "agents_credentials_vault",
-      "confidence_score": 1.0
+      "target": "agents_credentials_vault"
     },
     {
       "relation": "contains",
@@ -7485,9 +7602,9 @@
       "source_file": "AGENTS.md",
       "source_location": "L20",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "agents_dmforge_project_rules",
-      "target": "agents_layout",
-      "confidence_score": 1.0
+      "target": "agents_layout"
     },
     {
       "relation": "contains",
@@ -7495,9 +7612,9 @@
       "source_file": "AGENTS.md",
       "source_location": "L28",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "agents_dmforge_project_rules",
-      "target": "agents_rules",
-      "confidence_score": 1.0
+      "target": "agents_rules"
     },
     {
       "relation": "contains",
@@ -7505,9 +7622,9 @@
       "source_file": "AGENTS.md",
       "source_location": "L47",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "agents_dmforge_project_rules",
-      "target": "agents_shared_skills",
-      "confidence_score": 1.0
+      "target": "agents_shared_skills"
     },
     {
       "relation": "contains",
@@ -7515,9 +7632,9 @@
       "source_file": "AGENTS.md",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "agents_dmforge_project_rules",
-      "target": "agents_stack",
-      "confidence_score": 1.0
+      "target": "agents_stack"
     },
     {
       "relation": "contains",
@@ -14727,16 +14844,6 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
-      "source_file": "CLAUDE.md",
-      "source_location": null,
-      "weight": 1.0,
-      "source": "claude",
-      "target": "claude_skills_prod_verify_skill"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
       "source_file": ".claude/skills/prod-verify/SKILL.md",
       "source_location": null,
       "weight": 1.0,
@@ -14760,18 +14867,8 @@
       "source_file": ".emergent/emergent.yml",
       "source_location": null,
       "weight": 1.0,
-      "source": "emergent_emergent_emergent_emergent_emergent_emergent",
+      "source": "emergent_emergent_emergent_emergent_emergent_emergent_emergent",
       "target": "test_result"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "CLAUDE.md",
-      "source_location": null,
-      "weight": 1.0,
-      "source": "claude",
-      "target": "github_workflows_ci"
     },
     {
       "relation": "rationale_for",
@@ -14812,16 +14909,6 @@
       "weight": 1.0,
       "source": "e2e_setup",
       "target": "github_workflows_e2e"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "CLAUDE.md",
-      "source_location": null,
-      "weight": 1.0,
-      "source": "claude",
-      "target": "claude_agents_api_security_catchallapiroute"
     },
     {
       "relation": "references",
@@ -14908,5 +14995,5 @@
       "source_file": ".claude/agents/leads-model.md"
     }
   ],
-  "built_at_commit": "336063dadc608926b4dc3fe9619546a82486fca9"
+  "built_at_commit": "16ed4ba226472edf7dc3962cab465956571f0f57"
 }
