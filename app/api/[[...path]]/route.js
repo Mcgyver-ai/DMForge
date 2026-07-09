@@ -8,7 +8,7 @@ import { PLANS, ensurePrice, getOrCreateCustomer, getStripe } from '@/lib/stripe
 import { checkRateLimit, checkLlmRateLimit } from '@/lib/rateLimit'
 import { triggerWebhooks } from '@/lib/webhooks'
 import { encrypt, decrypt } from '@/lib/encryption'
-import { testConnection as testEmailConnection, sendEmail } from '@/lib/email'
+import { testConnection as testEmailConnection, sendEmail, sendSystemEmail } from '@/lib/email'
 import { authorizeUrl as linkedinAuthorizeUrl, exchangeCode as linkedinExchangeCode, fetchProfile as linkedinFetchProfile, sendMessage as linkedinSendMessage } from '@/lib/linkedin'
 import { testTwilio, sendSMS } from '@/lib/sms'
 import { ghlValidate, ghlGetContact, ghlCreateContact, ghlCreateAppointment } from '@/lib/ghl'
@@ -556,10 +556,14 @@ Rules:
       await db.collection('invites').doc(token).set({
         token, agencyId, email: truncate(inviteEmail, 200), status: 'pending', createdAt: FieldValue.serverTimestamp(),
       })
-      // ponytail: returns the accept link; no system transactional email provider
-      // exists in this codebase (the email channel is per-user SMTP outreach, not
-      // system mail). Wire to one when available — for now the owner shares the link.
       const acceptUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/agency/accept?token=${token}`
+      // fire-and-forget — invite link still returned so owner can share manually if email fails
+      sendSystemEmail({
+        to: inviteEmail,
+        subject: 'You\'ve been invited to join a DMForge agency',
+        text: `You've been invited to join a DMForge agency account.\n\nAccept your invite here:\n${acceptUrl}\n\nThis link expires in 7 days.`,
+        html: `<p>You've been invited to join a DMForge agency account.</p><p><a href="${acceptUrl}">Accept your invite</a></p><p>This link expires in 7 days.</p>`,
+      }).catch(() => {}) // ponytail: swallow — owner still gets the link to share manually
       return handleCORS(request, NextResponse.json({ token, acceptUrl }))
     }
 
