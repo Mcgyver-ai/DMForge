@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import * as Sentry from '@sentry/nextjs'
 import { NextResponse, after } from 'next/server'
 import { v4 as uuidv4 } from 'uuid'
 import { getAdminDb, getAdminFieldValue, verifyRequest } from '@/lib/firebaseAdmin'
@@ -1138,6 +1139,7 @@ Rules:
     return handleCORS(request, NextResponse.json({ error: `Route ${route} not found` }, { status: 404 }))
   } catch (err) {
     console.error('API Error:', err)
+    Sentry.captureException(err)
     return handleCORS(request, NextResponse.json({ error: err.message || 'internal server error' }, { status: 500 }))
   }
 }

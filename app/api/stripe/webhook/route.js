@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import { NextResponse } from 'next/server'
 import { getStripe } from '@/lib/stripe'
 import { getAdminDb, getAdminFieldValue } from '@/lib/firebaseAdmin'
@@ -63,7 +64,10 @@ export async function POST(request) {
         break
       }
     }
-  } catch (e) { console.error('webhook handler', e) }
+  } catch (e) {
+    console.error('webhook handler', e)
+    Sentry.captureException(e)
+  }
 
   return NextResponse.json({ received: true })
 }

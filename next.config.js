@@ -1,4 +1,10 @@
 const nextConfig = {
+  // Sentry DSNs aren't secret (they're meant to be embedded in client bundles),
+  // so the single SENTRY_DSN env var doubles as the public client DSN here —
+  // no separate NEXT_PUBLIC_ var to configure in Vercel.
+  env: {
+    NEXT_PUBLIC_SENTRY_DSN: process.env.SENTRY_DSN,
+  },
   // No `output: 'standalone'` — that's for self-hosting/Docker; Vercel builds its own output.
   images: {
     unoptimized: true,
@@ -32,7 +38,7 @@ const nextConfig = {
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https:",
       "font-src 'self'",
-      "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://api.stripe.com https://m.stripe.com https://m.stripe.network https://q.stripe.com",
+      "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://api.stripe.com https://m.stripe.com https://m.stripe.network https://q.stripe.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io",
       "frame-src https://js.stripe.com https://accounts.google.com",
       "object-src 'none'",
       "base-uri 'self'",
