@@ -34,11 +34,11 @@ const nextConfig = {
     // Upgrade to nonce-based CSP when/if a stricter posture is needed.
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://js.stripe.com",
+      "script-src 'self' 'unsafe-inline' https://js.stripe.com https://*.i.posthog.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https:",
       "font-src 'self'",
-      "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://api.stripe.com https://m.stripe.com https://m.stripe.network https://q.stripe.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io",
+      "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://api.stripe.com https://m.stripe.com https://m.stripe.network https://q.stripe.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io https://*.i.posthog.com",
       "frame-src https://js.stripe.com https://accounts.google.com",
       "object-src 'none'",
       "base-uri 'self'",
