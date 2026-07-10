@@ -6,20 +6,26 @@ AI DM appointment setter SaaS for online coaches. Build, live-test, and deploy A
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | Next.js 15 (App Router), React 18 |
+| Frontend | Next.js 16 (App Router), React 19 |
 | Backend | Next.js API Routes (serverless) |
 | Database | Firebase Firestore (named database "dmforge") |
 | Auth | Firebase Auth (email/password + Google OAuth) |
+| Server SDK | `firebase-admin` 13.x — **pinned, do not bump to 14** (see note below) |
 | LLM | Google Gemini 2.5 Flash |
 | Payments | Stripe (subscriptions) |
 | UI | Radix UI + shadcn/ui + Tailwind CSS |
+
+> **Why `firebase-admin` is pinned to 13.x:** v14 pulls in `jwks-rsa@4` → `jose@6`, which is
+> ESM-only. That breaks every API route with a 500 on Vercel's Node runtime, while build and CI
+> both stay green — the failure only shows up at request time in production. Any bump past 13.x
+> must be proven on a live preview deployment first, not just a passing build.
 
 ## Local Development
 
 ### Prerequisites
 
-- Node.js 18+
-- Yarn (`npm i -g yarn`)
+- Node.js 22 (matches CI in `.github/workflows/ci.yml`)
+- Yarn 1.x (`npm i -g yarn`) — pinned via `packageManager` in `package.json`; never npm/pnpm
 - Firebase project with Firestore enabled
 - Google AI Studio account (for Gemini API key)
 - Stripe account
@@ -99,13 +105,11 @@ vercel --prod
 
 Set all `.env.example` variables in the Vercel project settings.
 
-### Docker / Self-hosted
+### Deploy target
 
-```bash
-yarn build
-# Standalone output is in .next/standalone
-node .next/standalone/server.js
-```
+This app targets Vercel serverless — `next.config.js` deliberately does **not** set
+`output: 'standalone'` (that's a Docker/self-hosted build mode; Vercel builds its own output).
+Self-hosting would require adding that config first.
 
 ## Project Structure
 
