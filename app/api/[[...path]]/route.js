@@ -9,7 +9,8 @@ import { PLANS, ensurePrice, getOrCreateCustomer, getStripe } from '@/lib/stripe
 import { checkRateLimit, checkLlmRateLimit } from '@/lib/rateLimit'
 import { triggerWebhooks } from '@/lib/webhooks'
 import { encrypt, decrypt } from '@/lib/encryption'
-import { testConnection as testEmailConnection, sendEmail, sendSystemEmail } from '@/lib/email'
+import { testConnection as testEmailConnection, sendEmail } from '@/lib/email'
+import { sendMail } from '@/lib/mail'
 import { authorizeUrl as linkedinAuthorizeUrl, exchangeCode as linkedinExchangeCode, fetchProfile as linkedinFetchProfile, sendMessage as linkedinSendMessage } from '@/lib/linkedin'
 import { testTwilio, sendSMS } from '@/lib/sms'
 import { ghlValidate, ghlGetContact, ghlCreateContact, ghlCreateAppointment } from '@/lib/ghl'
@@ -559,7 +560,7 @@ Rules:
       })
       const acceptUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/agency/accept?token=${token}`
       // fire-and-forget — invite link still returned so owner can share manually if email fails
-      sendSystemEmail({
+      sendMail({
         to: inviteEmail,
         subject: 'You\'ve been invited to join a DMForge agency',
         text: `You've been invited to join a DMForge agency account.\n\nAccept your invite here:\n${acceptUrl}\n\nThis link expires in 7 days.`,
