@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import * as Sentry from '@sentry/nextjs'
 import { NextResponse, after } from 'next/server'
 import { v4 as uuidv4 } from 'uuid'
 import { getAdminDb, getAdminFieldValue, verifyRequest } from '@/lib/firebaseAdmin'
@@ -8,7 +9,8 @@ import { PLANS, ensurePrice, getOrCreateCustomer, getStripe } from '@/lib/stripe
 import { checkRateLimit, checkLlmRateLimit } from '@/lib/rateLimit'
 import { triggerWebhooks } from '@/lib/webhooks'
 import { encrypt, decrypt } from '@/lib/encryption'
-import { testConnection as testEmailConnection, sendEmail, sendSystemEmail } from '@/lib/email'
+import { testConnection as testEmailConnection, sendEmail } from '@/lib/email'
+import { sendMail } from '@/lib/mail'
 import { authorizeUrl as linkedinAuthorizeUrl, exchangeCode as linkedinExchangeCode, fetchProfile as linkedinFetchProfile, sendMessage as linkedinSendMessage } from '@/lib/linkedin'
 import { testTwilio, sendSMS } from '@/lib/sms'
 import { ghlValidate, ghlGetContact, ghlCreateContact, ghlCreateAppointment } from '@/lib/ghl'
@@ -58,7 +60,7 @@ async function handleRoute(request, { params }) {
 
   try {
     const decoded = await verifyRequest(request)
-    if (!checkRateLimit(request, decoded?.uid)) {
+    if (!(await checkRateLimit(request, decoded?.uid))) {
       return handleCORS(request, NextResponse.json({ error: 'rate_limit_exceeded' }, { status: 429 }))
     }
 
@@ -558,7 +560,7 @@ Rules:
       })
       const acceptUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/agency/accept?token=${token}`
       // fire-and-forget — invite link still returned so owner can share manually if email fails
-      sendSystemEmail({
+      sendMail({
         to: inviteEmail,
         subject: 'You\'ve been invited to join a DMForge agency',
         text: `You've been invited to join a DMForge agency account.\n\nAccept your invite here:\n${acceptUrl}\n\nThis link expires in 7 days.`,
@@ -1138,6 +1140,7 @@ Rules:
     return handleCORS(request, NextResponse.json({ error: `Route ${route} not found` }, { status: 404 }))
   } catch (err) {
     console.error('API Error:', err)
+    Sentry.captureException(err)
     return handleCORS(request, NextResponse.json({ error: err.message || 'internal server error' }, { status: 500 }))
   }
 }

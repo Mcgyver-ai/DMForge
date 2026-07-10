@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -42,3 +45,17 @@ jobs:
           # Server-side secrets (GEMINI_API_KEY, STRIPE_SECRET_KEY,
           # FIREBASE_SERVICE_ACCOUNT_JSON) are not needed at build time —
           # they are only read when API routes are invoked at request time.
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

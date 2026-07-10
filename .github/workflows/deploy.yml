@@ -32,6 +32,8 @@ jobs:
     runs-on: ubuntu-latest
     # Skip cleanly (rather than fail red) if the secrets aren't configured yet.
     if: ${{ github.repository == 'mcgyver-ai/dmforge' }}
+    outputs:
+      skipped: ${{ steps.guard.outputs.skip }}
     steps:
       - uses: actions/checkout@v4
 
@@ -62,3 +64,38 @@ jobs:
           npx --yes vercel@latest pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
           npx --yes vercel@latest build --prod --token="${{ secrets.VERCEL_TOKEN }}"
           npx --yes vercel@latest deploy --prebuilt --prod --token="${{ secrets.VERCEL_TOKEN }}"
+
+  smoke-test:
+    name: Production smoke test
+    needs: deploy
+    if: ${{ needs.deploy.outputs.skipped != 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Homepage returns 200
+        run: |
+          status=$(curl -s -o /dev/null -w '%{http_code}' https://www.dmforge.org/)
+          if [ "$status" != "200" ]; then
+            echo "::error::Expected 200 from https://www.dmforge.org/, got $status"
+            exit 1
+          fi
+          echo "Homepage OK ($status)"
+
+      - name: Unknown result ID returns 404 with JSON error body
+        run: |
+          body=$(curl -s -w '\n%{http_code}' https://www.dmforge.org/api/result/bogus-health-id)
+          status=$(echo "$body" | tail -n1)
+          content=$(echo "$body" | sed '$d')
+
+          if [ "$status" != "404" ]; then
+            echo "::error::Expected 404 from /api/result/bogus-health-id, got $status (body: $content)"
+            exit 1
+          fi
+
+          expected='{"error":"not found"}'
+          if [ "$content" != "$expected" ]; then
+            echo "::error::Expected body $expected, got: $content"
+            exit 1
+          fi
+          echo "404 JSON body OK"
