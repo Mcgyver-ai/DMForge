@@ -60,7 +60,7 @@ async function handleRoute(request, { params }) {
 
   try {
     const decoded = await verifyRequest(request)
-    if (!checkRateLimit(request, decoded?.uid)) {
+    if (!(await checkRateLimit(request, decoded?.uid))) {
       return handleCORS(request, NextResponse.json({ error: 'rate_limit_exceeded' }, { status: 429 }))
     }
 
