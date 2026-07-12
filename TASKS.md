@@ -116,3 +116,35 @@ code; two are gated on external dashboards/accounts and are now prepared + docum
 
 ### Verification
 - `yarn build` green (the new `/inbox` route prerenders; API route compiles).
+
+---
+
+## Session log (2026-07-12) — Vercel AI Gateway added (alternate provider)
+
+- `lib/aiGateway.js` — thin wrapper around Vercel AI Gateway (`generateText`/
+  `streamText` from the `ai@7` package). Uses `createGateway` (re-exported from
+  `ai`) to wrap model-ID strings into provider objects; lazy-init singleton so
+  a missing key throws at runtime rather than at build time. Not wired into the
+  main chat/chatJSON pipeline — `lib/llm.js` + Gemini (via Cloudflare AI
+  Gateway) stays the default for `app/api/[[...path]]`. Available for future
+  features/experiments wanting multi-provider routing or non-Gemini models.
+- `AI_GATEWAY_API_KEY` documented in `.env.example` (server-only secret, read
+  at request time — build succeeds without it, same as GEMINI_API_KEY).
+- ponytail: default model is `openai/gpt-5.4`, overridable via
+  `AI_GATEWAY_MODEL`. No fallback/routing config yet — add
+  `providerOptions.gateway.models` for automatic failover if this becomes
+  the primary path for something.
+
+### Verification
+- `yarn build` green on Vercel (the deploy run that shipped the auth-modal logo
+  fix in this same session compiled 68/68 pages). Local build requires
+  `NEXT_PUBLIC_*` Firebase vars readable at build time — `.env.local` is UTF-16
+  LE (Windows Notepad default), which Next.js's dotenv parser can't read; local
+  builds pass when `.next` cache exists (prerender skipped) but fail from cold
+  start. Fix: recreate `.env.local` as UTF-8.
+- Manual end-to-end check with the real `AI_GATEWAY_API_KEY` confirmed the
+  gateway is reachable and the key authenticates against
+  `https://ai-gateway.vercel.sh/v4/ai/language-model`. Returned
+  `customer_verification_required` (403) — not a code error; Vercel requires a
+  credit card on file to unlock AI Gateway free credits. Add a card at
+  vercel.com/~/ai → the gateway will then serve requests.
