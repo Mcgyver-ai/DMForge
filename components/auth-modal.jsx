@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { toast } from 'sonner'
-import { X, Flame } from 'lucide-react'
+import { X } from 'lucide-react'
+import { Logo } from '@/components/logo'
 
 export function AuthModal({ open, onClose, defaultMode = 'login' }) {
   const { login, signup, loginWithGoogle } = useAuth()
@@ -58,9 +59,8 @@ export function AuthModal({ open, onClose, defaultMode = 'login' }) {
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center px-4" onClick={onClose}>
       <Card className="bg-[#161630] border-[#2A2A55] p-8 w-full max-w-md relative elevate-coral" onClick={e => e.stopPropagation()}>
         <button onClick={onClose} className="absolute top-3 right-3 text-[#A0A0C8] hover:text-white"><X className="w-5 h-5" /></button>
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-8 h-8 rounded-lg btn-primary flex items-center justify-center"><Flame className="w-5 h-5" /></div>
-          <span className="font-display font-bold text-xl">DMForge</span>
+        <div className="mb-2">
+          <Logo />
         </div>
         <h2 className="font-display text-2xl font-bold">{mode === 'signup' ? 'Create your account' : 'Welcome back'}</h2>
         <p className="text-sm text-[#A0A0C8] mt-1 mb-6">{mode === 'signup' ? 'Free forever tier. No credit card.' : 'Sign in to access your dashboard.'}</p>
