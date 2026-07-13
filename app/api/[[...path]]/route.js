@@ -579,7 +579,11 @@ Rules:
       if (!inviteSnap.exists || inviteSnap.data().status !== 'pending') {
         return handleCORS(request, NextResponse.json({ error: 'invite invalid or already used' }, { status: 400 }))
       }
-      const { agencyId } = inviteSnap.data()
+      const { agencyId, email: inviteEmail } = inviteSnap.data()
+      // Verify the accepting user was the intended recipient.
+      if (inviteEmail && decoded.email && decoded.email.toLowerCase() !== inviteEmail.toLowerCase()) {
+        return handleCORS(request, NextResponse.json({ error: 'this invite was sent to a different email address' }, { status: 403 }))
+      }
       const agencyRef = db.collection('agencies').doc(agencyId)
       const result = await db.runTransaction(async (tx) => {
         const agency = await tx.get(agencyRef)
@@ -723,6 +727,10 @@ Rules:
     // GET /api/cron/send-reminders — Vercel cron (*/15). Fires overdue reminders.
     if (route === '/cron/send-reminders' && (method === 'GET' || method === 'POST')) {
       // Vercel attaches `Authorization: Bearer <CRON_SECRET>` when CRON_SECRET is set.
+      // Fail closed in production: if CRON_SECRET isn't configured, block all callers.
+      if (!process.env.CRON_SECRET && process.env.NODE_ENV === 'production') {
+        return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
+      }
       if (process.env.CRON_SECRET) {
         const auth = request.headers.get('authorization') || ''
         if (auth !== `Bearer ${process.env.CRON_SECRET}`) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
@@ -1122,6 +1130,10 @@ Rules:
       const s = await stripe.checkout.sessions.retrieve(sid)
       const email = s.customer_details?.email || s.metadata?.email
       const uid = s.metadata?.uid
+      // Prevent session_id reuse by a different authenticated user.
+      if (decoded && uid && decoded.uid !== uid) {
+        return handleCORS(request, NextResponse.json({ error: 'forbidden' }, { status: 403 }))
+      }
       if (email && s.subscription) {
         const sub = await stripe.subscriptions.retrieve(s.subscription)
         const docId = uid || (await db.collection('users').where('email', '==', email).limit(1).get()).docs[0]?.id || crypto.randomUUID()
