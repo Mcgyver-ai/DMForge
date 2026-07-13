@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Logo } from '@/components/logo'
+import { TrackSubscriptionActive } from '@/components/track-subscription-active'
 
 async function fetchSession(id) {
   try {
@@ -17,6 +18,7 @@ export default async function Success({ searchParams }) {
   const data = sid ? await fetchSession(sid) : null
   return (
     <div className="min-h-screen">
+      <TrackSubscriptionActive planKey={data?.planKey} />
       <header className="border-b border-[#2A2A55]/40 px-5 py-4">
         <Logo />
       </header>

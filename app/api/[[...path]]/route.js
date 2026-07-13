@@ -1,6 +1,6 @@
 import crypto from 'crypto'
+import * as Sentry from '@sentry/nextjs'
 import { NextResponse, after } from 'next/server'
-import { v4 as uuidv4 } from 'uuid'
 import { getAdminDb, getAdminFieldValue, verifyRequest } from '@/lib/firebaseAdmin'
 import { chat, chatJSON } from '@/lib/llm'
 import { competitors } from '@/lib/competitors'
@@ -8,7 +8,8 @@ import { PLANS, ensurePrice, getOrCreateCustomer, getStripe } from '@/lib/stripe
 import { checkRateLimit, checkLlmRateLimit } from '@/lib/rateLimit'
 import { triggerWebhooks } from '@/lib/webhooks'
 import { encrypt, decrypt } from '@/lib/encryption'
-import { testConnection as testEmailConnection, sendEmail, sendSystemEmail } from '@/lib/email'
+import { testConnection as testEmailConnection, sendEmail } from '@/lib/email'
+import { sendMail } from '@/lib/mail'
 import { authorizeUrl as linkedinAuthorizeUrl, exchangeCode as linkedinExchangeCode, fetchProfile as linkedinFetchProfile, sendMessage as linkedinSendMessage } from '@/lib/linkedin'
 import { testTwilio, sendSMS } from '@/lib/sms'
 import { ghlValidate, ghlGetContact, ghlCreateContact, ghlCreateAppointment } from '@/lib/ghl'
@@ -58,7 +59,7 @@ async function handleRoute(request, { params }) {
 
   try {
     const decoded = await verifyRequest(request)
-    if (!checkRateLimit(request, decoded?.uid)) {
+    if (!(await checkRateLimit(request, decoded?.uid))) {
       return handleCORS(request, NextResponse.json({ error: 'rate_limit_exceeded' }, { status: 429 }))
     }
 
@@ -106,7 +107,7 @@ async function handleRoute(request, { params }) {
       const usr = `Niche: ${safeNiche}\nOffer: ${safeOffer}\nIdeal audience: ${safeAudience || 'general'}\nMust qualify on: ${safeQualification || 'goal, timing, budget, commitment'}\nTone: ${safeTone || 'warm, direct, encouraging'}\nCoach name in chat: ${safeAgentName}`
       const script = await chatJSON({ messages: [{ role: 'system', content: sys }, { role: 'user', content: usr }] })
 
-      const id = uuidv4()
+      const id = crypto.randomUUID()
       const agent = {
         id,
         ownerUid: decoded?.uid || null,
@@ -252,7 +253,7 @@ Rules:
         summary = await chatJSON({ messages: [{ role: 'system', content: sys }, { role: 'user', content: trans }] })
       } catch (e) { console.error('Summary generation failed:', e.message) }
 
-      const id = uuidv4()
+      const id = crypto.randomUUID()
       const safeLeadName = truncate(String(leadName || 'Lead'), 100)
       await db.collection('results').doc(id).set({
         id, agentId,
@@ -339,7 +340,7 @@ Rules:
       const batch = db.batch()
       existing.docs.forEach((d) => batch.delete(d.ref))
       const saved = sequence.slice(0, 3).map((s) => {
-        const sid = uuidv4()
+        const sid = crypto.randomUUID()
         const item = {
           id: sid,
           dayOffset: Number(s.dayOffset) || 0,
@@ -552,13 +553,13 @@ Rules:
         await db.collection('users').doc(decoded.uid).set({ role: 'owner', agencyId }, { merge: true })
       }
 
-      const token = uuidv4()
+      const token = crypto.randomUUID()
       await db.collection('invites').doc(token).set({
         token, agencyId, email: truncate(inviteEmail, 200), status: 'pending', createdAt: FieldValue.serverTimestamp(),
       })
       const acceptUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/agency/accept?token=${token}`
       // fire-and-forget — invite link still returned so owner can share manually if email fails
-      sendSystemEmail({
+      sendMail({
         to: inviteEmail,
         subject: 'You\'ve been invited to join a DMForge agency',
         text: `You've been invited to join a DMForge agency account.\n\nAccept your invite here:\n${acceptUrl}\n\nThis link expires in 7 days.`,
@@ -708,7 +709,7 @@ Rules:
       for (const o of offsets) {
         const sendAt = when - o.ms
         if (sendAt <= Date.now()) continue // skip reminders already in the past
-        const id = uuidv4()
+        const id = crypto.randomUUID()
         await pendingRef.doc(id).set({
           id, uid: decoded.uid, to: truncate(String(to), 40),
           body: `Hi ${name}, reminder: your call is in ${o.label}.`,
@@ -849,7 +850,7 @@ Rules:
 
     // Append a message to a thread and refresh the denormalized inbox fields.
     async function appendProspectMessage(uid, prospectRef, { direction, body, channel }) {
-      const mid = uuidv4()
+      const mid = crypto.randomUUID()
       const at = new Date()
       const msg = {
         id: mid, direction: direction === 'inbound' ? 'inbound' : 'outbound',
@@ -866,7 +867,7 @@ Rules:
       if (!decoded) return handleCORS(request, NextResponse.json({ error: 'unauthorized' }, { status: 401 }))
       const body = await request.json().catch(() => null)
       if (!body) return handleCORS(request, NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
-      const id = uuidv4()
+      const id = crypto.randomUUID()
       const prospect = {
         id, uid: decoded.uid,
         name: truncate(String(body.name || 'Lead'), 100),
@@ -1012,7 +1013,7 @@ Rules:
 
       let created = false
       if (!matchRef) {
-        const id = uuidv4()
+        const id = crypto.randomUUID()
         matchRef = col.doc(id)
         await matchRef.set({
           id, uid, name: truncate(String(body.name || handle || email || phone || 'Lead'), 100),
@@ -1044,7 +1045,7 @@ Rules:
       if (!Array.isArray(events) || events.length === 0 || !events.every((e) => typeof e === 'string')) {
         return handleCORS(request, NextResponse.json({ error: 'events must be a non-empty array of strings' }, { status: 400 }))
       }
-      const id = uuidv4()
+      const id = crypto.randomUUID()
       const secret = crypto.randomBytes(32).toString('hex')
       const webhook = { id, url: truncate(url, 500), events: events.slice(0, 20), secret, active: true, createdAt: FieldValue.serverTimestamp() }
       await db.collection('users').doc(decoded.uid).collection('webhooks').doc(id).set(webhook)
@@ -1123,7 +1124,7 @@ Rules:
       const uid = s.metadata?.uid
       if (email && s.subscription) {
         const sub = await stripe.subscriptions.retrieve(s.subscription)
-        const docId = uid || (await db.collection('users').where('email', '==', email).limit(1).get()).docs[0]?.id || uuidv4()
+        const docId = uid || (await db.collection('users').where('email', '==', email).limit(1).get()).docs[0]?.id || crypto.randomUUID()
         await db.collection('users').doc(docId).set({
           uid: uid || docId, email, stripeCustomerId: s.customer, stripeSubscriptionId: sub.id,
           plan: sub.metadata?.planKey || s.metadata?.planKey || 'pro_monthly',
@@ -1138,6 +1139,7 @@ Rules:
     return handleCORS(request, NextResponse.json({ error: `Route ${route} not found` }, { status: 404 }))
   } catch (err) {
     console.error('API Error:', err)
+    Sentry.captureException(err)
     return handleCORS(request, NextResponse.json({ error: err.message || 'internal server error' }, { status: 500 }))
   }
 }

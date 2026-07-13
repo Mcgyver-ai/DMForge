@@ -11,6 +11,7 @@ import { ArrowRight, Sparkles, MessageCircle, Calendar, Check, Zap, Share2, Copy
 import { useAuth, authFetch } from '@/lib/auth-context'
 import { AuthModal } from '@/components/auth-modal'
 import { Logo } from '@/components/logo'
+import { track } from '@/lib/analytics'
 
 const NICHES = [
   { id: 'fitness', label: 'Fitness / Weight loss', emoji: '💪' },
@@ -85,6 +86,7 @@ function ChatSimulator({ agent, onSave }) {
 
   async function send() {
     if (!input.trim() || busy) return
+    track('simulator_run', { agentId: agent?.id })
     const userMsg = { role: 'user', content: input.trim() }
     const newMsgs = [...messages, userMsg]
     setMessages(newMsgs)
@@ -167,13 +169,22 @@ function Wizard({ onCreated }) {
   const [tone, setTone] = useState('warm, casual, direct, encouraging — like a friend who happens to be a pro coach')
   const [busy, setBusy] = useState(false)
 
+  function goToStep(next) {
+    if (step === 0 && next === 1) track('wizard_started', { niche })
+    setStep(next)
+  }
+
   async function build() {
     setBusy(true)
     try {
       const res = await authFetch('/api/agent/create', { method: 'POST', body: JSON.stringify({ niche, offer, audience, qualification, tone, agentName }) }, getToken)
       const data = await res.json()
-      if (data.id) { toast.success('Your AI setter is live!'); onCreated(data) }
-      else toast.error(data.error || 'Failed')
+      if (data.id) {
+        toast.success('Your AI setter is live!')
+        track('wizard_completed', { niche })
+        track('agent_created', { agentId: data.id, niche })
+        onCreated(data)
+      } else toast.error(data.error || 'Failed')
     } catch (e) { toast.error('Failed to build') } finally { setBusy(false) }
   }
 
@@ -200,7 +211,7 @@ function Wizard({ onCreated }) {
             ))}
           </div>
           <Input value={agentName} onChange={e=>setAgentName(e.target.value)} placeholder="Your name (how it signs)" className="bg-[#0B0B1A] border-[#2A2A55] mb-3" />
-          <Button onClick={()=>setStep(1)} className="btn-primary border-0 w-full font-semibold">Next <ArrowRight className="w-4 h-4 ml-1" /></Button>
+          <Button onClick={()=>goToStep(1)} className="btn-primary border-0 w-full font-semibold">Next <ArrowRight className="w-4 h-4 ml-1" /></Button>
         </div>
       )}
       {step === 1 && (
@@ -315,12 +326,13 @@ function Pricing({ onTry }) {
   const [busy, setBusy] = useState(null)
   const [authPrompt, setAuthPrompt] = useState(false)
   async function checkout(planKey) {
+    track('upgrade_clicked', { planKey })
     if (!user) { setAuthPrompt(true); return }
     setBusy(planKey)
     try {
       const res = await authFetch('/api/billing/checkout', { method: 'POST', body: JSON.stringify({ planKey }) }, getToken)
       const data = await res.json()
-      if (data.url) window.location.href = data.url
+      if (data.url) { track('checkout_started', { planKey }); window.location.href = data.url }
       else toast.error(data.error || 'Checkout failed')
     } catch (e) { toast.error('Network error') }
     finally { setBusy(null) }
@@ -406,6 +418,7 @@ function App() {
   const [agent, setAgent] = useState(null)
   const [authOpen, setAuthOpen] = useState(false)
   const heroRef = useRef(null)
+  useEffect(() => { track('landing_viewed') }, [])
   const scrollToBuilder = () => { heroRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
 
   return (

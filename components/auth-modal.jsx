@@ -1,14 +1,19 @@
 'use client'
 import { useState } from 'react'
-import { sendPasswordResetEmail } from 'firebase/auth'
+import { sendPasswordResetEmail, getAdditionalUserInfo } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/lib/auth-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { toast } from 'sonner'
+<<<<<<< HEAD
 import { X } from 'lucide-react'
 import { Logo } from '@/components/logo'
+=======
+import { X, Flame } from 'lucide-react'
+import { track } from '@/lib/analytics'
+>>>>>>> fe72542c2cfc95c0f0c283e0de51c5d8ab03e7fb
 
 export function AuthModal({ open, onClose, defaultMode = 'login' }) {
   const { login, signup, loginWithGoogle } = useAuth()
@@ -24,7 +29,7 @@ export function AuthModal({ open, onClose, defaultMode = 'login' }) {
     e?.preventDefault()
     setBusy(true)
     try {
-      if (mode === 'signup') await signup(email, password)
+      if (mode === 'signup') { await signup(email, password); track('signup', { method: 'password' }) }
       else await login(email, password)
       toast.success(mode === 'signup' ? 'Account created!' : 'Welcome back!')
       onClose?.()
@@ -36,7 +41,8 @@ export function AuthModal({ open, onClose, defaultMode = 'login' }) {
   async function google() {
     setBusy(true)
     try {
-      await loginWithGoogle()
+      const result = await loginWithGoogle()
+      if (getAdditionalUserInfo(result)?.isNewUser) track('signup', { method: 'google' })
       toast.success('Signed in with Google')
       onClose?.()
     } catch (err) {
