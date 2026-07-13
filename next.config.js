@@ -34,21 +34,12 @@ const nextConfig = {
     // Upgrade to nonce-based CSP when/if a stricter posture is needed.
     const csp = [
       "default-src 'self'",
-<<<<<<< HEAD
-      "script-src 'self' 'unsafe-inline' https://js.stripe.com https://apis.google.com",
+      "script-src 'self' 'unsafe-inline' https://js.stripe.com https://apis.google.com https://*.i.posthog.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https:",
       "font-src 'self' https://fonts.gstatic.com",
-      "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://api.stripe.com https://m.stripe.com https://m.stripe.network https://q.stripe.com https://apis.google.com https://www.googleapis.com https://oauth2.googleapis.com",
+      "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://api.stripe.com https://m.stripe.com https://m.stripe.network https://q.stripe.com https://apis.google.com https://www.googleapis.com https://oauth2.googleapis.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io https://*.i.posthog.com",
       "frame-src https://js.stripe.com https://accounts.google.com https://www.google.com https://*.firebaseapp.com",
-=======
-      "script-src 'self' 'unsafe-inline' https://js.stripe.com https://*.i.posthog.com",
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: https:",
-      "font-src 'self'",
-      "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://api.stripe.com https://m.stripe.com https://m.stripe.network https://q.stripe.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io https://*.i.posthog.com",
-      "frame-src https://js.stripe.com https://accounts.google.com",
->>>>>>> fe72542c2cfc95c0f0c283e0de51c5d8ab03e7fb
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
