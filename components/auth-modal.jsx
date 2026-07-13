@@ -7,13 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { toast } from 'sonner'
-<<<<<<< HEAD
 import { X } from 'lucide-react'
 import { Logo } from '@/components/logo'
-=======
-import { X, Flame } from 'lucide-react'
 import { track } from '@/lib/analytics'
->>>>>>> fe72542c2cfc95c0f0c283e0de51c5d8ab03e7fb
 
 export function AuthModal({ open, onClose, defaultMode = 'login' }) {
   const { login, signup, loginWithGoogle } = useAuth()
