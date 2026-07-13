@@ -39,6 +39,7 @@
     "@radix-ui/react-tooltip": "1.2.12-rc.1783090687154",
     "@tanstack/react-query": "5.101.2",
     "@tanstack/react-table": "9.0.0-beta.31",
+    "ai": "^7.0.22",
     "axios": "1.18.1",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
@@ -47,7 +48,7 @@
     "dayjs": "2.0.0-alpha.4",
     "dotenv": "^17.4.2",
     "embla-carousel-react": "9.0.0-rc02",
-    "firebase": "^12.15.0",
+    "firebase": "12.16.0",
     "firebase-admin": "14.1.0",
     "framer-motion": "11.18.0",
     "gaxios": "7.2.0",
@@ -75,7 +76,7 @@
     "zod": "4.5.0-canary.20260504T180558"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.0-alpha-2026-07-04",
+    "@playwright/test": "1.62.0-alpha-2026-07-08",
     "autoprefixer": "^10.5.2",
     "cross-env": "^10.1.0",
     "globals": "17.7.0",
