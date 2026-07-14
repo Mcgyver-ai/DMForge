@@ -626,11 +626,12 @@ Rules:
       if (!agencySnap.exists) return handleCORS(request, NextResponse.json({ agency: null, role: u.role || null }))
       const agency = agencySnap.data()
       const memberUids = agency.memberUids || []
-      const members = await Promise.all(memberUids.map(async (uid) => {
-        const m = await db.collection('users').doc(uid).get()
-        return { uid, email: m.exists ? m.data().email : null }
-      }))
-      const ownerSnap = await db.collection('users').doc(agency.ownerUid).get()
+      // Fetch owner + all members in one round trip instead of two.
+      const [ownerSnap, ...memberSnaps] = await Promise.all([
+        db.collection('users').doc(agency.ownerUid).get(),
+        ...memberUids.map(uid => db.collection('users').doc(uid).get()),
+      ])
+      const members = memberSnaps.map((m, i) => ({ uid: memberUids[i], email: m.exists ? m.data().email : null }))
       return handleCORS(request, NextResponse.json({
         role: u.role || (agency.ownerUid === decoded.uid ? 'owner' : 'member'),
         agency: { agencyId, seats: agency.seats, used: memberUids.length, members, ownerEmail: ownerSnap.exists ? ownerSnap.data().email : null, whiteLabel: agency.whiteLabel || null },
@@ -710,17 +711,19 @@ Rules:
       const name = truncate(String(leadName || 'there'), 80)
       const offsets = [{ ms: 24 * 3600_000, label: '24h' }, { ms: 1 * 3600_000, label: '1h' }]
       const scheduled = []
+      const writes = []
       for (const o of offsets) {
         const sendAt = when - o.ms
         if (sendAt <= Date.now()) continue // skip reminders already in the past
         const id = crypto.randomUUID()
-        await pendingRef.doc(id).set({
+        writes.push(pendingRef.doc(id).set({
           id, uid: decoded.uid, to: truncate(String(to), 40),
           body: `Hi ${name}, reminder: your call is in ${o.label}.`,
           sendAt: new Date(sendAt), status: 'pending', createdAt: FieldValue.serverTimestamp(),
-        })
+        }))
         scheduled.push({ id, label: o.label, sendAt: new Date(sendAt).toISOString() })
       }
+      await Promise.all(writes)
       return handleCORS(request, NextResponse.json({ scheduled }))
     }
 
@@ -1010,14 +1013,15 @@ Rules:
         return handleCORS(request, NextResponse.json({ error: 'one of handle, email, phone required' }, { status: 400 }))
       }
 
-      // Match an existing prospect by channel + strongest available identifier.
+      // Match an existing prospect — fire all non-null field queries in parallel
+      // instead of sequentially (up to 3 round trips → 1).
       const col = prospectsCol(uid)
-      let matchRef = null
-      for (const [field, value] of [['handle', handle], ['email', email], ['phone', phone]]) {
-        if (!value) continue
-        const found = await col.where('channel', '==', channel).where(field, '==', value).limit(1).get()
-        if (!found.empty) { matchRef = found.docs[0].ref; break }
-      }
+      const matchQueries = [['handle', handle], ['email', email], ['phone', phone]]
+        .filter(([, v]) => v)
+        .map(([f, v]) => col.where('channel', '==', channel).where(f, '==', v).limit(1).get())
+      const matchResults = await Promise.all(matchQueries)
+      const firstMatch = matchResults.find(r => !r.empty)
+      let matchRef = firstMatch ? firstMatch.docs[0].ref : null
 
       let created = false
       if (!matchRef) {
