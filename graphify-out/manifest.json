@@ -414,21 +414,6 @@
     "ast_hash": "efc9d8cda407add770cb956f691cc6ea",
     "semantic_hash": "efc9d8cda407add770cb956f691cc6ea"
   },
-  "lib/constants/testIds/auth.js": {
-    "mtime": 1782432046.2227497,
-    "ast_hash": "958eb4f290a08f75f62146e943e7089c",
-    "semantic_hash": "958eb4f290a08f75f62146e943e7089c"
-  },
-  "lib/constants/testIds/home.js": {
-    "mtime": 1782432046.2227497,
-    "ast_hash": "35f389dca6d04ff746a89b5a281fc620",
-    "semantic_hash": "35f389dca6d04ff746a89b5a281fc620"
-  },
-  "lib/constants/testIds/index.js": {
-    "mtime": 1782432046.2237504,
-    "ast_hash": "d28d3120c4d9f5471b327b1e2a241c9c",
-    "semantic_hash": "d28d3120c4d9f5471b327b1e2a241c9c"
-  },
   "lib/email.js": {
     "mtime": 1782859669.4845698,
     "ast_hash": "44a1b883e20c038c423bf737cb4aad70",

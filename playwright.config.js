@@ -1,8 +1,10 @@
 const { defineConfig, devices } = require('@playwright/test')
 
-// Reusable across projects: point it anywhere with BASE_URL=... npm run test:e2e
-// Defaults to DMForge production.
-const baseURL = process.env.BASE_URL || 'https://www.dmforge.org'
+// Reusable across projects: point it anywhere with BASE_URL=... yarn test:e2e
+// IMPORTANT: Defaults to localhost (safe for local/CI testing).
+// To test production: BASE_URL=https://www.dmforge.org yarn test:e2e
+// (requires explicit opt-in to avoid accidental production test runs)
+const baseURL = process.env.BASE_URL || 'http://localhost:3000'
 
 module.exports = defineConfig({
   testDir: './tests/e2e',

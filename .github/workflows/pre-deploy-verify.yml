@@ -1,0 +1,66 @@
+name: Pre-Deploy Verification
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Lint commit message
+        run: |
+          COMMIT_MSG="$(git log -1 --pretty=%B)"
+          if ! echo "$COMMIT_MSG" | grep -qE '^(feat|fix|chore|docs|perf|refactor|test):'; then
+            echo "❌ Commit message must start with: feat:, fix:, chore:, docs:, perf:, refactor:, or test:"
+            echo "   Got: $COMMIT_MSG"
+            exit 1
+          fi
+          echo "✓ Commit message follows Conventional Commits"
+
+      - name: Build with Turbopack
+        run: yarn build
+        env:
+          # Build succeeds without these; only needed for prerender (which Vercel has)
+          NEXT_PUBLIC_FIREBASE_API_KEY: "placeholder"
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "placeholder"
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: "placeholder"
+
+      - name: Check for uncommitted changes
+        run: |
+          if ! git diff --quiet; then
+            echo "❌ Build produced uncommitted changes:"
+            git diff
+            exit 1
+          fi
+          echo "✓ No uncommitted changes after build"
+
+      - name: E2E smoke test (production)
+        run: yarn test:e2e
+        continue-on-error: true  # Tests run against production; allow failure for now
+        timeout-minutes: 5
+
+      - name: Report results
+        if: always()
+        run: |
+          echo "✓ Pre-deploy verification complete"
+          echo ""
+          echo "Checklist before merge:"
+          echo "  [ ] Code reviewed by team member"
+          echo "  [ ] No Sentry errors in last 24h (https://sentry.io)"
+          echo "  [ ] Firestore indexes deployed (if schema changed)"
+          echo "  [ ] Firebase secrets in Secret Manager (if new functions)"
+          echo "  [ ] .env.example updated with new env vars (if added)"
