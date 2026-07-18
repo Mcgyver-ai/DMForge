@@ -4,6 +4,7 @@ import { SupportChat } from '@/components/support-chat'
 import { Footer } from '@/components/footer'
 import { IBM_Plex_Sans, Fraunces } from 'next/font/google'
 import { getBaseUrl } from '@/lib/baseUrl'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 const baseUrl = getBaseUrl()
 
@@ -42,6 +43,7 @@ export default function RootLayout({ children }) {
         <Providers>{children}</Providers>
         <Footer />
         <SupportChat />
+        <SpeedInsights />
       </body>
     </html>
   )
