@@ -15,8 +15,12 @@ export default function TeamSettings() {
   const [busy, setBusy] = useState(false)
 
   async function load() {
-    const res = await authFetch('/api/agency', { method: 'GET' }, getToken)
-    setData(await res.json())
+    try {
+      const res = await authFetch('/api/agency', { method: 'GET' }, getToken)
+      setData(await res.json())
+    } catch {
+      toast.error('Failed to load team')
+    }
   }
   useEffect(() => { if (user) load() }, [user])
 
@@ -73,7 +77,7 @@ export default function TeamSettings() {
           <p className="text-[#A0A0C8] mb-6">{agency ? `${agency.used} of ${agency.seats} seats used.` : 'Invite a member to create your agency. Requires the Agency plan.'}</p>
           <Card className="bg-[#161630] border-[#2A2A55] p-6 mb-6">
             <div className="flex gap-2">
-              <Input placeholder="teammate@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-[#0F0F26] border-[#2A2A55]" />
+              <Input aria-label="Teammate email" placeholder="teammate@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-[#0F0F26] border-[#2A2A55]" />
               <Button onClick={invite} disabled={busy || !email} className="btn-primary border-0 whitespace-nowrap">Invite</Button>
             </div>
             <p className="text-xs text-[#A0A0C8] mt-2">The invite link is copied to your clipboard — send it to your teammate to accept.</p>
@@ -84,7 +88,7 @@ export default function TeamSettings() {
               {agency.members.map((m) => (
                 <div key={m.uid} className="flex items-center justify-between bg-[#161630] border border-[#2A2A55] rounded-lg p-4">
                   <span className="text-sm">{m.email || m.uid}</span>
-                  <button onClick={() => remove(m.uid)} className="text-[#A0A0C8] hover:text-[#FF4D6D] p-1.5" title="Remove"><Trash2 className="w-4 h-4" /></button>
+                  <button onClick={() => remove(m.uid)} aria-label={`Remove ${m.email || m.uid}`} className="text-[#A0A0C8] hover:text-[#FF4D6D] p-1.5" title="Remove"><Trash2 className="w-4 h-4" /></button>
                 </div>
               ))}
             </div>

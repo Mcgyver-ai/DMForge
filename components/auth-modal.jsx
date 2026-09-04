@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { sendPasswordResetEmail, getAdditionalUserInfo } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/lib/auth-context'
@@ -18,6 +18,17 @@ export function AuthModal({ open, onClose, defaultMode = 'login' }) {
   const [password, setPassword] = useState('')
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [busy, setBusy] = useState(false)
+  const firstFieldRef = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    firstFieldRef.current?.focus()
+    function onKeyDown(e) {
+      if (e.key === 'Escape') onClose?.()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [open, onClose])
 
   if (!open) return null
 
@@ -58,13 +69,13 @@ export function AuthModal({ open, onClose, defaultMode = 'login' }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center px-4" onClick={onClose}>
-      <Card className="bg-[#161630] border-[#2A2A55] p-8 w-full max-w-md relative elevate-coral" onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-3 right-3 text-[#A0A0C8] hover:text-white"><X className="w-5 h-5" /></button>
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center px-4" onClick={onClose} role="presentation">
+      <Card role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" className="bg-[#161630] border-[#2A2A55] p-8 w-full max-w-md relative elevate-coral" onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} aria-label="Close dialog" className="absolute top-3 right-3 text-[#A0A0C8] hover:text-white"><X className="w-5 h-5" /></button>
         <div className="mb-2">
           <Logo />
         </div>
-        <h2 className="font-display text-2xl font-bold">{mode === 'signup' ? 'Create your account' : 'Welcome back'}</h2>
+        <h2 id="auth-modal-title" className="font-display text-2xl font-bold">{mode === 'signup' ? 'Create your account' : 'Welcome back'}</h2>
         <p className="text-sm text-[#A0A0C8] mt-1 mb-6">{mode === 'signup' ? 'Free forever tier. No credit card.' : 'Sign in to access your dashboard.'}</p>
 
         <Button onClick={google} disabled={busy} variant="outline" className="w-full bg-white text-black hover:bg-gray-100 font-semibold border-0">
@@ -75,9 +86,9 @@ export function AuthModal({ open, onClose, defaultMode = 'login' }) {
         <div className="flex items-center gap-3 my-5 text-xs text-[#A0A0C8]"><div className="flex-1 h-px bg-[#2A2A55]" />or<div className="flex-1 h-px bg-[#2A2A55]" /></div>
 
         <form onSubmit={submit} className="space-y-3">
-          <Input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@coach.com" className="bg-[#0B0B1A] border-[#2A2A55]" />
+          <Input ref={firstFieldRef} type="email" required aria-label="Email address" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@coach.com" className="bg-[#0B0B1A] border-[#2A2A55]" />
           <div>
-            <Input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder="Password (min 6 chars)" className="bg-[#0B0B1A] border-[#2A2A55]" />
+            <Input type="password" required minLength={6} aria-label="Password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password (min 6 chars)" className="bg-[#0B0B1A] border-[#2A2A55]" />
             {mode === 'login' && (
               <button type="button" onClick={resetPassword} disabled={busy} className="text-xs text-[#A0A0C8] hover:text-white mt-1.5 float-right">
                 Forgot password?

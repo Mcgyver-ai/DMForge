@@ -55,43 +55,74 @@ export default function InboxPage() {
 
   useEffect(() => { if (user) load() }, [user, load])
 
+  useEffect(() => {
+    if (!selected) return
+    function onKeyDown(e) {
+      if (e.key === 'Escape') setSelected(null)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [selected])
+
   async function openThread(id) {
-    const res = await authFetch(`/api/prospects/${id}`, { method: 'GET' }, getToken)
-    const d = await res.json()
-    if (d.prospect) setSelected({ prospect: d.prospect, messages: d.messages || [] })
+    try {
+      const res = await authFetch(`/api/prospects/${id}`, { method: 'GET' }, getToken)
+      const d = await res.json()
+      if (d.prospect) setSelected({ prospect: d.prospect, messages: d.messages || [] })
+      else toast.error(d.error || 'Failed to open thread')
+    } catch {
+      toast.error('Failed to open thread')
+    }
   }
 
   async function sendMessage() {
     if (!draft.trim() || !selected) return
     const id = selected.prospect.id
-    const res = await authFetch(`/api/prospects/${id}/messages`, { method: 'POST', body: JSON.stringify({ direction: 'outbound', body: draft.trim() }) }, getToken)
-    const d = await res.json()
-    if (d.message) { setDraft(''); await openThread(id); load() }
-    else toast.error(d.error || 'Failed to send')
+    try {
+      const res = await authFetch(`/api/prospects/${id}/messages`, { method: 'POST', body: JSON.stringify({ direction: 'outbound', body: draft.trim() }) }, getToken)
+      const d = await res.json()
+      if (d.message) { setDraft(''); await openThread(id); load() }
+      else toast.error(d.error || 'Failed to send')
+    } catch {
+      toast.error('Failed to send')
+    }
   }
 
   async function patchProspect(id, patch) {
-    const res = await authFetch(`/api/prospects/${id}`, { method: 'PUT', body: JSON.stringify(patch) }, getToken)
-    const d = await res.json()
-    if (d.prospect) {
-      if (d.booked) toast.success('Booked — reminders + sync fired')
-      setSelected((s) => (s && s.prospect.id === id ? { ...s, prospect: d.prospect } : s))
-      load()
-    } else toast.error(d.error || 'Update failed')
+    try {
+      const res = await authFetch(`/api/prospects/${id}`, { method: 'PUT', body: JSON.stringify(patch) }, getToken)
+      const d = await res.json()
+      if (d.prospect) {
+        if (d.booked) toast.success('Booked — reminders + sync fired')
+        setSelected((s) => (s && s.prospect.id === id ? { ...s, prospect: d.prospect } : s))
+        load()
+      } else toast.error(d.error || 'Update failed')
+    } catch {
+      toast.error('Update failed')
+    }
   }
 
   async function createLead() {
     if (!newLead.name.trim()) { toast.error('Name required'); return }
-    const res = await authFetch('/api/prospects', { method: 'POST', body: JSON.stringify(newLead) }, getToken)
-    const d = await res.json()
-    if (d.id) { toast.success('Lead added'); setShowNew(false); setNewLead({ name: '', handle: '', channel: 'instagram', email: '', phone: '' }); load() }
-    else toast.error(d.error || 'Failed to add')
+    try {
+      const res = await authFetch('/api/prospects', { method: 'POST', body: JSON.stringify(newLead) }, getToken)
+      const d = await res.json()
+      if (d.id) { toast.success('Lead added'); setShowNew(false); setNewLead({ name: '', handle: '', channel: 'instagram', email: '', phone: '' }); load() }
+      else toast.error(d.error || 'Failed to add')
+    } catch {
+      toast.error('Failed to add')
+    }
   }
 
   async function loadInboundUrl() {
-    const res = await authFetch('/api/inbound/token', { method: 'POST', body: JSON.stringify({}) }, getToken)
-    const d = await res.json()
-    if (d.url) { setInbound(d.url); navigator.clipboard?.writeText(d.url).catch(() => {}); toast.success('Ingestion URL copied') }
+    try {
+      const res = await authFetch('/api/inbound/token', { method: 'POST', body: JSON.stringify({}) }, getToken)
+      const d = await res.json()
+      if (d.url) { setInbound(d.url); navigator.clipboard?.writeText(d.url).catch(() => {}); toast.success('Ingestion URL copied') }
+      else toast.error(d.error || 'Failed to create ingestion URL')
+    } catch {
+      toast.error('Failed to create ingestion URL')
+    }
   }
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-[#A0A0C8]">Loading…</div>
@@ -125,13 +156,13 @@ export default function InboxPage() {
       {showNew && (
         <Card className="bg-[#161630] border-[#2A2A55] p-4 mb-4 space-y-2">
           <div className="grid grid-cols-2 gap-2">
-            <Input placeholder="Name" value={newLead.name} onChange={(e) => setNewLead({ ...newLead, name: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
-            <select value={newLead.channel} onChange={(e) => setNewLead({ ...newLead, channel: e.target.value })} className="bg-[#0F0F26] border border-[#2A2A55] rounded-md px-3 text-sm">
+            <Input aria-label="Name" placeholder="Name" value={newLead.name} onChange={(e) => setNewLead({ ...newLead, name: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
+            <select aria-label="Lead channel" value={newLead.channel} onChange={(e) => setNewLead({ ...newLead, channel: e.target.value })} className="bg-[#0F0F26] border border-[#2A2A55] rounded-md px-3 text-sm">
               {['instagram', 'linkedin', 'email', 'sms', 'manual'].map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
-            <Input placeholder="@handle" value={newLead.handle} onChange={(e) => setNewLead({ ...newLead, handle: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
-            <Input placeholder="Phone (for reminders)" value={newLead.phone} onChange={(e) => setNewLead({ ...newLead, phone: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
-            <Input placeholder="Email (for GHL sync)" value={newLead.email} onChange={(e) => setNewLead({ ...newLead, email: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55] col-span-2" />
+            <Input aria-label="Handle" placeholder="@handle" value={newLead.handle} onChange={(e) => setNewLead({ ...newLead, handle: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
+            <Input aria-label="Phone" placeholder="Phone (for reminders)" value={newLead.phone} onChange={(e) => setNewLead({ ...newLead, phone: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
+            <Input aria-label="Email" placeholder="Email (for GHL sync)" value={newLead.email} onChange={(e) => setNewLead({ ...newLead, email: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55] col-span-2" />
           </div>
           <Button onClick={createLead} className="btn-primary border-0 text-sm w-full">Add lead</Button>
         </Card>
@@ -175,14 +206,14 @@ export default function InboxPage() {
 
       {/* Thread panel */}
       {selected && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={() => setSelected(null)}>
-          <div className="w-full max-w-md bg-[#0F0F26] border-l border-[#2A2A55] h-full flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={() => setSelected(null)} role="presentation">
+          <div role="dialog" aria-modal="true" aria-labelledby="thread-panel-title" className="w-full max-w-md bg-[#0F0F26] border-l border-[#2A2A55] h-full flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="p-4 border-b border-[#2A2A55] flex items-start justify-between">
               <div>
-                <div className="flex items-center gap-2"><span className="font-semibold">{selected.prospect.name}</span><StatusBadge status={selected.prospect.status} /></div>
+                <div className="flex items-center gap-2"><span id="thread-panel-title" className="font-semibold">{selected.prospect.name}</span><StatusBadge status={selected.prospect.status} /></div>
                 <div className="text-xs text-[#A0A0C8] mt-0.5">{selected.prospect.handle || selected.prospect.email || selected.prospect.phone || '—'} · {selected.prospect.channel}</div>
               </div>
-              <button onClick={() => setSelected(null)} className="text-[#A0A0C8] hover:text-white"><X className="w-5 h-5" /></button>
+              <button onClick={() => setSelected(null)} aria-label="Close thread" className="text-[#A0A0C8] hover:text-white"><X className="w-5 h-5" /></button>
             </div>
 
             <div className="p-4 border-b border-[#2A2A55] flex flex-wrap gap-1.5">

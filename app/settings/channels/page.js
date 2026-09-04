@@ -17,9 +17,13 @@ export default function ChannelsSettings() {
   const [smtp, setSmtp] = useState({ host: '', port: '587', user: '', pass: '' })
 
   async function loadChannels() {
-    const res = await authFetch('/api/channels', { method: 'GET' }, getToken)
-    const data = await res.json()
-    setChannels(data.channels || [])
+    try {
+      const res = await authFetch('/api/channels', { method: 'GET' }, getToken)
+      const data = await res.json()
+      setChannels(data.channels || [])
+    } catch {
+      toast.error('Failed to load channels')
+    }
   }
 
   useEffect(() => { if (user) loadChannels() }, [user])
@@ -161,9 +165,9 @@ export default function ChannelsSettings() {
           <div className="flex items-center gap-2 mb-3"><MessageSquare className="w-4 h-4 text-[#6B5BFF]" /><h3 className="font-display font-bold">Connect SMS (Twilio)</h3></div>
           <p className="text-xs text-[#A0A0C8] mb-3">Used for appointment reminders. Find these in your Twilio console.</p>
           <div className="grid sm:grid-cols-3 gap-2">
-            <Input placeholder="Account SID" value={twilio.accountSid} onChange={(e) => setTwilio({ ...twilio, accountSid: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
-            <Input type="password" placeholder="Auth Token" value={twilio.authToken} onChange={(e) => setTwilio({ ...twilio, authToken: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
-            <Input placeholder="From (+1...)" value={twilio.from} onChange={(e) => setTwilio({ ...twilio, from: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
+            <Input aria-label="Twilio Account SID" placeholder="Account SID" value={twilio.accountSid} onChange={(e) => setTwilio({ ...twilio, accountSid: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
+            <Input type="password" aria-label="Twilio Auth Token" placeholder="Auth Token" value={twilio.authToken} onChange={(e) => setTwilio({ ...twilio, authToken: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
+            <Input aria-label="Twilio from number" placeholder="From (+1...)" value={twilio.from} onChange={(e) => setTwilio({ ...twilio, from: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
           </div>
           <Button onClick={connectSms} disabled={busy || !twilio.accountSid || !twilio.authToken || !twilio.from} className="btn-primary border-0 text-sm mt-3">Connect Twilio</Button>
         </Card>
@@ -188,8 +192,8 @@ export default function ChannelsSettings() {
             <div className="flex items-center gap-2 mb-3"><Mail className="w-4 h-4 text-[#6B5BFF]" /><h3 className="font-display font-bold">Connect Gmail</h3></div>
             <p className="text-xs text-[#A0A0C8] mb-3">Uses SMTP with a Google App Password (Account → Security → App Passwords) — not OAuth.</p>
             <div className="space-y-2">
-              <Input placeholder="you@gmail.com" value={gmail.user} onChange={(e) => setGmail({ ...gmail, user: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
-              <Input type="password" placeholder="App password" value={gmail.pass} onChange={(e) => setGmail({ ...gmail, pass: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
+              <Input aria-label="Gmail address" placeholder="you@gmail.com" value={gmail.user} onChange={(e) => setGmail({ ...gmail, user: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
+              <Input type="password" aria-label="Gmail app password" placeholder="App password" value={gmail.pass} onChange={(e) => setGmail({ ...gmail, pass: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
               <Button onClick={() => connect('gmail', gmail)} disabled={busy || !gmail.user || !gmail.pass} className="btn-primary border-0 w-full text-sm">Connect Gmail</Button>
             </div>
           </Card>
@@ -197,10 +201,10 @@ export default function ChannelsSettings() {
             <div className="flex items-center gap-2 mb-3"><Mail className="w-4 h-4 text-[#6B5BFF]" /><h3 className="font-display font-bold">Connect SMTP</h3></div>
             <p className="text-xs text-[#A0A0C8] mb-3">Any SMTP provider — host, port, and login.</p>
             <div className="space-y-2">
-              <Input placeholder="smtp.example.com" value={smtp.host} onChange={(e) => setSmtp({ ...smtp, host: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
-              <Input placeholder="Port (e.g. 587)" value={smtp.port} onChange={(e) => setSmtp({ ...smtp, port: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
-              <Input placeholder="Username" value={smtp.user} onChange={(e) => setSmtp({ ...smtp, user: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
-              <Input type="password" placeholder="Password" value={smtp.pass} onChange={(e) => setSmtp({ ...smtp, pass: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
+              <Input aria-label="SMTP host" placeholder="smtp.example.com" value={smtp.host} onChange={(e) => setSmtp({ ...smtp, host: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
+              <Input aria-label="SMTP port" placeholder="Port (e.g. 587)" value={smtp.port} onChange={(e) => setSmtp({ ...smtp, port: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
+              <Input aria-label="SMTP username" placeholder="Username" value={smtp.user} onChange={(e) => setSmtp({ ...smtp, user: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
+              <Input type="password" aria-label="SMTP password" placeholder="Password" value={smtp.pass} onChange={(e) => setSmtp({ ...smtp, pass: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
               <Button onClick={() => connect('smtp', smtp)} disabled={busy || !smtp.host || !smtp.user || !smtp.pass} className="btn-primary border-0 w-full text-sm">Connect SMTP</Button>
             </div>
           </Card>

@@ -43,7 +43,7 @@ function Nav({ onTry, onAuthOpen }) {
           {user ? (
             <>
               <a href="/dashboard" className="hidden sm:inline-flex items-center gap-1.5 text-sm text-[#A0A0C8] hover:text-white px-3 py-1.5 rounded-lg hover:bg-[#1F1F42]"><LayoutDashboard className="w-4 h-4" /> Dashboard</a>
-              <button onClick={logout} title="Sign out" className="text-[#A0A0C8] hover:text-white p-2 rounded-lg hover:bg-[#1F1F42]"><LogOut className="w-4 h-4" /></button>
+              <button onClick={logout} title="Sign out" aria-label="Sign out" className="text-[#A0A0C8] hover:text-white p-2 rounded-lg hover:bg-[#1F1F42]"><LogOut className="w-4 h-4" /></button>
             </>
           ) : (
             <Button onClick={onAuthOpen} variant="outline" className="bg-transparent border-[#2A2A55] hover:bg-[#1F1F42] text-sm">Sign in</Button>
@@ -77,9 +77,13 @@ function ChatSimulator({ agent, onSave }) {
       setBusy(true)
       try {
         const res = await fetch('/api/agent/chat', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ agentId: agent.id, messages: [] }) })
-        const data = await res.json()
+        const data = await res.json().catch(() => null)
+        if (!res.ok || !data?.reply) throw new Error(data?.error || 'request failed')
         setMessages([{ role: 'assistant', content: data.reply }])
-      } catch (e) { toast.error('Failed to start chat') }
+      } catch (e) {
+        toast.error(e.message === 'request failed' ? 'The AI is busy — try again in a moment' : 'Failed to start chat')
+        setMessages([{ role: 'assistant', content: "Sorry, I couldn't start up just now — try again in a moment." }])
+      }
       finally { setBusy(false) }
     })()
   }, [agent?.id])
@@ -94,10 +98,13 @@ function ChatSimulator({ agent, onSave }) {
     setBusy(true)
     try {
       const res = await fetch('/api/agent/chat', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ agentId: agent.id, messages: newMsgs }) })
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
+      if (!res.ok || !data?.reply) throw new Error(data?.error || 'request failed')
       setMessages([...newMsgs, { role: 'assistant', content: data.reply }])
       if (data.state) setState(data.state)
-    } catch (e) { toast.error('Network error'); }
+    } catch (e) {
+      toast.error(e.message === 'request failed' ? "That got rate-limited — wait a few seconds and try again" : 'Network error')
+    }
     finally { setBusy(false) }
   }
 
@@ -339,10 +346,14 @@ function Pricing({ onTry }) {
   }
   async function portal() {
     if (!user) { setAuthPrompt(true); return }
-    const res = await authFetch('/api/billing/portal', { method: 'POST', body: JSON.stringify({}) }, getToken)
-    const data = await res.json()
-    if (data.url) window.location.href = data.url
-    else toast.error(data.error || 'No active subscription found')
+    try {
+      const res = await authFetch('/api/billing/portal', { method: 'POST', body: JSON.stringify({}) }, getToken)
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+      else toast.error(data.error || 'No active subscription found')
+    } catch {
+      toast.error('Network error — try again')
+    }
   }
   return (
     <>

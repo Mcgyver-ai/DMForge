@@ -18,15 +18,20 @@ export default function WhiteLabelSettings() {
   useEffect(() => {
     if (!user) return
     ;(async () => {
-      const [meRes, agRes] = await Promise.all([
-        authFetch('/api/me', { method: 'GET' }, getToken),
-        authFetch('/api/agency', { method: 'GET' }, getToken),
-      ])
-      const meD = await meRes.json()
-      const agD = await agRes.json()
-      setMe(meD.user)
-      if (agD.agency?.whiteLabel) setWl({ ...wl, ...agD.agency.whiteLabel, logoUrl: agD.agency.whiteLabel.logoUrl || '', domain: agD.agency.whiteLabel.domain || '' })
-      setReady(true)
+      try {
+        const [meRes, agRes] = await Promise.all([
+          authFetch('/api/me', { method: 'GET' }, getToken),
+          authFetch('/api/agency', { method: 'GET' }, getToken),
+        ])
+        const meD = await meRes.json()
+        const agD = await agRes.json()
+        setMe(meD.user)
+        if (agD.agency?.whiteLabel) setWl({ ...wl, ...agD.agency.whiteLabel, logoUrl: agD.agency.whiteLabel.logoUrl || '', domain: agD.agency.whiteLabel.domain || '' })
+      } catch {
+        toast.error('Failed to load branding settings')
+      } finally {
+        setReady(true)
+      }
     })()
   }, [user])
 
@@ -74,23 +79,23 @@ export default function WhiteLabelSettings() {
           <p className="text-[#A0A0C8] mb-6 mt-2">Rebrand the dashboard for your clients.</p>
           <Card className="bg-[#161630] border-[#2A2A55] p-6 space-y-4">
             <div>
-              <label className="text-xs text-[#A0A0C8]">Brand name</label>
-              <Input value={wl.brandName} onChange={(e) => setWl({ ...wl, brandName: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55] mt-1" placeholder="Acme Outreach" />
+              <label htmlFor="wl-brandName" className="text-xs text-[#A0A0C8]">Brand name</label>
+              <Input id="wl-brandName" value={wl.brandName} onChange={(e) => setWl({ ...wl, brandName: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55] mt-1" placeholder="Acme Outreach" />
             </div>
             <div>
-              <label className="text-xs text-[#A0A0C8]">Primary color</label>
+              <label htmlFor="wl-primaryColor" className="text-xs text-[#A0A0C8]">Primary color</label>
               <div className="flex gap-2 mt-1">
-                <input type="color" value={wl.primaryColor} onChange={(e) => setWl({ ...wl, primaryColor: e.target.value })} className="h-10 w-14 bg-transparent border border-[#2A2A55] rounded" />
+                <input id="wl-primaryColor" type="color" aria-label="Primary color picker" value={wl.primaryColor} onChange={(e) => setWl({ ...wl, primaryColor: e.target.value })} className="h-10 w-14 bg-transparent border border-[#2A2A55] rounded" />
                 <Input value={wl.primaryColor} onChange={(e) => setWl({ ...wl, primaryColor: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
               </div>
             </div>
             <div>
-              <label className="text-xs text-[#A0A0C8]">Logo URL</label>
-              <Input value={wl.logoUrl} onChange={(e) => setWl({ ...wl, logoUrl: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55] mt-1" placeholder="https://…/logo.png" />
+              <label htmlFor="wl-logoUrl" className="text-xs text-[#A0A0C8]">Logo URL</label>
+              <Input id="wl-logoUrl" value={wl.logoUrl} onChange={(e) => setWl({ ...wl, logoUrl: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55] mt-1" placeholder="https://…/logo.png" />
             </div>
             <div>
-              <label className="text-xs text-[#A0A0C8]">Custom domain (optional)</label>
-              <Input value={wl.domain} onChange={(e) => setWl({ ...wl, domain: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55] mt-1" placeholder="app.youragency.com" />
+              <label htmlFor="wl-domain" className="text-xs text-[#A0A0C8]">Custom domain (optional)</label>
+              <Input id="wl-domain" value={wl.domain} onChange={(e) => setWl({ ...wl, domain: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55] mt-1" placeholder="app.youragency.com" />
               <p className="text-[11px] text-[#A0A0C8] mt-1">Point a CNAME at <code className="text-[#6B5BFF]">cname.vercel-dns.com</code>, then add the domain as an alias in the Vercel project. This is a manual step per agency.</p>
             </div>
             <label className="flex items-center gap-2 text-sm text-[#A0A0C8]">
