@@ -9,6 +9,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "@hookform/resolvers": "5.4.0",
     "@radix-ui/react-accordion": "1.2.16-rc.1783090687154",
     "@radix-ui/react-alert-dialog": "1.1.19-rc.1783090687154",
