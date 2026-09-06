@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import { Logo } from '@/components/logo'
 import { TrackSubscriptionActive } from '@/components/track-subscription-active'
+import { getBaseUrl } from '@/lib/baseUrl'
 
 async function fetchSession(id) {
   try {
-    const base = process.env.NEXT_PUBLIC_BASE_URL
-    const res = await fetch(`${base}/api/billing/session?session_id=${id}`, { cache: 'no-store' })
+    const res = await fetch(`${getBaseUrl()}/api/billing/session?session_id=${id}`, { cache: 'no-store' })
+    if (!res.ok) return null
     return await res.json()
   } catch { return null }
 }
@@ -26,7 +27,7 @@ export default async function Success({ searchParams }) {
         <div className="max-w-lg text-center bg-[#161630] border border-[#FF4D6D]/40 rounded-2xl p-10 elevate-coral">
           <div className="w-16 h-16 mx-auto rounded-full bg-[#FF4D6D] flex items-center justify-center text-3xl mb-4">🔥</div>
           <h1 className="font-display text-3xl font-bold">You're in.</h1>
-          <p className="text-[#A0A0C8] mt-2">Welcome to DMForge {data?.planKey?.includes('agency') ? 'Agency' : 'Pro'}, {data?.email}.</p>
+          <p className="text-[#A0A0C8] mt-2">Welcome to DMForge {data?.planKey?.includes('agency') ? 'Agency' : 'Pro'}{data?.email ? `, ${data.email}` : ''}.</p>
           <p className="text-[#A0A0C8] mt-1 text-sm">Your subscription is active. You can manage billing or cancel any time from your account.</p>
           <div className="flex gap-2 mt-6 justify-center flex-wrap">
             <Link href="/dashboard" className="px-5 py-2.5 btn-primary rounded-lg font-semibold">Go to dashboard →</Link>

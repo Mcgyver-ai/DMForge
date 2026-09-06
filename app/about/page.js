@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export const metadata = {
   title: 'About — DMForge',
   description: 'DMForge is an AI-powered DM outreach tool that books discovery calls for online coaches on autopilot.',
@@ -43,9 +45,9 @@ export default function AboutPage() {
         <h2 className="text-2xl font-semibold mb-3">Get in touch</h2>
         <p className="text-lg">
           Questions, feature requests, or want to share a win?{' '}
-          <a href="/contact" className="underline hover:opacity-75">
+          <Link href="/contact" className="underline hover:opacity-75">
             We&apos;d love to hear from you.
-          </a>
+          </Link>
         </p>
       </section>
     </main>

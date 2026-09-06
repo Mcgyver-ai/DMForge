@@ -76,7 +76,7 @@ export default async function ResultPage({ params }) {
             <span className="text-xs text-[#A0A0C8]">{r.createdAt ? new Date(r.createdAt).toLocaleString() : ''}</span>
           </div>
           <div className="p-5 space-y-3">
-            {r.transcript.map((m,i) => (
+            {(r.transcript || []).map((m,i) => (
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[78%] px-3.5 py-2 rounded-2xl text-sm whitespace-pre-wrap ${m.role === 'user' ? 'bg-[#6B5BFF] text-white rounded-br-md' : 'bg-[#1F1F42] text-[#F5F5FA] rounded-bl-md'}`}>
                   <div className="text-[10px] text-white/60 mb-0.5">{m.role === 'user' ? r.leadName || 'Lead' : r.agentName}</div>
@@ -88,11 +88,11 @@ export default async function ResultPage({ params }) {
         </div>
 
         <div className="mt-6 flex flex-wrap gap-2 justify-center">
-          <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}`} target="_blank" rel="noopener" className="px-4 py-2 bg-[#161630] border border-[#2A2A55] hover:border-[#FF4D6D] rounded-lg text-sm">Share on X</a>
-          <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener" className="px-4 py-2 bg-[#161630] border border-[#2A2A55] hover:border-[#FF4D6D] rounded-lg text-sm">Facebook</a>
-          <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener" className="px-4 py-2 bg-[#161630] border border-[#2A2A55] hover:border-[#FF4D6D] rounded-lg text-sm">LinkedIn</a>
-          <a href={`https://wa.me/?text=${encodeURIComponent(tweet)}`} target="_blank" rel="noopener" className="px-4 py-2 bg-[#161630] border border-[#2A2A55] hover:border-[#FF4D6D] rounded-lg text-sm">WhatsApp</a>
-          <a href={`https://www.reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent('I built an AI DM setter in 60s with DMForge')}`} target="_blank" rel="noopener" className="px-4 py-2 bg-[#161630] border border-[#2A2A55] hover:border-[#FF4D6D] rounded-lg text-sm">Reddit</a>
+          <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}`} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-[#161630] border border-[#2A2A55] hover:border-[#FF4D6D] rounded-lg text-sm">Share on X</a>
+          <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-[#161630] border border-[#2A2A55] hover:border-[#FF4D6D] rounded-lg text-sm">Facebook</a>
+          <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-[#161630] border border-[#2A2A55] hover:border-[#FF4D6D] rounded-lg text-sm">LinkedIn</a>
+          <a href={`https://wa.me/?text=${encodeURIComponent(tweet)}`} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-[#161630] border border-[#2A2A55] hover:border-[#FF4D6D] rounded-lg text-sm">WhatsApp</a>
+          <a href={`https://www.reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent('I built an AI DM setter in 60s with DMForge')}`} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-[#161630] border border-[#2A2A55] hover:border-[#FF4D6D] rounded-lg text-sm">Reddit</a>
         </div>
 
         <div className="mt-12 text-center bg-[#FF4D6D]/10 border border-[#FF4D6D]/40 rounded-xl p-10">

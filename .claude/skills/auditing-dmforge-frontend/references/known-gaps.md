@@ -5,6 +5,79 @@ Update this file whenever you run the `auditing-dmforge-frontend` skill.
 
 ---
 
+## 2026-09-06 audit — "missing components" pass
+
+**Fixed** (files: `app/error.js` *new*, `app/global-error.js` *new*, `app/page.js`,
+`app/r/[id]/page.js`, `app/billing/success/page.js`, `app/inbox/page.js`,
+`app/dashboard/page.js`, `app/about/page.js`, `app/settings/white-label/page.js`,
+`components/support-chat.jsx`, `components/auth-modal.jsx`):
+
+- **The actual missing components: `app/error.js` and `app/global-error.js` did not
+  exist.** The client `<ErrorBoundary>` in `app/providers.js` only catches throws inside
+  the client tree — a *server*-render throw (`app/r/[id]`, `app/blog/[slug]`,
+  `app/billing/success`) bypassed it entirely and fell through to Next's default error
+  page. `global-error.js` uses inline styles on purpose (it replaces the root layout, so
+  `globals.css` isn't loaded); there's a `ponytail:` comment saying so — don't "clean it
+  up" into Tailwind.
+- `app/r/[id]/page.js`: `r.transcript.map(...)` was unguarded — a saved result document
+  missing `transcript` crashed the server render into a 500. Now `(r.transcript || [])`.
+- `app/page.js` `saveAndShare()`: had `try`/`finally` with **no** `catch` and no `res.ok`
+  check. A rate-limited or 500 `/api/result/save` was either a silent no-op (`data.id`
+  undefined, nothing happened when the user clicked "Save & share") or an unhandled
+  rejection when the body wasn't JSON. Now matches the `ChatSimulator.send()` pattern:
+  `.json().catch(() => null)` → `!res.ok || !data?.id` → toast.
+- `app/billing/success/page.js`: `fetchSession` didn't check `res.ok`, so an error body
+  was rendered as a real session; and `NEXT_PUBLIC_BASE_URL` was read raw (unset ⇒
+  `undefined/api/...`). Now uses the existing `getBaseUrl()` helper + an `res.ok` guard.
+  Also killed the dangling `"Welcome to DMForge Pro, ."` when `data.email` is absent.
+- **Keyboard reachability** (new category — previous audits only covered labels/Escape):
+  inbox lead rows were a click-only `<Card onClick>`, so the entire inbox was
+  mouse-only; the dashboard follow-up edit trigger was a bare `<p onClick>`. Both now
+  `role="button" tabIndex={0}` with Enter/Space handlers, no visual change (inbox rows
+  gained a `focus-visible` ring).
+- `components/support-chat.jsx`: no Escape-to-close, no focus on the composer when
+  opened, no `role`, input was placeholder-only. All four fixed. Deliberately
+  `role="dialog"` **without** `aria-modal` — it floats over the page, it doesn't trap it.
+- Remaining placeholder-only inputs: the whole landing-page wizard (agent name, offer,
+  audience, qualification, tone) + simulator reply box, inbox call-time picker and
+  message composer, dashboard sequence textarea, white-label hex field.
+- `aria-pressed` on the toggle-button groups whose selected state was colour-only:
+  landing niche picker, inbox status filters, inbox thread status setter.
+- Internal `<a href="/...">` → `<Link>` in the landing nav (vs SetSmart, Playbooks,
+  Dashboard, the vs-breakdown CTA) and `app/about`. These were full document reloads on
+  the highest-traffic page.
+- `rel="noopener"` → `rel="noopener noreferrer"` on the 5 `/r/[id]` share links, and the
+  auth modal's two `target="_blank"` legal links had no `rel` at all.
+
+**Flagged, not fixed — re-check next audit:**
+
+1. *(carried over, still open)* `app/page.js` is one ~500-line `'use client'` component
+   mixing static marketing copy with the wizard/simulator. Real Core Web Vitals lever,
+   but a Server/Client split on the highest-traffic page needs sign-off + a visual smoke
+   test.
+2. *(carried over)* `next-themes` installed but unused — app is hardcoded dark.
+3. *(carried over)* `images: { unoptimized: true }` is deliberate; don't push
+   `next/image` migrations as high-priority.
+4. **New:** `components/auth-modal.jsx` has Escape + initial focus but **no focus trap** —
+   Tab still walks out of the modal into the page behind it. Fixing properly means either
+   a real trap or porting it onto the vendored Radix `components/ui/dialog.jsx`. The
+   latter is the right answer but it's a rewrite of the component, not an audit fix.
+5. **New:** `app/about` and `app/contact` are the only pages with no `<Logo>` header —
+   every other standalone page has one. Visual/layout change, so left alone.
+6. **New:** `components/support-chat.jsx` starts with a UTF-8 BOM. Harmless (builds
+   fine), noted so nobody "discovers" it twice.
+
+**Verified:** full `next build` passed — 68 routes, all SSG/prerender steps green.
+Note the build **must** be run with the CI placeholder env vars from
+`.github/workflows/ci.yml` (`NEXT_PUBLIC_FIREBASE_*`, `NEXT_PUBLIC_BASE_URL`); the local
+`.env.local` is missing them and the build dies at prerender with
+`auth/invalid-api-key` from `lib/firebase.js:17`. Also: `yarn build` is broken on this
+machine (corepack shim points at a missing
+`D:\Business HQ\npm-global\node_modules\corepack\dist\yarn.js`) — run
+`node node_modules/next/dist/bin/next build` instead.
+
+---
+
 ## 2026-09-04 audit
 
 **Fixed** (commit `9af4428`, files: `components/auth-modal.jsx`, `app/inbox/page.js`,

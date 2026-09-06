@@ -258,6 +258,7 @@ function FollowUpSequence({ agentId, getToken }) {
               {editingId === s.id ? (
                 <textarea
                   autoFocus
+                  aria-label="Follow-up message body"
                   className="mt-1 w-full bg-[#161630] border border-[#2A2A55] rounded text-xs text-white p-2"
                   rows={3}
                   value={draft}
@@ -266,7 +267,11 @@ function FollowUpSequence({ agentId, getToken }) {
                 />
               ) : (
                 <p
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Edit follow-up message"
                   onClick={() => { setEditingId(s.id); setDraft(s.body) }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setEditingId(s.id); setDraft(s.body) } }}
                   className="text-xs text-[#A0A0C8] mt-1 cursor-text hover:text-white"
                 >
                   {s.body}

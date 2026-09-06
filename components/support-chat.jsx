@@ -10,10 +10,21 @@ export function SupportChat() {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const scrollRef = useRef(null)
+  const inputRef = useRef(null)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, open])
+
+  useEffect(() => {
+    if (!open) return
+    inputRef.current?.focus()
+    function onKeyDown(e) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [open])
 
   async function send(e) {
     e?.preventDefault()
@@ -41,7 +52,7 @@ export function SupportChat() {
   return (
     <>
       {open && (
-        <div className="fixed bottom-24 right-5 z-50 w-[min(24rem,calc(100vw-2.5rem))] rounded-2xl border border-[#2A2A55] bg-[#161630] shadow-2xl shadow-black/50 flex flex-col overflow-hidden">
+        <div role="dialog" aria-label="DMForge support chat" className="fixed bottom-24 right-5 z-50 w-[min(24rem,calc(100vw-2.5rem))] rounded-2xl border border-[#2A2A55] bg-[#161630] shadow-2xl shadow-black/50 flex flex-col overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#2A2A55]/60">
             <div>
               <p className="font-semibold text-sm">DMForge Support</p>
@@ -65,6 +76,8 @@ export function SupportChat() {
           </div>
           <form onSubmit={send} className="flex items-center gap-2 border-t border-[#2A2A55]/60 px-3 py-2.5">
             <input
+              ref={inputRef}
+              aria-label="Ask DMForge support a question"
               value={input}
               onChange={e => setInput(e.target.value)}
               placeholder="Ask about DMForge…"

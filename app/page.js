@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -35,14 +36,14 @@ function Nav({ onTry, onAuthOpen }) {
         <nav className="hidden md:flex items-center gap-7 text-sm text-[#A0A0C8]">
           <a href="#features" className="hover:text-white">Features</a>
           <a href="#pricing" className="hover:text-white">Pricing</a>
-          <a href="/vs/setsmart" className="hover:text-white">vs SetSmart</a>
-          <a href="/blog" className="hover:text-white">Playbooks</a>
+          <Link href="/vs/setsmart" className="hover:text-white">vs SetSmart</Link>
+          <Link href="/blog" className="hover:text-white">Playbooks</Link>
           <a href="#faq" className="hover:text-white">FAQ</a>
         </nav>
         <div className="flex items-center gap-2">
           {user ? (
             <>
-              <a href="/dashboard" className="hidden sm:inline-flex items-center gap-1.5 text-sm text-[#A0A0C8] hover:text-white px-3 py-1.5 rounded-lg hover:bg-[#1F1F42]"><LayoutDashboard className="w-4 h-4" /> Dashboard</a>
+              <Link href="/dashboard" className="hidden sm:inline-flex items-center gap-1.5 text-sm text-[#A0A0C8] hover:text-white px-3 py-1.5 rounded-lg hover:bg-[#1F1F42]"><LayoutDashboard className="w-4 h-4" /> Dashboard</Link>
               <button onClick={logout} title="Sign out" aria-label="Sign out" className="text-[#A0A0C8] hover:text-white p-2 rounded-lg hover:bg-[#1F1F42]"><LogOut className="w-4 h-4" /></button>
             </>
           ) : (
@@ -112,13 +113,14 @@ function ChatSimulator({ agent, onSave }) {
     setBusy(true)
     try {
       const res = await fetch('/api/result/save', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ agentId: agent.id, transcript: messages, state }) })
-      const data = await res.json()
-      if (data.id) {
-        const url = `${window.location.origin}/r/${data.id}`
-        await navigator.clipboard.writeText(url).catch(()=>{})
-        toast.success('Saved! Share link copied to clipboard.')
-        window.open(`/r/${data.id}`, '_blank')
-      }
+      const data = await res.json().catch(() => null)
+      if (!res.ok || !data?.id) throw new Error(data?.error || 'save failed')
+      const url = `${window.location.origin}/r/${data.id}`
+      await navigator.clipboard.writeText(url).catch(()=>{})
+      toast.success('Saved! Share link copied to clipboard.')
+      window.open(`/r/${data.id}`, '_blank')
+    } catch (e) {
+      toast.error(e.message === 'save failed' ? "Couldn't save that transcript — try again" : 'Network error')
     } finally { setBusy(false) }
     onSave?.()
   }
@@ -153,7 +155,7 @@ function ChatSimulator({ agent, onSave }) {
           <Button onClick={saveAndShare} disabled={busy} className="btn-primary border-0 w-full font-semibold"><Share2 className="w-4 h-4 mr-2" /> Save & share result</Button>
         ) : (
           <div className="flex gap-2">
-            <Input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} placeholder="Reply as the lead…" className="bg-[#0B0B1A] border-[#2A2A55] text-white" disabled={busy} />
+            <Input aria-label="Reply as the lead" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} placeholder="Reply as the lead…" className="bg-[#0B0B1A] border-[#2A2A55] text-white" disabled={busy} />
             <Button onClick={send} disabled={busy || !input.trim()} className="btn-primary border-0"><Send className="w-4 h-4" /></Button>
           </div>
         )}
@@ -213,11 +215,11 @@ function Wizard({ onCreated }) {
           <p className="text-[#A0A0C8] text-sm mb-4">We'll tune the AI's qualification script to your industry.</p>
           <div className="grid grid-cols-2 gap-2 mb-4">
             {NICHES.map(n => (
-              <button key={n.id} onClick={() => setNiche(n.label)} className={`text-left px-3 py-3 rounded-lg border text-sm transition ${niche === n.label ? 'border-[#FF4D6D] bg-[#FF4D6D]/10' : 'border-[#2A2A55] hover:border-[#6B5BFF]'}`}>
+              <button key={n.id} type="button" aria-pressed={niche === n.label} onClick={() => setNiche(n.label)} className={`text-left px-3 py-3 rounded-lg border text-sm transition ${niche === n.label ? 'border-[#FF4D6D] bg-[#FF4D6D]/10' : 'border-[#2A2A55] hover:border-[#6B5BFF]'}`}>
               <span className="mr-2">{n.emoji}</span>{n.label}</button>
             ))}
           </div>
-          <Input value={agentName} onChange={e=>setAgentName(e.target.value)} placeholder="Your name (how it signs)" className="bg-[#0B0B1A] border-[#2A2A55] mb-3" />
+          <Input aria-label="Your name (how the agent signs off)" value={agentName} onChange={e=>setAgentName(e.target.value)} placeholder="Your name (how it signs)" className="bg-[#0B0B1A] border-[#2A2A55] mb-3" />
           <Button onClick={()=>goToStep(1)} className="btn-primary border-0 w-full font-semibold">Next <ArrowRight className="w-4 h-4 ml-1" /></Button>
         </div>
       )}
@@ -225,8 +227,8 @@ function Wizard({ onCreated }) {
         <div>
           <h3 className="font-display text-2xl font-bold mb-2">What do you sell?</h3>
           <p className="text-[#A0A0C8] text-sm mb-4">One paragraph. Price, what they get, length.</p>
-          <Textarea value={offer} onChange={e=>setOffer(e.target.value)} rows={4} className="bg-[#0B0B1A] border-[#2A2A55] mb-3" />
-          <Textarea value={audience} onChange={e=>setAudience(e.target.value)} rows={3} placeholder="Ideal client…" className="bg-[#0B0B1A] border-[#2A2A55] mb-3" />
+          <Textarea aria-label="What you sell" value={offer} onChange={e=>setOffer(e.target.value)} rows={4} className="bg-[#0B0B1A] border-[#2A2A55] mb-3" />
+          <Textarea aria-label="Your ideal client" value={audience} onChange={e=>setAudience(e.target.value)} rows={3} placeholder="Ideal client…" className="bg-[#0B0B1A] border-[#2A2A55] mb-3" />
           <div className="flex gap-2"><Button variant="outline" onClick={()=>setStep(0)} className="bg-transparent border-[#2A2A55]">Back</Button><Button onClick={()=>setStep(2)} className="btn-primary border-0 flex-1 font-semibold">Next <ArrowRight className="w-4 h-4 ml-1" /></Button></div>
         </div>
       )}
@@ -234,7 +236,7 @@ function Wizard({ onCreated }) {
         <div>
           <h3 className="font-display text-2xl font-bold mb-2">What must they answer?</h3>
           <p className="text-[#A0A0C8] text-sm mb-4">List the qualification criteria, comma-separated.</p>
-          <Textarea value={qualification} onChange={e=>setQualification(e.target.value)} rows={4} className="bg-[#0B0B1A] border-[#2A2A55] mb-3" />
+          <Textarea aria-label="Qualification criteria" value={qualification} onChange={e=>setQualification(e.target.value)} rows={4} className="bg-[#0B0B1A] border-[#2A2A55] mb-3" />
           <div className="flex gap-2"><Button variant="outline" onClick={()=>setStep(1)} className="bg-transparent border-[#2A2A55]">Back</Button><Button onClick={()=>setStep(3)} className="btn-primary border-0 flex-1 font-semibold">Next <ArrowRight className="w-4 h-4 ml-1" /></Button></div>
         </div>
       )}
@@ -242,7 +244,7 @@ function Wizard({ onCreated }) {
         <div>
           <h3 className="font-display text-2xl font-bold mb-2">How do you talk?</h3>
           <p className="text-[#A0A0C8] text-sm mb-4">A line on tone. The AI will mimic this voice.</p>
-          <Textarea value={tone} onChange={e=>setTone(e.target.value)} rows={3} className="bg-[#0B0B1A] border-[#2A2A55] mb-3" />
+          <Textarea aria-label="Tone of voice" value={tone} onChange={e=>setTone(e.target.value)} rows={3} className="bg-[#0B0B1A] border-[#2A2A55] mb-3" />
           <div className="flex gap-2"><Button variant="outline" onClick={()=>setStep(2)} className="bg-transparent border-[#2A2A55]">Back</Button><Button onClick={build} disabled={busy} className="btn-primary border-0 flex-1 font-semibold">{busy ? 'Forging…' : <><Sparkles className="w-4 h-4 mr-2" /> Build my AI setter</>}</Button></div>
         </div>
       )}
@@ -323,7 +325,7 @@ function WhyBetter() {
           </tbody>
         </table>
       </Card>
-      <p className="text-center mt-6"><a href="/vs/setsmart" className="text-[#FF4D6D] hover:underline">Read the full DMForge vs SetSmart breakdown →</a></p>
+      <p className="text-center mt-6"><Link href="/vs/setsmart" className="text-[#FF4D6D] hover:underline">Read the full DMForge vs SetSmart breakdown →</Link></p>
     </section>
   )
 }

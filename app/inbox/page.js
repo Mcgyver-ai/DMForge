@@ -170,7 +170,7 @@ export default function InboxPage() {
 
       <div className="flex gap-1.5 mb-4 flex-wrap">
         {['all', ...STATUSES].map((s) => (
-          <button key={s} onClick={() => setFilter(s)}
+          <button key={s} type="button" aria-pressed={filter === s} onClick={() => setFilter(s)}
             className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${filter === s ? 'bg-[#6B5BFF] text-white' : 'bg-[#161630] text-[#A0A0C8] hover:text-white border border-[#2A2A55]'}`}>
             {s}{s !== 'all' ? ` (${prospects.filter((p) => p.status === s).length})` : ` (${prospects.length})`}
           </button>
@@ -184,8 +184,9 @@ export default function InboxPage() {
       ) : (
         <div className="space-y-2">
           {shown.map((p) => (
-            <Card key={p.id} onClick={() => openThread(p.id)}
-              className="bg-[#161630] border-[#2A2A55] p-4 cursor-pointer hover:border-[#6B5BFF]/60 transition-colors">
+            <Card key={p.id} role="button" tabIndex={0} onClick={() => openThread(p.id)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openThread(p.id) } }}
+              className="bg-[#161630] border-[#2A2A55] p-4 cursor-pointer hover:border-[#6B5BFF]/60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6B5BFF]">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -218,7 +219,7 @@ export default function InboxPage() {
 
             <div className="p-4 border-b border-[#2A2A55] flex flex-wrap gap-1.5">
               {STATUSES.map((s) => (
-                <button key={s} onClick={() => patchProspect(selected.prospect.id, { status: s })}
+                <button key={s} type="button" aria-pressed={selected.prospect.status === s} onClick={() => patchProspect(selected.prospect.id, { status: s })}
                   className={`px-2.5 py-1 rounded-full text-[11px] font-medium capitalize ${selected.prospect.status === s ? 'bg-[#6B5BFF] text-white' : 'bg-[#161630] text-[#A0A0C8] border border-[#2A2A55]'}`}>{s}</button>
               ))}
             </div>
@@ -226,7 +227,7 @@ export default function InboxPage() {
             {selected.prospect.status === 'booked' || selected.prospect.scheduledAt ? (
               <div className="px-4 py-2 border-b border-[#2A2A55] flex items-center gap-2 text-xs text-[#A0A0C8]">
                 <Calendar className="w-3.5 h-3.5 text-[#5FE0A8]" />
-                <input type="datetime-local" defaultValue={selected.prospect.scheduledAt ? selected.prospect.scheduledAt.slice(0, 16) : ''}
+                <input type="datetime-local" aria-label="Scheduled call time" defaultValue={selected.prospect.scheduledAt ? selected.prospect.scheduledAt.slice(0, 16) : ''}
                   onChange={(e) => patchProspect(selected.prospect.id, { scheduledAt: e.target.value ? new Date(e.target.value).toISOString() : null })}
                   className="bg-[#161630] border border-[#2A2A55] rounded px-2 py-1 text-xs" />
                 <span>call time (drives SMS reminders)</span>
@@ -244,7 +245,7 @@ export default function InboxPage() {
             </div>
 
             <div className="p-3 border-t border-[#2A2A55] flex gap-2">
-              <Input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+              <Input aria-label="Message to log" value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
                 placeholder="Log an outbound message…" className="bg-[#161630] border-[#2A2A55] text-sm" />
               <Button onClick={sendMessage} className="btn-primary border-0 px-3"><Send className="w-4 h-4" /></Button>
             </div>

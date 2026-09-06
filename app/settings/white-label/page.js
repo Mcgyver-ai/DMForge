@@ -86,7 +86,7 @@ export default function WhiteLabelSettings() {
               <label htmlFor="wl-primaryColor" className="text-xs text-[#A0A0C8]">Primary color</label>
               <div className="flex gap-2 mt-1">
                 <input id="wl-primaryColor" type="color" aria-label="Primary color picker" value={wl.primaryColor} onChange={(e) => setWl({ ...wl, primaryColor: e.target.value })} className="h-10 w-14 bg-transparent border border-[#2A2A55] rounded" />
-                <Input value={wl.primaryColor} onChange={(e) => setWl({ ...wl, primaryColor: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
+                <Input aria-label="Primary color hex value" value={wl.primaryColor} onChange={(e) => setWl({ ...wl, primaryColor: e.target.value })} className="bg-[#0F0F26] border-[#2A2A55]" />
               </div>
             </div>
             <div>

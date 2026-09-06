@@ -99,9 +99,9 @@ export function AuthModal({ open, onClose, defaultMode = 'login' }) {
             <label className="flex items-start gap-2 text-sm text-[#A0A0C8] cursor-pointer">
               <input type="checkbox" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)} className="mt-0.5 accent-[#FF4D6D]" />
               I agree to the{' '}
-              <a href="/legal/terms" target="_blank" className="text-[#FF4D6D] hover:underline">Terms of Service</a>
+              <a href="/legal/terms" target="_blank" rel="noopener noreferrer" className="text-[#FF4D6D] hover:underline">Terms of Service</a>
               {' '}and{' '}
-              <a href="/legal/privacy" target="_blank" className="text-[#FF4D6D] hover:underline">Privacy Policy</a>
+              <a href="/legal/privacy" target="_blank" rel="noopener noreferrer" className="text-[#FF4D6D] hover:underline">Privacy Policy</a>
             </label>
           )}
           <Button type="submit" disabled={busy || (mode === 'signup' && !agreedToTerms)} className="btn-primary border-0 w-full font-semibold">
