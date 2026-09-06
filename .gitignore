@@ -109,3 +109,9 @@ graphify-out/2026-07-08/GRAPH_REPORT.md
 graphify-out/2026-07-08/graph.json
 graphify-out/cache/stat-index.json
 !
+
+# ruflo / claude-flow local runtime state (daemon, metrics, autopilot logs)
+.claude-flow/
+
+# ruflo / claude-flow local runtime state (daemon, metrics, autopilot logs)
+.claude-flow/
