@@ -831,7 +831,12 @@ Rules:
       if (process.env.GHL_WEBHOOK_SECRET) {
         const sig = request.headers.get('x-ghl-signature') || ''
         const expected = crypto.createHmac('sha256', process.env.GHL_WEBHOOK_SECRET).update(raw).digest('hex')
-        if (sig !== expected) return handleCORS(request, NextResponse.json({ error: 'invalid signature' }, { status: 401 }))
+        // Constant-time compare — a plain !== leaks timing info an attacker
+        // can use to forge a valid signature one byte at a time.
+        const sigBuf = Buffer.from(sig)
+        const expectedBuf = Buffer.from(expected)
+        const validSig = sigBuf.length === expectedBuf.length && crypto.timingSafeEqual(sigBuf, expectedBuf)
+        if (!validSig) return handleCORS(request, NextResponse.json({ error: 'invalid signature' }, { status: 401 }))
       }
       let payload
       try { payload = JSON.parse(raw) } catch { return handleCORS(request, NextResponse.json({ error: 'invalid JSON' }, { status: 400 })) }
@@ -1110,12 +1115,12 @@ Rules:
 
     // POST /api/billing/portal
     if (route === '/billing/portal' && method === 'POST') {
-      const body = await request.json().catch(() => ({}))
-      const email = decoded?.email || body?.email
-      if (!email) return handleCORS(request, NextResponse.json({ error: 'sign in required' }, { status: 401 }))
-      const userDoc = decoded?.uid ? await db.collection('users').doc(decoded.uid).get() : null
-      const userByEmail = !userDoc?.exists ? (await db.collection('users').where('email', '==', email).limit(1).get()).docs[0] : null
-      const u = userDoc?.exists ? userDoc.data() : userByEmail?.data()
+      // Auth required — this hands back a live Stripe portal link (invoices,
+      // payment method, cancel). Must come from a verified token, never a
+      // client-supplied email (that's a claim, not identity).
+      if (!decoded) return handleCORS(request, NextResponse.json({ error: 'sign in required' }, { status: 401 }))
+      const userDoc = await db.collection('users').doc(decoded.uid).get()
+      const u = userDoc.exists ? userDoc.data() : null
       if (!u?.stripeCustomerId) return handleCORS(request, NextResponse.json({ error: 'no customer found' }, { status: 404 }))
       const stripe = getStripe()
       const session = await stripe.billingPortal.sessions.create({
