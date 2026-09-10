@@ -61,10 +61,13 @@ function TypingDots() {
 }
 
 function ChatSimulator({ agent, onSave }) {
+  const { getToken } = useAuth()
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [state, setState] = useState({ step: 0, qualified: false, booked: false, bookedSlot: null, tags: [] })
+  // The server owns the transcript; `messages` is only what we render.
+  const [conversationId, setConversationId] = useState(null)
   const scrollRef = useRef(null)
 
   useEffect(() => { scrollRef.current?.scrollTo({ top: 1e9, behavior: 'smooth' }) }, [messages, busy])
@@ -73,13 +76,16 @@ function ChatSimulator({ agent, onSave }) {
     // seed intro
     if (!agent) return
     setMessages([])
+    setConversationId(null)
     setState({ step: 0, qualified: false, booked: false, bookedSlot: null, tags: [] })
     ;(async () => {
       setBusy(true)
       try {
-        const res = await fetch('/api/agent/chat', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ agentId: agent.id, messages: [] }) })
+        // No conversationId — the server opens the thread and hands one back.
+        const res = await authFetch('/api/agent/chat', { method: 'POST', body: JSON.stringify({ agentId: agent.id }) }, getToken)
         const data = await res.json().catch(() => null)
         if (!res.ok || !data?.reply) throw new Error(data?.error || 'request failed')
+        setConversationId(data.conversationId)
         setMessages([{ role: 'assistant', content: data.reply }])
       } catch (e) {
         toast.error(e.message === 'request failed' ? 'The AI is busy — try again in a moment' : 'Failed to start chat')
@@ -90,15 +96,15 @@ function ChatSimulator({ agent, onSave }) {
   }, [agent?.id])
 
   async function send() {
-    if (!input.trim() || busy) return
+    if (!input.trim() || busy || !conversationId) return
     track('simulator_run', { agentId: agent?.id })
-    const userMsg = { role: 'user', content: input.trim() }
-    const newMsgs = [...messages, userMsg]
+    const message = input.trim()
+    const newMsgs = [...messages, { role: 'user', content: message }]
     setMessages(newMsgs)
     setInput('')
     setBusy(true)
     try {
-      const res = await fetch('/api/agent/chat', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ agentId: agent.id, messages: newMsgs }) })
+      const res = await authFetch('/api/agent/chat', { method: 'POST', body: JSON.stringify({ agentId: agent.id, conversationId, message }) }, getToken)
       const data = await res.json().catch(() => null)
       if (!res.ok || !data?.reply) throw new Error(data?.error || 'request failed')
       setMessages([...newMsgs, { role: 'assistant', content: data.reply }])
@@ -110,9 +116,10 @@ function ChatSimulator({ agent, onSave }) {
   }
 
   async function saveAndShare() {
+    if (!conversationId) return
     setBusy(true)
     try {
-      const res = await fetch('/api/result/save', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ agentId: agent.id, transcript: messages, state }) })
+      const res = await authFetch('/api/result/save', { method: 'POST', body: JSON.stringify({ agentId: agent.id, conversationId }) }, getToken)
       const data = await res.json().catch(() => null)
       if (!res.ok || !data?.id) throw new Error(data?.error || 'save failed')
       const url = `${window.location.origin}/r/${data.id}`
