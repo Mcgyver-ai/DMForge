@@ -266,7 +266,12 @@ Return JSON matching the required schema:
       const turn = await chatJSON({
         messages: [{ role: 'system', content: sys }, ...history, userTurn],
         temperature: 0.85,
-        max_tokens: 400,
+        // A one-line DM needs no reasoning, and Gemini 2.5 bills thinking against
+        // maxOutputTokens: left on, it grew with the history until it consumed the
+        // whole budget and truncated the JSON mid-string. Headroom on top, since
+        // the schema wrapper costs more tokens than the old plain-text reply did.
+        thinking_budget: 0,
+        max_tokens: 800,
         response_schema: CHAT_TURN_SCHEMA,
       })
       const reply = sanitizeReply(turn.reply)
