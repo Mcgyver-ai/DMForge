@@ -13,7 +13,8 @@ import { sendMail } from '@/lib/mail'
 import { authorizeUrl as linkedinAuthorizeUrl, exchangeCode as linkedinExchangeCode, fetchProfile as linkedinFetchProfile, sendMessage as linkedinSendMessage } from '@/lib/linkedin'
 import { testTwilio, sendSMS } from '@/lib/sms'
 import { ghlValidate, ghlGetContact, ghlCreateContact, ghlCreateAppointment } from '@/lib/ghl'
-import { onProspectBooked, normalizeStatus, normalizeChannel, PROSPECT_STATUSES } from '@/lib/prospects'
+import { onProspectBooked, normalizeStatus, normalizeChannel, PROSPECT_STATUSES, PROSPECT_CHANNELS } from '@/lib/prospects'
+import { deriveResultState } from '@/lib/resultState'
 
 // Cross-origin callers must be on the allow-list; same-origin requests never
 // need CORS headers. Override via CORS_ORIGINS (comma-separated) — the old
@@ -50,6 +51,64 @@ function ser(doc) {
 function truncate(str, max) {
   if (typeof str !== 'string') return str
   return str.slice(0, max)
+}
+
+const CONVERSATION_MAX_TURNS = 100
+const EMPTY_CHAT_STATE = { step: 0, qualified: false, booked: false, bookedSlot: null, tags: [] }
+
+// Gemini's own structured-output contract, replacing the <STATE> tag the model
+// used to append to its prose. A control channel carried inside the reply text
+// leaked to the lead whenever the tag came back malformed, and sat in the same
+// context the lead is typing into.
+const CHAT_TURN_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    reply: { type: 'STRING' },
+    step: { type: 'INTEGER' },
+    qualified: { type: 'BOOLEAN' },
+    booked: { type: 'BOOLEAN' },
+    bookedSlot: { type: 'STRING', nullable: true },
+    tags: { type: 'ARRAY', items: { type: 'STRING' } },
+  },
+  required: ['reply', 'step', 'qualified', 'booked'],
+}
+
+// Belt and braces: a lead can still talk the model into typing a <STATE> tag
+// into `reply`. It carries no meaning now, but it shouldn't reach the lead.
+function sanitizeReply(reply) {
+  return String(reply || '').replace(/<\/?STATE>/gi, '').trim()
+}
+
+// Outbound channels a prospect can actually be worked on. `manual` is a record
+// keeping value, not something to sell. ponytail: a new channel needs a label
+// here or the support bot silently stops mentioning it — better than the old
+// failure mode, which was mentioning four channels that never existed.
+const CHANNEL_LABELS = { linkedin: 'LinkedIn', email: 'email', sms: 'SMS' }
+
+function formatPrice(amountInCents) {
+  const dollars = amountInCents / 100
+  return `$${dollars.toFixed(amountInCents % 100 === 0 ? 0 : 2)}`
+}
+
+// The support bot's prompt used to carry hardcoded product prose that had
+// already drifted from the product: it advertised Instagram, WhatsApp,
+// Messenger, voice and Calendly/Cal.com booking, none of which exist here.
+// Build the facts from the catalog so the prompt cannot outrun the code.
+function supportProductFacts() {
+  const channels = PROSPECT_CHANNELS.map((c) => CHANNEL_LABELS[c]).filter(Boolean).join(', ')
+  const pricing = Object.values(PLANS)
+    .map((p) => `  - ${p.name}: ${formatPrice(p.amount)}/${p.interval} — ${p.features.join('; ')}`)
+    .join('\n')
+  return `- Channels: ${channels}. No other channel is supported — if asked about one that isn't listed, say it isn't supported.
+- Pricing: a free forever tier, plus:
+${pricing}`
+}
+
+// Agents created anonymously (ownerUid null) stay open — that's the pre-signup
+// live-test flow. An owned agent is the owner's alone: its script, offer and
+// booking copy live in the system prompt, and every turn spends Gemini credit.
+function agentDenied(agent, decoded) {
+  return Boolean(agent.ownerUid) && decoded?.uid !== agent.ownerUid
 }
 
 async function handleRoute(request, { params }) {
@@ -131,21 +190,21 @@ async function handleRoute(request, { params }) {
       if (limited) return limited
       const body = await request.json().catch(() => null)
       if (!body) return handleCORS(request, NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
-      const { agentId, messages = [] } = body
+      // The thread lives server-side: callers send one new `message` against a
+      // server-issued `conversationId`, never a history they authored. A
+      // client-supplied transcript could fabricate the agent's own turns, and
+      // deriveResultState reads a real booking out of exactly those turns.
+      const { agentId, conversationId, message } = body
       if (!agentId || typeof agentId !== 'string') {
         return handleCORS(request, NextResponse.json({ error: 'agentId required' }, { status: 400 }))
-      }
-      if (!Array.isArray(messages)) {
-        return handleCORS(request, NextResponse.json({ error: 'messages must be an array' }, { status: 400 }))
-      }
-      // Limit conversation length to prevent abuse
-      if (messages.length > 100) {
-        return handleCORS(request, NextResponse.json({ error: 'conversation too long' }, { status: 400 }))
       }
 
       const snap = await db.collection('agents').doc(agentId).get()
       if (!snap.exists) return handleCORS(request, NextResponse.json({ error: 'agent not found' }, { status: 404 }))
       const agent = snap.data()
+      if (agentDenied(agent, decoded)) {
+        return handleCORS(request, NextResponse.json({ error: 'forbidden' }, { status: 403 }))
+      }
 
       const sys = `You are role-playing as ${agent.agentName}, an online ${agent.niche} coach, talking to a NEW LEAD over Instagram DM.
 Your offer: ${agent.offer}
@@ -163,28 +222,69 @@ Rules:
 - When all questions have plausible answers, propose a call using this message: "${agent.script?.bookingMessage}" and OFFER three real slots from this list, plain text inline: ${agent.calendarSlots.join(', ')}.
 - If the lead picks a slot, confirm with: "booked ✅ [slot] — confirmation on its way" and you are done.
 - If the lead seems clearly unqualified, gently use: "${agent.script?.disqualifyResponse}".
-- After every reply, on a NEW LINE output a single JSON state object EXACTLY like: <STATE>{"step":<int 0-based current question index after this turn>,"qualified":<bool>,"booked":<bool|false>,"bookedSlot":<string|null>,"tags":[<string>...]}</STATE>
-- The reply the lead sees is everything BEFORE the <STATE> tag.`
 
-      if (messages.length === 0) {
+Return JSON matching the required schema:
+- reply: the ONE short message the lead sees. Plain text only — never JSON, tags, markup or state.
+- step: 0-based index of the current question after this turn.
+- qualified / booked: booleans.
+- bookedSlot: the exact slot text when booked, otherwise null.
+- tags: a few short labels for this lead.`
+
+      // No conversationId — open a new thread and seed it with the scripted intro.
+      if (!conversationId) {
+        const newId = crypto.randomUUID()
+        const intro = agent.script?.intro || `hey! thanks for reaching out 👋`
+        await db.collection('conversations').doc(newId).set({
+          id: newId, agentId,
+          ownerUid: agent.ownerUid || null,
+          messages: [{ role: 'assistant', content: intro }],
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        })
         return handleCORS(request, NextResponse.json({
-          reply: agent.script?.intro || `hey! thanks for reaching out 👋`,
-          state: { step: 0, qualified: false, booked: false, bookedSlot: null, tags: [] },
+          conversationId: newId, reply: intro, state: EMPTY_CHAT_STATE,
         }))
       }
 
-      // Truncate each message content to prevent oversized LLM requests
-      const safeMsgs = messages.map(m => ({ role: m.role, content: truncate(String(m.content || ''), 2000) }))
-      const llmMessages = [{ role: 'system', content: sys }, ...safeMsgs.map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }))]
-      const { content } = await chat({ messages: llmMessages, temperature: 0.85, max_tokens: 400 })
-      let reply = content
-      let state = { step: 0, qualified: false, booked: false, bookedSlot: null, tags: [] }
-      const stateMatch = content.match(/<STATE>([\s\S]*?)<\/STATE>/)
-      if (stateMatch) {
-        reply = content.replace(/<STATE>[\s\S]*?<\/STATE>/, '').trim()
-        try { state = { ...state, ...JSON.parse(stateMatch[1]) } } catch { /* keep default state */ }
+      if (typeof conversationId !== 'string' || typeof message !== 'string' || !message.trim()) {
+        return handleCORS(request, NextResponse.json({ error: 'conversationId and message required' }, { status: 400 }))
       }
-      return handleCORS(request, NextResponse.json({ reply, state }))
+
+      const convRef = db.collection('conversations').doc(conversationId)
+      const convSnap = await convRef.get()
+      if (!convSnap.exists) return handleCORS(request, NextResponse.json({ error: 'conversation not found' }, { status: 404 }))
+      const conv = convSnap.data()
+      if (conv.agentId !== agentId) {
+        return handleCORS(request, NextResponse.json({ error: 'conversation does not belong to this agent' }, { status: 403 }))
+      }
+      const history = Array.isArray(conv.messages) ? conv.messages : []
+      if (history.length >= CONVERSATION_MAX_TURNS) {
+        return handleCORS(request, NextResponse.json({ error: 'conversation too long' }, { status: 400 }))
+      }
+
+      const userTurn = { role: 'user', content: truncate(message.trim(), 2000) }
+      const turn = await chatJSON({
+        messages: [{ role: 'system', content: sys }, ...history, userTurn],
+        temperature: 0.85,
+        max_tokens: 400,
+        response_schema: CHAT_TURN_SCHEMA,
+      })
+      const reply = sanitizeReply(turn.reply)
+      if (!reply) throw new Error('LLM returned an empty reply')
+      const state = {
+        step: Number.isInteger(turn.step) ? turn.step : 0,
+        qualified: turn.qualified === true,
+        booked: turn.booked === true,
+        bookedSlot: typeof turn.bookedSlot === 'string' ? turn.bookedSlot : null,
+        tags: Array.isArray(turn.tags) ? turn.tags.slice(0, 8).map((t) => truncate(String(t), 40)) : [],
+      }
+      // Persist the reply, so the transcript deriveResultState later reads holds
+      // exactly what the lead saw.
+      await convRef.update({
+        messages: [...history, userTurn, { role: 'assistant', content: reply }],
+        updatedAt: FieldValue.serverTimestamp(),
+      })
+      return handleCORS(request, NextResponse.json({ conversationId, reply, state }))
     }
 
     // POST /api/support/chat — public site support bot. No auth; covered by the
@@ -206,10 +306,9 @@ Rules:
 
 Product facts (the ONLY facts you may state — never invent features, prices, or policies):
 - DMForge builds, live-tests and deploys AI DM appointment setters for online coaches. Agents qualify leads over DMs and book sales calls automatically.
-- Channels: Instagram, WhatsApp, Messenger, web chat, SMS and email.
+${supportProductFacts()}
 - Unique angle: you can build an agent and live-test it in the browser in ~60 seconds, BEFORE connecting any real account. Free tier, no credit card.
-- Pricing: Free forever tier; Pro $39/month (5,000 conversations/mo, all 6 channels, unlimited agents, Calendly/Cal.com/GoHighLevel booking, voice, REST API + MCP); Pro annual $390/year (2 months free); Agency $199/month (10 client workspaces, whitelabel, bring-your-own-keys).
-- Integrations: GoHighLevel sync, Calendly/Cal.com booking, Stripe billing, SMS reminders via Twilio, webhooks.
+- Integrations: GoHighLevel contact sync and appointment booking, Stripe billing, SMS reminders via Twilio, outbound webhooks.
 - Support email: support@dmforge.org
 
 Rules:
@@ -234,17 +333,33 @@ Rules:
       if (limited) return limited
       const body = await request.json().catch(() => null)
       if (!body) return handleCORS(request, NextResponse.json({ error: 'invalid JSON body' }, { status: 400 }))
-      const { agentId, transcript = [], state = {}, leadName = 'Lead' } = body
+      // Neither the transcript nor `state` is read from the body: the server
+      // holds the thread, and deriveResultState reads the outcome out of it.
+      const { agentId, conversationId, leadName = 'Lead' } = body
       if (!agentId || typeof agentId !== 'string') {
         return handleCORS(request, NextResponse.json({ error: 'agentId required' }, { status: 400 }))
       }
-      if (!Array.isArray(transcript) || transcript.length === 0) {
-        return handleCORS(request, NextResponse.json({ error: 'transcript must be a non-empty array' }, { status: 400 }))
+      if (!conversationId || typeof conversationId !== 'string') {
+        return handleCORS(request, NextResponse.json({ error: 'conversationId required' }, { status: 400 }))
       }
 
       const agentSnap = await db.collection('agents').doc(agentId).get()
       if (!agentSnap.exists) return handleCORS(request, NextResponse.json({ error: 'agent not found' }, { status: 404 }))
       const agent = agentSnap.data()
+      if (agentDenied(agent, decoded)) {
+        return handleCORS(request, NextResponse.json({ error: 'forbidden' }, { status: 403 }))
+      }
+
+      const convSnap = await db.collection('conversations').doc(conversationId).get()
+      if (!convSnap.exists) return handleCORS(request, NextResponse.json({ error: 'conversation not found' }, { status: 404 }))
+      const conv = convSnap.data()
+      if (conv.agentId !== agentId) {
+        return handleCORS(request, NextResponse.json({ error: 'conversation does not belong to this agent' }, { status: 403 }))
+      }
+      const transcript = Array.isArray(conv.messages) ? conv.messages : []
+      if (transcript.length === 0) {
+        return handleCORS(request, NextResponse.json({ error: 'conversation is empty' }, { status: 400 }))
+      }
 
       let summary = null
       try {
@@ -255,6 +370,7 @@ Rules:
 
       const id = crypto.randomUUID()
       const safeLeadName = truncate(String(leadName || 'Lead'), 100)
+      const state = deriveResultState(transcript, agent)
       await db.collection('results').doc(id).set({
         id, agentId,
         ownerUid: decoded?.uid || agent.ownerUid || null,
@@ -263,11 +379,15 @@ Rules:
         leadName: safeLeadName, transcript, state, summary,
         createdAt: FieldValue.serverTimestamp(),
       })
-      if (state?.booked) {
+      // Only the agent's signed-in owner can make this route fire their own
+      // webhooks. An anonymous demo run still saves and shares a result; it just
+      // can't reach into someone's Zapier/CRM. Real lead traffic books through
+      // PUT /api/prospects/:id, which is auth'd and transition-guarded.
+      if (state.booked && decoded?.uid && decoded.uid === agent.ownerUid) {
         // after() keeps the serverless function alive past the response so the
         // delivery isn't killed the instant we return (Vercel freezes the
         // instance once the response is sent).
-        after(() => triggerWebhooks(decoded?.uid || agent.ownerUid, 'appointment.booked', { resultId: id, agentId, leadName: safeLeadName, bookedSlot: state.bookedSlot || null }))
+        after(() => triggerWebhooks(decoded.uid, 'appointment.booked', { resultId: id, agentId, leadName: safeLeadName, bookedSlot: state.bookedSlot }))
       }
       return handleCORS(request, NextResponse.json({ id, shareUrl: `/r/${id}` }))
     }
