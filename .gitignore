@@ -128,4 +128,7 @@ build/
 coverage/
 .turbo/
 *.log
+_disabled_skills/
+.agents/_disabled_skills/
+
 

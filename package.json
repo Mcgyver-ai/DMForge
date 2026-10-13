@@ -16,9 +16,11 @@
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
+    "test:fast": "node node_modules/vitest/vitest.mjs run",
     "test:watch": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "audit": "node scripts/audit-code.js",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },

@@ -51,8 +51,11 @@ if (Test-Path (Join-Path $ProjectPath "tsconfig.json")) {
 # 2. Linting & Formatting Check
 Write-Host "`n[2/4] Checking Linter & Code Formatting..." -ForegroundColor Yellow
 if (Test-Path (Join-Path $ProjectPath "biome.json")) {
+$biomeLocal = Join-Path $ProjectPath "node_modules\@biomejs\biome"
+if (Test-Path $biomeLocal) {
   $biomeAction = if ($Fix) { "check --write" } else { "check" }
   $biomeCmd = "npx @biomejs/biome $biomeAction `"$ProjectPath`""
+  $biomeCmd = "node `"$biomeLocal\bin\biome`" $biomeAction `"$ProjectPath`""
   Write-Host "Executing: $biomeCmd" -ForegroundColor DarkGray
   try {
     $biomeOut = Invoke-Expression $biomeCmd 2>&1
@@ -73,10 +76,17 @@ if (Test-Path (Join-Path $ProjectPath "biome.json")) {
       Write-Host "Executing: npm run lint" -ForegroundColor DarkGray
       npm run lint
       Write-Host "✓ npm run lint passed." -ForegroundColor Green
+      Write-Host "Executing: yarn --ignore-engines run lint" -ForegroundColor DarkGray
+      yarn --ignore-engines run lint
+      Write-Host "✓ yarn run lint passed." -ForegroundColor Green
     } catch {
       Write-Host "✗ npm run lint failed!" -ForegroundColor Red
       $failures += "npm run lint"
+      Write-Host "✗ yarn run lint failed!" -ForegroundColor Red
+      $failures += "yarn run lint"
     }
+  } else {
+    Write-Host "No local linter package or lint script found, skipping." -ForegroundColor DarkGray
   }
 }
 
@@ -88,6 +98,11 @@ if (Test-Path (Join-Path $ProjectPath "package.json")) {
     try {
       Write-Host "Executing: npm test" -ForegroundColor DarkGray
       npm test
+      Write-Host "Executing: node .\node_modules\vitest\vitest.mjs run" -ForegroundColor DarkGray
+      node .\node_modules\vitest\vitest.mjs run
+      if ($LASTEXITCODE -ne 0) {
+        throw "Vitest failed with exit code $LASTEXITCODE"
+      }
       Write-Host "✓ Automated test suite passed." -ForegroundColor Green
     } catch {
       Write-Host "✗ Automated test suite failed!" -ForegroundColor Red
@@ -102,8 +117,14 @@ if (Test-Path (Join-Path $ProjectPath "package.json")) {
 Write-Host "`n[4/4] Running Clean Code Static Audit..." -ForegroundColor Yellow
 $globalAuditScript = "C:\Users\bossm\.gemini\config\skills\clean-code-standards\scripts\audit-clean-code.ps1"
 if (Test-Path $globalAuditScript) {
+$fastAuditScript = Join-Path $ProjectPath "scripts\audit-code.js"
+if (Test-Path $fastAuditScript) {
   try {
     & $globalAuditScript -TargetDir $ProjectPath -FailOnSeverity "Error"
+    node $fastAuditScript
+    if ($LASTEXITCODE -ne 0) {
+      throw "Clean code audit failed with exit code $LASTEXITCODE"
+    }
     Write-Host "✓ Clean code static audit passed." -ForegroundColor Green
   } catch {
     Write-Host "✗ Clean code static audit detected critical issues!" -ForegroundColor Red
@@ -111,6 +132,7 @@ if (Test-Path $globalAuditScript) {
   }
 } else {
   Write-Host "Global audit script not found, skipping." -ForegroundColor DarkGray
+  Write-Host "Audit script not found, skipping." -ForegroundColor DarkGray
 }
 
 Write-Host "`n==========================================================" -ForegroundColor Cyan
