@@ -1,13 +1,9 @@
 import crypto from "crypto";
+import { safeEqual, verifyMetaSignature } from "@/lib/webhookAuth";
 import * as Sentry from "@sentry/nextjs";
 import { NextResponse, after } from "next/server";
-import { log, logError } from "@/lib/logger";
+import { logError } from "@/lib/logger";
 import { AppError } from "@/lib/errors";
-import {
-  validate,
-  agentCreateSchema,
-  billingCheckoutSchema,
-} from "@/lib/schemas";
 import { buildOpenApiSpec } from "@/lib/openapi";
 import { createAgent, isAgentAccessDenied } from "@/lib/services/agentService";
 import {
@@ -26,37 +22,6 @@ import {
   ingestInboundReply,
 } from "@/lib/services/prospectService";
 import {
-  inviteAgencyMember,
-  acceptAgencyInvite,
-  removeAgencyMember,
-  getAgencyDetails,
-  updateWhiteLabel,
-} from "@/lib/services/agencyService";
-import {
-  createWebhook,
-  listWebhooks,
-  deleteWebhook,
-} from "@/lib/services/webhookService";
-import {
-  connectSMSChannel,
-  disconnectSMSChannel,
-  scheduleReminders,
-  sendDueReminders,
-  handleTwilioInbound,
-} from "@/lib/services/reminderService";
-import {
-  connectGHL,
-  disconnectGHL,
-  listIntegrations,
-  syncGHL,
-  handleGHLWebhook,
-} from "@/lib/services/integrationService";
-import {
-  connectEmailChannel,
-  disconnectEmailChannel,
-  listChannels,
-  sendEmailOutreach,
-  handleEmailUnsubscribe,
   connectInstagramChannel,
   disconnectInstagramChannel,
   connectMessengerChannel,
@@ -70,12 +35,7 @@ import {
 } from "@/lib/firebaseAdmin";
 import { chat, chatJSON } from "@/lib/llm";
 import { competitors } from "@/lib/competitors";
-import {
-  PLANS,
-  ensurePrice,
-  getOrCreateCustomer,
-  getStripe,
-} from "@/lib/stripe";
+import { PLANS, getStripe } from "@/lib/stripe";
 import { checkRateLimit, checkLlmRateLimit } from "@/lib/rateLimit";
 import { triggerWebhooks } from "@/lib/webhooks";
 import { encrypt, decrypt } from "@/lib/encryption";
@@ -89,15 +49,9 @@ import {
   ghlCreateContact,
   ghlCreateAppointment,
 } from "@/lib/ghl";
-import {
-  onProspectBooked,
-  normalizeStatus,
-  normalizeChannel,
-  PROSPECT_STATUSES,
-  PROSPECT_CHANNELS,
-} from "@/lib/prospects";
+import { PROSPECT_CHANNELS } from "@/lib/prospects";
 import { deriveResultState } from "@/lib/resultState";
-import { findPlaceholders, scriptPlaceholders } from "@/lib/scriptText";
+import { findPlaceholders } from "@/lib/scriptText";
 import { getBaseUrl } from "@/lib/baseUrl";
 
 // Cross-origin callers must be on the allow-list; same-origin requests never
@@ -1273,9 +1227,14 @@ Rules:
       const token = url.searchParams.get("hub.verify_token");
       const challenge = url.searchParams.get("hub.challenge");
       const expectedToken =
-        process.env.META_WEBHOOK_VERIFY_TOKEN || "dmforge_meta_verify";
+        process.env.META_WEBHOOK_VERIFY_TOKEN ||
+        (process.env.NODE_ENV === "production" ? "" : "dmforge_meta_verify");
 
-      if (mode === "subscribe" && token === expectedToken) {
+      if (
+        mode === "subscribe" &&
+        expectedToken &&
+        safeEqual(token, expectedToken)
+      ) {
         return new Response(challenge || "", {
           status: 200,
           headers: { "Content-Type": "text/plain" },
@@ -1286,7 +1245,31 @@ Rules:
 
     // POST /api/webhooks/meta — Inbound Instagram & Messenger events
     if (route === "/webhooks/meta" && method === "POST") {
-      const raw = await request.json().catch(() => null);
+      // Meta signs the raw body with the app secret. Fail closed in production
+      // when META_APP_SECRET is unset; unsigned events are accepted in dev only.
+      const rawText = await request.text();
+      const metaSecret = (process.env.META_APP_SECRET || "")
+        .trim()
+        .replace(/^["']|["']$/g, "");
+      const metaSigOk = metaSecret
+        ? verifyMetaSignature(
+            rawText,
+            request.headers.get("x-hub-signature-256"),
+            metaSecret,
+          )
+        : process.env.NODE_ENV !== "production";
+      if (!metaSigOk) {
+        return handleCORS(
+          request,
+          NextResponse.json({ error: "invalid signature" }, { status: 401 }),
+        );
+      }
+      let raw = null;
+      try {
+        raw = JSON.parse(rawText);
+      } catch {
+        raw = null;
+      }
       if (raw && Array.isArray(raw.entry)) {
         for (const entry of raw.entry) {
           const recipientId = entry.id;
@@ -1778,7 +1761,7 @@ Rules:
       }
       if (process.env.CRON_SECRET) {
         const auth = request.headers.get("authorization") || "";
-        if (auth !== `Bearer ${process.env.CRON_SECRET}`)
+        if (!safeEqual(auth, `Bearer ${process.env.CRON_SECRET}`))
           return handleCORS(
             request,
             NextResponse.json({ error: "unauthorized" }, { status: 401 }),
@@ -2098,6 +2081,15 @@ Rules:
       method === "POST"
     ) {
       const raw = await request.text();
+      if (
+        !process.env.GHL_WEBHOOK_SECRET &&
+        process.env.NODE_ENV === "production"
+      ) {
+        return handleCORS(
+          request,
+          NextResponse.json({ error: "invalid signature" }, { status: 401 }),
+        );
+      }
       if (process.env.GHL_WEBHOOK_SECRET) {
         const sig = request.headers.get("x-ghl-signature") || "";
         const expected = crypto
