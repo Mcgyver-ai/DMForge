@@ -1,5 +1,9 @@
 import crypto from "crypto";
-import { safeEqual, verifyMetaSignature } from "@/lib/webhookAuth";
+import {
+  safeEqual,
+  verifyMetaSignature,
+  parseMetaSignedRequest,
+} from "@/lib/webhookAuth";
 import * as Sentry from "@sentry/nextjs";
 import { NextResponse, after } from "next/server";
 import { logError } from "@/lib/logger";
@@ -29,14 +33,20 @@ import {
   sendMetaOutreach,
 } from "@/lib/services/channelService";
 import {
+  getAdminAuth,
   getAdminDb,
   getAdminFieldValue,
   verifyRequest,
 } from "@/lib/firebaseAdmin";
+import { recordAuditEvent } from "@/lib/auditLog";
 import { chat, chatJSON } from "@/lib/llm";
 import { competitors } from "@/lib/competitors";
 import { PLANS, getStripe } from "@/lib/stripe";
-import { checkRateLimit, checkLlmRateLimit } from "@/lib/rateLimit";
+import {
+  checkRateLimit,
+  checkLlmRateLimit,
+  checkInboundRateLimit,
+} from "@/lib/rateLimit";
 import { triggerWebhooks } from "@/lib/webhooks";
 import { encrypt, decrypt } from "@/lib/encryption";
 import { testConnection as testEmailConnection, sendEmail } from "@/lib/email";
@@ -190,7 +200,17 @@ async function handleRoute(request, { params }) {
 
   try {
     const decoded = await verifyRequest(request);
-    if (!(await checkRateLimit(request, decoded?.uid))) {
+
+    // Dedicated rate limits for external webhooks and inbound reply ingestion
+    const inboundCheck = await checkInboundRateLimit(request, { route, path });
+    if (inboundCheck.isHandled) {
+      if (!inboundCheck.allowed) {
+        return handleCORS(
+          request,
+          NextResponse.json({ error: "rate_limit_exceeded" }, { status: 429 }),
+        );
+      }
+    } else if (!(await checkRateLimit(request, decoded?.uid))) {
       return handleCORS(
         request,
         NextResponse.json({ error: "rate_limit_exceeded" }, { status: 429 }),
@@ -1310,6 +1330,224 @@ Rules:
         }
       }
       return handleCORS(request, NextResponse.json({ success: true }));
+    }
+
+    // POST /api/webhooks/meta/data-deletion (and /api/meta/data-deletion)
+    // Meta signed_request user data deletion callback compliant with Meta Platform Terms
+    if (
+      (route === "/webhooks/meta/data-deletion" ||
+        route === "/meta/data-deletion") &&
+      method === "POST"
+    ) {
+      let signedRequest = null;
+      const contentType = request.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        try {
+          const json = await request.json();
+          signedRequest = json.signed_request;
+        } catch {}
+      } else if (contentType.includes("application/x-www-form-urlencoded")) {
+        try {
+          const formData = await request.formData();
+          signedRequest = formData.get("signed_request");
+        } catch {}
+      } else {
+        try {
+          const text = await request.text();
+          const params = new URLSearchParams(text);
+          signedRequest = params.get("signed_request");
+          if (!signedRequest && text.startsWith("{")) {
+            const parsed = JSON.parse(text);
+            signedRequest = parsed.signed_request;
+          }
+        } catch {}
+      }
+
+      const metaSecret = (process.env.META_APP_SECRET || "")
+        .trim()
+        .replace(/^["']|["']$/g, "");
+
+      let parsedPayload = null;
+      if (signedRequest && metaSecret) {
+        parsedPayload = parseMetaSignedRequest(signedRequest, metaSecret);
+      } else if (process.env.NODE_ENV !== "production" && signedRequest) {
+        // Dev fallback if META_APP_SECRET is not configured
+        try {
+          const [, payloadPart] = signedRequest.split(".");
+          parsedPayload = JSON.parse(
+            Buffer.from(payloadPart, "base64url").toString("utf8"),
+          );
+        } catch {}
+      }
+
+      if (!parsedPayload && process.env.NODE_ENV === "production") {
+        return handleCORS(
+          request,
+          NextResponse.json(
+            { error: "invalid signed_request" },
+            { status: 400 },
+          ),
+        );
+      }
+
+      const metaUserId = parsedPayload?.user_id || "unknown";
+      const confirmationCode = `DMFORGE-DEL-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
+
+      // Clean up any meta_channel_index doc mapping to this user
+      if (metaUserId && metaUserId !== "unknown") {
+        await db
+          .collection("meta_channel_index")
+          .doc(String(metaUserId))
+          .delete()
+          .catch(() => {});
+      }
+
+      // Record deletion status
+      await db
+        .collection("meta_data_deletions")
+        .doc(confirmationCode)
+        .set({
+          confirmationCode,
+          metaUserId: String(metaUserId),
+          status: "completed",
+          requestedAt: FieldValue.serverTimestamp(),
+          completedAt: FieldValue.serverTimestamp(),
+        });
+
+      await recordAuditEvent({
+        eventType: "meta.data_deletion",
+        actorId: String(metaUserId),
+        details: { confirmationCode },
+        ip: request.headers.get("x-forwarded-for"),
+      });
+
+      const baseUrl = getBaseUrl();
+      return handleCORS(
+        request,
+        NextResponse.json({
+          url: `${baseUrl}/legal/data-deletion?id=${confirmationCode}`,
+          confirmation_code: confirmationCode,
+        }),
+      );
+    }
+
+    // GET /api/meta/data-deletion/status — status check for Meta data deletion requests
+    if (
+      (route === "/meta/data-deletion/status" ||
+        route === "/webhooks/meta/data-deletion/status") &&
+      method === "GET"
+    ) {
+      const url = new URL(request.url);
+      const code = url.searchParams.get("id");
+      if (!code) {
+        return handleCORS(
+          request,
+          NextResponse.json(
+            { error: "Missing confirmation id" },
+            { status: 400 },
+          ),
+        );
+      }
+      const snap = await db.collection("meta_data_deletions").doc(code).get();
+      if (!snap.exists) {
+        return handleCORS(
+          request,
+          NextResponse.json(
+            { error: "Confirmation code not found", status: "not_found" },
+            { status: 404 },
+          ),
+        );
+      }
+      const data = snap.data();
+      return handleCORS(
+        request,
+        NextResponse.json({
+          confirmation_code: code,
+          status: data.status || "completed",
+          requestedAt: ser(data)?.requestedAt || null,
+        }),
+      );
+    }
+
+    // DELETE /api/account (or POST /api/account/delete) — DSAR Right to Erasure / GDPR Art. 17
+    if (
+      (route === "/account" && method === "DELETE") ||
+      (route === "/account/delete" && method === "POST")
+    ) {
+      if (!decoded?.uid) {
+        return handleCORS(
+          request,
+          NextResponse.json({ error: "unauthorized" }, { status: 401 }),
+        );
+      }
+      const uid = decoded.uid;
+
+      // 1. Cancel Stripe subscription if active
+      try {
+        const userDoc = await db.collection("users").doc(uid).get();
+        const subId = userDoc.data()?.stripeSubscriptionId;
+        if (subId) {
+          const stripe = getStripe();
+          await stripe.subscriptions.cancel(subId);
+        }
+      } catch (err) {
+        logError("account deletion: stripe cancel error", err);
+      }
+
+      // 2. Cascade delete Firestore data:
+      try {
+        const agents = await db
+          .collection("agents")
+          .where("ownerUid", "==", uid)
+          .get();
+        const batch1 = db.batch();
+        agents.docs.forEach((d) => batch1.delete(d.ref));
+        await batch1.commit();
+
+        const prospects = await db
+          .collection("prospects")
+          .where("uid", "==", uid)
+          .get();
+        const batch2 = db.batch();
+        prospects.docs.forEach((d) => batch2.delete(d.ref));
+        await batch2.commit();
+
+        const webhooks = await db
+          .collection("webhooks")
+          .where("uid", "==", uid)
+          .get();
+        const batch3 = db.batch();
+        webhooks.docs.forEach((d) => batch3.delete(d.ref));
+        await batch3.commit();
+
+        await db.collection("users").doc(uid).delete();
+      } catch (err) {
+        logError("account deletion: firestore cleanup error", err);
+      }
+
+      // 3. Delete Firebase Auth user
+      try {
+        const auth = getAdminAuth();
+        await auth.deleteUser(uid);
+      } catch (err) {
+        logError("account deletion: firebase auth delete failed", err);
+      }
+
+      // 4. Audit trail
+      await recordAuditEvent({
+        eventType: "account.deleted",
+        actorId: uid,
+        details: { reason: "DSAR user right to erasure request" },
+        ip: request.headers.get("x-forwarded-for"),
+      });
+
+      return handleCORS(
+        request,
+        NextResponse.json({
+          success: true,
+          message: "Account and associated personal data erased successfully.",
+        }),
+      );
     }
 
     // ---- Team / agency seats ----

@@ -28,11 +28,14 @@ export function Footer() {
             <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>
             <Link href="/legal/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
             <Link href="/legal/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+            <Link href="/legal/complaints" className="hover:text-white transition-colors">Complaints Procedure</Link>
+            <Link href="/legal/data-deletion" className="hover:text-white transition-colors">Data Deletion</Link>
           </nav>
         </div>
       </div>
-      <div className="max-w-5xl mx-auto border-t border-white/10 pt-6 text-xs text-white/30">
-        © {new Date().getFullYear()} DMForge — Built for coaches who close on calls.
+      <div className="max-w-5xl mx-auto border-t border-white/10 pt-6 text-xs text-white/40 flex flex-col sm:flex-row justify-between gap-2">
+        <span>© {new Date().getFullYear()} DMForge · Operated by Tibor Rames (UK Sole Trader).</span>
+        <span>Built for coaches who close on calls.</span>
       </div>
     </footer>
   );
