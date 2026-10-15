@@ -3,9 +3,9 @@
 
 
 "@fastify/busboy@^3.0.0":
-  version "3.2.2"
-  resolved "https://registry.yarnpkg.com/@fastify/busboy/-/busboy-3.2.2.tgz#c35ca0fac4b644f5f56a7e179360568a5d7c997e"
-  integrity sha512-yXSS27qPExaXeuLvMRMXOLtpipzfQYNjG3FkunDWKGfMYjKuhFXko9CVzqxm8jcF+lmtS9Fd89QNdh9XDjnbNg==
+  version "3.2.3"
+  resolved "https://registry.yarnpkg.com/@fastify/busboy/-/busboy-3.2.3.tgz#4a21ff2fbdf8b199cfac7230c1721adc9f5cba1f"
+  integrity sha512-fmo/IKgkenPzz3qTKG+sIUXdF/Kv83AkvvOXJHPTHJeKJbat8SsL1ihUaFaDotqoEl4UZ1Lf8Eb/3vK6eaWX2A==
 
 "@firebase/app-check-interop-types@0.3.5":
   version "0.3.5"
