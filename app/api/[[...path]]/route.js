@@ -10,6 +10,7 @@ import { logError } from "@/lib/logger";
 import { AppError } from "@/lib/errors";
 import { buildOpenApiSpec } from "@/lib/openapi";
 import { createAgent, isAgentAccessDenied } from "@/lib/services/agentService";
+import { eraseUserData } from "@/lib/services/accountService";
 import {
   createCheckoutSession,
   createPortalSession,
@@ -1494,35 +1495,19 @@ Rules:
         logError("account deletion: stripe cancel error", err);
       }
 
-      // 2. Cascade delete Firestore data:
+      // 2. Erase all Firestore data, subcollections included. On failure, stop
+      // before deleting the Auth user so the request can be retried.
       try {
-        const agents = await db
-          .collection("agents")
-          .where("ownerUid", "==", uid)
-          .get();
-        const batch1 = db.batch();
-        agents.docs.forEach((d) => batch1.delete(d.ref));
-        await batch1.commit();
-
-        const prospects = await db
-          .collection("prospects")
-          .where("uid", "==", uid)
-          .get();
-        const batch2 = db.batch();
-        prospects.docs.forEach((d) => batch2.delete(d.ref));
-        await batch2.commit();
-
-        const webhooks = await db
-          .collection("webhooks")
-          .where("uid", "==", uid)
-          .get();
-        const batch3 = db.batch();
-        webhooks.docs.forEach((d) => batch3.delete(d.ref));
-        await batch3.commit();
-
-        await db.collection("users").doc(uid).delete();
+        await eraseUserData({ db, uid });
       } catch (err) {
-        logError("account deletion: firestore cleanup error", err);
+        logError("account deletion: firestore erasure failed", err);
+        return handleCORS(
+          request,
+          NextResponse.json(
+            { error: "Erasure incomplete. Please retry or contact support." },
+            { status: 500 },
+          ),
+        );
       }
 
       // 3. Delete Firebase Auth user
