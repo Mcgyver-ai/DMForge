@@ -18,7 +18,10 @@ Windows 10 / Git Bash / Node 26.10 on 2026-10-09.
 
 > **`.env.local` holds LIVE production credentials** (Firestore `dmforge`, Gemini,
 > Stripe). Any local API call is production traffic. The driver's default commands
-> only read; `wizard --live` writes.
+> only read; `wizard --live` writes. For anything that writes (wizard, Stripe
+> webhook tests), run `yarn emulators` + `yarn dev:emulated` instead — Firestore
+> and Auth then go to the local emulators (README → "Local dev against the
+> Firebase emulators"). Gemini and Stripe calls stay real (Stripe in test mode).
 
 ## Prerequisites
 
