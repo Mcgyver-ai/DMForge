@@ -1,17 +1,17 @@
 # Graph Report - friendly-easley-93ee36  (2026-10-16)
 
 ## Corpus Check
-- 200 files · ~94,799 words
+- 201 files · ~96,028 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 21 file(s) not represented in the graph (top: (none) 15, .example 1, .code-workspace 1)
 
 ## Summary
-- 1228 nodes · 2686 edges · 75 communities (45 shown, 30 thin omitted)
-- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 12 edges (avg confidence: 0.86)
+- 1236 nodes · 2735 edges · 81 communities (51 shown, 30 thin omitted)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 53 edges (avg confidence: 0.93)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `2a720a67`
+- Built from commit: `26c6f70f`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -35,15 +35,15 @@
 - components.json
 - biome.json
 - form.jsx
-- app/layout.js
-- context-menu.jsx
+- health/route.js
+- prospectService.js
 - UnauthorizedError
 - toggle-group.jsx
 - chart.jsx
 - carousel.jsx
 - input-otp.jsx
 - navigation-menu.jsx
-- tabs.jsx
+- prospects.js
 - drawer.jsx
 - @sentry/nextjs
 - paths
@@ -56,11 +56,14 @@
 - Project: DMForge — AI DM setter builder + Stripe-enabled SaaS
 - ref_node_url
 - scripts
-- analytics.js
-- billingService.js
+- app/layout.js
+- encryption.js
+- Use cases by area
+- webhookAuth.js
 - contact/page.js
 - privacy/page.js
 - terms/page.js
+- breadcrumb.jsx
 - sonner.jsx
 - CI Workflow
 - .mcp.json
@@ -69,14 +72,17 @@
 - DMForge
 - @radix-ui/react-aspect-ratio
 - @radix-ui/react-collapsible
+- graphify in DMForge
 - next.config.js
 - vercel.json
+- email.js
 - DMForge Deployment Runbook
+- [id]/page.js
 - Bug Report Template
 - Feature Request Template
 - Pull Request Template
 - Legal & Regulatory Compliance Notes
-- app/page.js
+- useAuth
 - about/page.js
 - DMForge E2E — real-browser click tests (Playwright)
 - Security Policy
@@ -89,15 +95,15 @@
 - proxy.js
 
 ## God Nodes (most connected - your core abstractions)
-1. `cn()` - 221 edges
-2. `authFetch()` - 66 edges
+1. `cn()` - 224 edges
+2. `authFetch()` - 69 edges
 3. `react` - 64 edges
-4. `UnauthorizedError` - 53 edges
-5. `handleRoute()` - 52 edges
-6. `ValidationError` - 41 edges
+4. `handleRoute()` - 56 edges
+5. `UnauthorizedError` - 54 edges
+6. `ValidationError` - 42 edges
 7. `lucide-react` - 34 edges
-8. `useAuth()` - 28 edges
-9. `logError()` - 28 edges
+8. `logError()` - 30 edges
+9. `useAuth()` - 29 edges
 10. `next` - 28 edges
 
 ## Surprising Connections (you probably didn't know these)
@@ -105,12 +111,12 @@
   test_result.md → lib/auth-context.js
 - `Test Coverage` --references--> `authFetch()`  [INFERRED]
   test_result.md → lib/auth-context.js
-- `portal()` --calls--> `authFetch()`  [EXTRACTED]
-  app/page.js → lib/auth-context.js
-- `sitemap()` --calls--> `getBaseUrl()`  [EXTRACTED]
-  app/sitemap.js → lib/baseUrl.js
-- `saveAndShare()` --calls--> `authFetch()`  [EXTRACTED]
-  components/home/chat-simulator.jsx → lib/auth-context.js
+- `Health check (2026-10-16)` --references--> `UnauthorizedError`  [INFERRED]
+  docs/GRAPHIFY.md → lib/errors.js
+- `Health check (2026-10-16)` --references--> `ValidationError`  [INFERRED]
+  docs/GRAPHIFY.md → lib/errors.js
+- `Use cases by area` --references--> `checkLlmRateLimit()`  [INFERRED]
+  docs/GRAPHIFY.md → lib/rateLimit.js
 
 ## Import Cycles
 - None detected.
@@ -118,11 +124,11 @@
 ## Hyperedges (group relationships)
 - **Design Governance Stack** — impeccable_design_context, figma_design_system, brand_tokens [EXTRACTED 1.00]
 
-## Communities (75 total, 30 thin omitted)
+## Communities (81 total, 30 thin omitted)
 
 ### Community 0 - "react"
-Cohesion: 0.20
-Nodes (16): ProspectCard(), relTime(), STATUS_STYLE, STATUSES, ThreadDrawer(), GREETING, Badge(), badgeVariants (+8 more)
+Cohesion: 0.22
+Nodes (15): ProspectCard(), relTime(), STATUS_STYLE, STATUSES, ThreadDrawer(), GREETING, Badge(), badgeVariants (+7 more)
 
 ### Community 1 - "dependencies"
 Cohesion: 0.03
@@ -146,11 +152,11 @@ Nodes (41): Separator, components_ui_sheet_sheet, SheetContent, SheetDescription
 
 ### Community 6 - "cn"
 Cohesion: 0.06
-Nodes (47): AccordionContent, AccordionItem, AccordionTrigger, Avatar, AvatarFallback, AvatarImage, Breadcrumb, BreadcrumbEllipsis() (+39 more)
+Nodes (50): Avatar, AvatarFallback, AvatarImage, CardContent, CardDescription, CardFooter, CardHeader, CardTitle (+42 more)
 
 ### Community 7 - "[[...path]]/route.js"
-Cohesion: 0.05
-Nodes (83): agentDenied(), ALLOWED_ORIGINS, CHANNEL_LABELS, CHAT_TURN_SCHEMA, DELETE, EMPTY_CHAT_STATE, formatPrice(), GET (+75 more)
+Cohesion: 0.10
+Nodes (28): agentDenied(), ALLOWED_ORIGINS, CHANNEL_LABELS, CHAT_TURN_SCHEMA, DELETE, EMPTY_CHAT_STATE, formatPrice(), GET (+20 more)
 
 ### Community 8 - "functions/index.js"
 Cohesion: 0.08
@@ -158,15 +164,15 @@ Nodes (27): crypto, decrypt(), { defineSecret }, deriveKey(), ENCRYPTION_KEY, EN
 
 ### Community 9 - "package.json"
 Cohesion: 0.06
-Nodes (34): homepage, firebase-admin, license, name, packageManager, private, version, autoprefixer (+26 more)
+Nodes (31): homepage, firebase-admin, license, name, packageManager, private, version, autoprefixer (+23 more)
 
 ### Community 10 - "@playwright/test"
 Cohesion: 0.07
-Nodes (15): { defineConfig, devices }, IMPORTANT: Defaults to localhost (safe for local/CI testing)., @playwright/test, { test, expect }, { test, expect }, { test, expect }, { test, expect }, { test, expect } (+7 more)
+Nodes (18): findPlaceholders(), leadFacingFields(), scriptPlaceholders(), { defineConfig, devices }, IMPORTANT: Defaults to localhost (safe for local/CI testing)., @playwright/test, { test, expect }, { test, expect } (+10 more)
 
 ### Community 11 - "utils.js"
-Cohesion: 0.06
-Nodes (23): Checkbox, HoverCardContent, PopoverContent, Progress, RadioGroup, RadioGroupItem, ResizableHandle(), ResizablePanelGroup() (+15 more)
+Cohesion: 0.05
+Nodes (27): AccordionContent, AccordionItem, AccordionTrigger, Checkbox, HoverCardContent, PopoverContent, Progress, RadioGroup (+19 more)
 
 ### Community 12 - "auth-context.js"
 Cohesion: 0.16
@@ -174,7 +180,7 @@ Nodes (7): Logo(), AuthCtx, auth, db, firebaseConfig, googleProvider, firebase
 
 ### Community 13 - "alert-dialog.jsx"
 Cohesion: 0.11
-Nodes (19): AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter(), AlertDialogHeader(), AlertDialogOverlay, AlertDialogTitle (+11 more)
+Nodes (20): AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter(), AlertDialogHeader(), AlertDialogOverlay, AlertDialogTitle (+12 more)
 
 ### Community 14 - "menubar.jsx"
 Cohesion: 0.11
@@ -193,20 +199,20 @@ Cohesion: 0.05
 Nodes (41): source, assist, actions, noUnusedImports, noUnusedVariables, files, includes, formatter (+33 more)
 
 ### Community 18 - "form.jsx"
-Cohesion: 0.12
-Nodes (18): Alert, AlertDescription, AlertTitle, alertVariants, FormControl, FormDescription, FormFieldContext, FormItem (+10 more)
+Cohesion: 0.17
+Nodes (13): FormControl, FormDescription, FormFieldContext, FormItem, FormItemContext, FormLabel, FormMessage, useFormField() (+5 more)
 
-### Community 19 - "app/layout.js"
-Cohesion: 0.14
-Nodes (10): app_globals, baseUrl, body, display, metadata, Providers(), Footer(), SupportChat() (+2 more)
+### Community 19 - "health/route.js"
+Cohesion: 0.13
+Nodes (23): checkFirestore(), checkGemini(), checkStripe(), dynamic, GET(), chat(), chatJSON(), GEMINI_BASE() (+15 more)
 
-### Community 20 - "context-menu.jsx"
-Cohesion: 0.18
-Nodes (10): ContextMenuCheckboxItem, ContextMenuContent, ContextMenuItem, ContextMenuLabel, ContextMenuRadioItem, ContextMenuSeparator, ContextMenuShortcut(), ContextMenuSubContent (+2 more)
+### Community 20 - "prospectService.js"
+Cohesion: 0.35
+Nodes (14): NotFoundError, normalizeChannel(), normalizeStatus(), addProspectMessage(), appendProspectMessage(), createProspect(), deleteProspect(), getOrCreateInboundToken() (+6 more)
 
 ### Community 21 - "UnauthorizedError"
-Cohesion: 0.06
-Nodes (78): resolveSeats(), fetchSession(), metadata, Success(), robots(), getBaseUrl(), AppError, BadGatewayError (+70 more)
+Cohesion: 0.07
+Nodes (73): AppError, BadGatewayError, ForbiddenError, UnauthorizedError, ValidationError, log(), logError(), sendMetaMessage() (+65 more)
 
 ### Community 22 - "toggle-group.jsx"
 Cohesion: 0.31
@@ -225,19 +231,19 @@ Cohesion: 0.33
 Nodes (5): InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot, input-otp
 
 ### Community 26 - "navigation-menu.jsx"
-Cohesion: 0.25
-Nodes (8): NavigationMenu, NavigationMenuContent, NavigationMenuIndicator, NavigationMenuList, NavigationMenuTrigger, navigationMenuTriggerStyle, NavigationMenuViewport, @radix-ui/react-navigation-menu
+Cohesion: 0.15
+Nodes (13): Alert, AlertDescription, AlertTitle, alertVariants, NavigationMenu, NavigationMenuContent, NavigationMenuIndicator, NavigationMenuList (+5 more)
 
-### Community 27 - "tabs.jsx"
-Cohesion: 0.40
-Nodes (4): TabsContent, TabsList, TabsTrigger, @radix-ui/react-tabs
+### Community 27 - "prospects.js"
+Cohesion: 0.32
+Nodes (10): ghlCreateAppointment(), ghlCreateContact(), ghlGetContact(), ghlValidate(), headers(), onProspectBooked(), PROSPECT_CHANNELS, PROSPECT_STATUSES (+2 more)
 
 ### Community 28 - "drawer.jsx"
 Cohesion: 0.22
 Nodes (7): DrawerContent, DrawerDescription, DrawerFooter(), DrawerHeader(), DrawerOverlay, DrawerTitle, vaul
 
 ### Community 29 - "@sentry/nextjs"
-Cohesion: 0.29
+Cohesion: 0.33
 Nodes (3): onRequestError(), register(), @sentry/nextjs
 
 ### Community 30 - "paths"
@@ -264,13 +270,25 @@ Nodes (19): API endpoints (all working), Backend sub-agent log, Critical Issues 
 Cohesion: 0.14
 Nodes (14): scripts, audit, build, dev, dev:emulated, emulators, start, test (+6 more)
 
-### Community 40 - "analytics.js"
-Cohesion: 0.20
-Nodes (10): AnalyticsProvider(), CookieConsent(), choose(), ErrorBoundary, getConsent(), identify(), initAnalytics(), isEnabled() (+2 more)
+### Community 40 - "app/layout.js"
+Cohesion: 0.07
+Nodes (28): fetchSession(), metadata, Success(), app_globals, baseUrl, body, display, metadata (+20 more)
 
-### Community 42 - "billingService.js"
-Cohesion: 0.10
-Nodes (35): checkFirestore(), checkGemini(), checkStripe(), dynamic, GET(), dynamic, POST(), generateMetadata() (+27 more)
+### Community 41 - "encryption.js"
+Cohesion: 0.36
+Nodes (8): cleanSecret(), decrypt(), deriveKey(), encrypt(), getCurrentKey(), getDecryptKeys(), packAndEncrypt(), unpackAndDecrypt()
+
+### Community 42 - "Use cases by area"
+Cohesion: 0.22
+Nodes (21): dynamic, POST(), syncSubscription(), Command → use-case map, Health check (2026-10-16), Use cases by area, ensureInit(), getAdminAuth() (+13 more)
+
+### Community 43 - "webhookAuth.js"
+Cohesion: 0.36
+Nodes (7): BLOCKED_SUFFIXES, isPrivateIPv4(), isPrivateIPv6(), isPublicHttpsUrl(), safeEqual(), verifyMetaSignature(), ref_net
+
+### Community 47 - "breadcrumb.jsx"
+Cohesion: 0.25
+Nodes (7): Breadcrumb, BreadcrumbEllipsis(), BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator()
 
 ### Community 49 - "CI Workflow"
 Cohesion: 1.00
@@ -284,8 +302,20 @@ Nodes (3): repository, type, url
 Cohesion: 0.07
 Nodes (28): DMForge Project Rules, DMForge Brand Tokens, Commands, DMForge — Project Rules, graphify, Layout, Rules, Stack (+20 more)
 
-### Community 68 - "app/page.js"
-Cohesion: 0.12
+### Community 56 - "graphify in DMForge"
+Cohesion: 0.29
+Nodes (6): graphify in DMForge, How it stays fresh, Integrations available (not yet used here), Recommendations, What is excluded (`.graphifyignore`), What it is
+
+### Community 60 - "email.js"
+Cohesion: 0.48
+Nodes (6): buildTransport(), resolveCreds(), sendEmail(), sendSystemEmail(), testConnection(), nodemailer
+
+### Community 62 - "[id]/page.js"
+Cohesion: 0.83
+Nodes (3): generateMetadata(), getResult(), ResultPage()
+
+### Community 68 - "useAuth"
+Cohesion: 0.13
 Nodes (20): App(), Nav(), Pricing(), checkout(), portal(), AuthModal(), google(), submit() (+12 more)
 
 ### Community 83 - "DMForge E2E — real-browser click tests (Playwright)"
@@ -301,24 +331,24 @@ Cohesion: 0.21
 Nodes (10): ref_fs, ref_path, audit(), EXTENSIONS, fs, IGNORED_DIRS, main(), path (+2 more)
 
 ## Knowledge Gaps
-- **345 isolated node(s):** `cloudflare-api`, `cloudflare-ai-gateway`, `metadata`, `ALLOWED_ORIGINS`, `EMPTY_CHAT_STATE` (+340 more)
+- **349 isolated node(s):** `Tech Stack`, `Prerequisites`, `Setup`, `Local dev against the Firebase emulators (safe for webhook tests)`, `Running Tests` (+344 more)
   These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 455 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **30 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `next` connect `react` to `best/[slug]/page.js`, `app/page.js`, `[[...path]]/route.js`, `about/page.js`, `package.json`, `billingService.js`, `auth-context.js`, `app/layout.js`, `UnauthorizedError`, `proxy.js`, `settings/layout.js`?**
-  _High betweenness centrality (0.150) - this node is a cross-community bridge._
-- **Why does `cn()` connect `cn` to `react`, `sidebar.jsx`, `utils.js`, `alert-dialog.jsx`, `menubar.jsx`, `command.jsx`, `form.jsx`, `context-menu.jsx`, `UnauthorizedError`, `toggle-group.jsx`, `chart.jsx`, `carousel.jsx`, `input-otp.jsx`, `navigation-menu.jsx`, `tabs.jsx`, `drawer.jsx`?**
-  _High betweenness centrality (0.141) - this node is a cross-community bridge._
-- **Why does `react` connect `react` to `sidebar.jsx`, `cn`, `package.json`, `utils.js`, `auth-context.js`, `alert-dialog.jsx`, `menubar.jsx`, `command.jsx`, `form.jsx`, `context-menu.jsx`, `toggle-group.jsx`, `chart.jsx`, `carousel.jsx`, `input-otp.jsx`, `navigation-menu.jsx`, `tabs.jsx`, `drawer.jsx`, `@sentry/nextjs`, `analytics.js`, `app/page.js`?**
-  _High betweenness centrality (0.105) - this node is a cross-community bridge._
-- **Are the 2 inferred relationships involving `authFetch()` (e.g. with `Recommendations` and `Test Coverage`) actually correct?**
-  _`authFetch()` has 2 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `cloudflare-api`, `cloudflare-ai-gateway`, `metadata` to the rest of the system?**
-  _345 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `dependencies` be split into smaller, more focused modules?**
-  _Cohesion score 0.029411764705882353 - nodes in this community are weakly interconnected._
-- **Should `best/[slug]/page.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.09206349206349207 - nodes in this community are weakly interconnected._
+- **Why does `cn()` connect `cn` to `react`, `useAuth`, `sidebar.jsx`, `Use cases by area`, `utils.js`, `alert-dialog.jsx`, `menubar.jsx`, `breadcrumb.jsx`, `command.jsx`, `form.jsx`, `toggle-group.jsx`, `chart.jsx`, `carousel.jsx`, `input-otp.jsx`, `navigation-menu.jsx`, `drawer.jsx`?**
+  _High betweenness centrality (0.177) - this node is a cross-community bridge._
+- **Why does `dependencies` connect `dependencies` to `package.json`?**
+  _High betweenness centrality (0.136) - this node is a cross-community bridge._
+- **Why does `next` connect `react` to `best/[slug]/page.js`, `useAuth`, `[[...path]]/route.js`, `about/page.js`, `app/layout.js`, `Use cases by area`, `package.json`, `auth-context.js`, `health/route.js`, `UnauthorizedError`, `proxy.js`, `[id]/page.js`, `settings/layout.js`?**
+  _High betweenness centrality (0.114) - this node is a cross-community bridge._
+- **Are the 3 inferred relationships involving `cn()` (e.g. with `Command → use-case map` and `Health check (2026-10-16)`) actually correct?**
+  _`cn()` has 3 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 5 inferred relationships involving `authFetch()` (e.g. with `Command → use-case map` and `Health check (2026-10-16)`) actually correct?**
+  _`authFetch()` has 5 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 4 inferred relationships involving `handleRoute()` (e.g. with `Blind spots (static analysis limits)` and `Command → use-case map`) actually correct?**
+  _`handleRoute()` has 4 INFERRED edges - model-reasoned connections that need verification._
+- **What connects `Tech Stack`, `Prerequisites`, `Setup` to the rest of the system?**
+  _349 weakly-connected nodes found - possible documentation gaps or missing edges._

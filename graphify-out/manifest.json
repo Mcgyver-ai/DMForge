@@ -684,9 +684,9 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1792049257.0868363,
-    "seen": 1792049286.8584054,
-    "ast_hash": "ac0f8b90357282f685f07d487ae1e1ac",
+    "mtime": 1792169219.4984343,
+    "seen": 1792169234.6631672,
+    "ast_hash": "ef0df7b7f6371b1072b81590b4ea4a96",
     "semantic_hash": ""
   },
   "DESIGN.md": {
@@ -702,9 +702,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1792049922.1314614,
-    "seen": 1792050108.5640085,
-    "ast_hash": "0b0086622ecf799332a8eb32f47791f5",
+    "mtime": 1792172948.4214463,
+    "seen": 1792172955.8821845,
+    "ast_hash": "00b430b74f31b48b779739e25413ba40",
     "semantic_hash": ""
   },
   "TASKS.md": {
@@ -1239,6 +1239,12 @@
     "mtime": 1792049257.5533526,
     "seen": 1792049286.8583937,
     "ast_hash": "66a33b7f5a687b911b9b87f4d547d423",
+    "semantic_hash": ""
+  },
+  "docs/GRAPHIFY.md": {
+    "mtime": 1792169195.8046262,
+    "seen": 1792169234.6631892,
+    "ast_hash": "59a3e34b538e9642d5c1b59437c26742",
     "semantic_hash": ""
   }
 }
