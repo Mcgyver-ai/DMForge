@@ -452,3 +452,20 @@ No Stripe Connect code exists anywhere in the repo yet — `lib/stripe.js` only 
 **How to apply:** revisit this once there's an actual feature spec for what Connect is for (payouts to coaches? booking deposits?). Don't default to requesting more capabilities than the spec needs — each addition risks re-pulling in the MCC/website restrictions above.
 
 **Unrelated blocker noted in passing:** the local Stripe CLI (`stripe config --list`) is authenticated to a different account ("Invoice Rescue", `acct_1TB9tDDCxloOog2H`), not DMForge's real Stripe account. Switching requires an interactive browser sign-in (`stripe login` / `stripe projects switch-account`) that can't be done from a non-interactive session — needs you, in your own terminal, before any CLI-driven Stripe Projects/Connect work against DMForge's actual account.
+
+---
+
+## Session log (2026-10-13) — inbound webhook & token rate limit isolation (orchestrator dev-QA loop)
+
+- **Root problem resolved:** In `app/api/[[...path]]/route.js`, `handleRoute` passed all incoming requests without a valid Firebase auth token (`decoded?.uid == null`) into the 20 req/min anonymous per-IP rate limit bucket. This caused incoming Meta Graph API webhooks (Instagram/Messenger DMs), Twilio SMS webhooks, GoHighLevel sync webhooks, and public reply ingestion via `/api/inbound/:token` to drop legitimate incoming traffic under bursts.
+- **Implemented `checkInboundRateLimit` (`lib/rateLimit.js`):**
+  - Inbound token `/inbound/:token`: isolated bucket keyed by `inbound:token:${token}` with a 120 req/min cap.
+  - Meta webhook `/webhooks/meta`: 300 req/min per IP.
+  - Twilio SMS webhook `/webhooks/twilio`: 120 req/min per IP.
+  - GoHighLevel webhook `/integrations/ghl/webhook`: 120 req/min per IP.
+  - Meta data deletion callback `/meta/data-deletion`: 60 req/min per IP.
+  - Dispatched in `handleRoute` before falling back to the standard 20/min anonymous IP limiter.
+- **Verification Evidence:**
+  - `lib/__tests__/rateLimit.test.js`: 12/12 unit tests passing (4 new assertions covering isolation, token independence, and Meta webhook ceilings).
+  - Full Vitest suite: 19/19 test files passed, 137/137 tests green (`yarn --ignore-engines test`).
+  - Production build: `yarn --ignore-engines build` exit code 0, 75 static/dynamic routes compiled cleanly in 78s.

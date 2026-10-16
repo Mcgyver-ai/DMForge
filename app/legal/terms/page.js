@@ -3,7 +3,7 @@ export const metadata = {
   description: 'Terms governing your use of the DMForge service.',
 };
 
-const EFFECTIVE_DATE = 'July 2026';
+const EFFECTIVE_DATE = 'October 2026';
 const CONTACT_EMAIL = 'contact@dmforge.org';
 
 export default function TermsPage() {
@@ -14,105 +14,91 @@ export default function TermsPage() {
 
       <p>
         These Terms of Service (&quot;Terms&quot;) govern your use of DMForge, operated
-        by a UK-based sole trader (&quot;we&quot;, &quot;us&quot;). By using DMForge you
-        agree to these Terms.
+        by <strong>Tibor Rames</strong> trading as DMForge, a sole trader registered in the
+        United Kingdom (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;). Address for service of legal
+        documents: Kemp House, 160 City Road, London, EC1V 2NX, United Kingdom.
       </p>
 
       <h2>1. The Service</h2>
       <p>
-        DMForge provides an AI-powered outreach and appointment-setting platform for
-        online coaches and service businesses. The service is provided &quot;as is&quot;.
-        AI-generated conversation messages may require review before sending — always
-        ensure they reflect your voice and comply with the recipient platform&apos;s terms.
+        DMForge provides an AI-powered conversational appointment-setting platform designed for
+        online coaches and consultative service businesses. Live outbound and messaging channels
+        operate via official APIs: Meta Graph API v21.0 (Instagram Direct Messages and Facebook Messenger),
+        SMTP transactional email, and Twilio SMS appointment reminders.
       </p>
 
-      <h2>2. Eligibility</h2>
+      <h2>2. Eligibility &amp; Account Security</h2>
       <p>
-        You must be at least 13 years old to use DMForge. If you are under 18, you
-        confirm you have parental or guardian consent.
+        You must be at least 18 years of age (or have reached the age of majority in your jurisdiction)
+        to enter into these Terms and maintain an account. You are responsible for safeguarding your
+        account credentials and for all actions taken under your account. Notify us immediately at{' '}
+        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> if you detect unauthorized access.
       </p>
 
-      <h2>3. Your Account</h2>
-      <p>
-        You are responsible for keeping your account credentials secure and for all
-        activity that occurs under your account. Notify us immediately at{' '}
-        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> if you suspect
-        unauthorised access.
-      </p>
-
-      <h2>4. Acceptable Use</h2>
+      <h2>3. Acceptable Use &amp; Platform Terms Compliance</h2>
       <p>You agree not to use DMForge to:</p>
       <ul>
-        <li>Generate illegal, harmful, harassing, or abusive content</li>
-        <li>Attempt to reverse-engineer, scrape, or overload our systems</li>
-        <li>Circumvent usage limits or share accounts to avoid paying</li>
-        <li>Resell or redistribute DMForge outputs as your own product without attribution</li>
-        <li>Submit content that infringes third-party intellectual property</li>
+        <li>Violate Meta Platform Terms, Instagram Community Guidelines, or Facebook Developer Policies.</li>
+        <li>Transmit spam, unsolicited cold marketing messages lacking statutory opt-outs, or illegal harassment.</li>
+        <li>Send deceptive or fraudulent communications, or misrepresent automated AI responses in violation of applicable laws (including California SB 1001 or EU AI Act transparency rules).</li>
+        <li>Interfere with, reverse-engineer, or attempt to circumvent API rate limits or security controls.</li>
+        <li>Submit or process sensitive categories of personal data (such as health, biometric, or financial account details).</li>
       </ul>
       <p>
-        We reserve the right to suspend or terminate accounts that violate these rules.
+        We reserve the right to suspend or terminate accounts immediately for serious violations of these terms or third-party platform rules.
       </p>
 
-      <h2>5. Subscriptions & Billing</h2>
+      <h2>4. Subscriptions, Payments &amp; Taxes</h2>
       <p>
-        Paid plans are billed in advance on a monthly or annual basis via Stripe.
-        Prices are displayed at checkout and may change with 30 days&apos; notice.
-        You can cancel your subscription at any time from your account settings;
-        cancellation takes effect at the end of your current billing period.
+        Subscriptions are billed in advance on a recurring monthly or annual basis via Stripe.
+        By subscribing, you authorise recurring billing through your nominated payment method.
+        All payment processing is handled strictly off-site by Stripe (PCI-DSS Level 1 certified);
+        no payment card numbers touch DMForge servers.
       </p>
 
-      <h2>6. Refunds</h2>
+      <h2>5. Statutory Cancellation &amp; Refunds</h2>
       <p>
-        If you are a consumer in the UK or EU, you have a statutory right to cancel
-        within 14 days of purchase (Consumer Contracts Regulations 2013). To request
-        a refund, contact us at{' '}
-        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> within 14 days of
-        your payment. We may also offer refunds at our discretion outside this window
-        in exceptional circumstances.
+        If you are an individual consumer in the UK or European Union, you possess a statutory
+        right to cancel your contract within 14 days of purchase under the Consumer Contracts
+        (Information, Cancellation and Additional Charges) Regulations 2013. To request cancellation,
+        email <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. For commercial and business clients,
+        fees are non-refundable except where required by law.
       </p>
 
-      <h2>7. Intellectual Property</h2>
+      <h2>6. Intellectual Property &amp; Data Ownership</h2>
       <p>
-        Content you input remains yours. AI-generated outputs are provided for your
-        personal or commercial use — we make no claim over them. The DMForge platform,
-        branding, and underlying code remain our property.
+        You retain all intellectual property rights in your customer data, custom prompts, and
+        qualification criteria. DMForge and its underlying software, design systems, and trademarks
+        remain the exclusive intellectual property of Tibor Rames.
       </p>
 
-      <h2>8. Limitation of Liability</h2>
+      <h2>7. Limitation of Liability</h2>
       <p>
-        To the maximum extent permitted by law, DMForge is not liable for indirect,
-        incidental, or consequential damages arising from your use of the service.
-        Our total liability for any claim shall not exceed the amount you paid us in
-        the 3 months preceding the claim.
-      </p>
-      <p>Nothing in these Terms limits liability for fraud or death/personal injury caused by negligence.</p>
-
-      <h2>9. Service Availability</h2>
-      <p>
-        We aim for high availability but do not guarantee uninterrupted access.
-        Planned maintenance will be communicated in advance where possible.
+        To the maximum extent permitted under applicable law, DMForge and Tibor Rames shall not be
+        liable for any indirect, special, incidental, or consequential losses, including lost profits,
+        lost leads, or third-party account suspensions. Our total aggregate liability under these
+        Terms shall not exceed the greater of £100 or the total subscription fees paid by you in the
+        three (3) months preceding the incident. Nothing in these Terms excludes liability for fraud,
+        death, or personal injury caused by negligence.
       </p>
 
-      <h2>10. Changes to the Service or Terms</h2>
+      <h2>8. Governing Law &amp; Jurisdiction</h2>
       <p>
-        We may update these Terms with 14 days&apos; notice for material changes.
-        Continued use after the effective date of changes constitutes acceptance.
+        These Terms and any non-contractual disputes arising from them are governed exclusively by
+        the laws of England and Wales. Both parties submit to the exclusive jurisdiction of the
+        courts of England and Wales.
       </p>
 
-      <h2>11. Governing Law</h2>
+      <h2>9. Contact Information</h2>
       <p>
-        These Terms are governed by the laws of England and Wales. Any disputes shall
-        be subject to the exclusive jurisdiction of the courts of England and Wales.
-      </p>
-
-      <h2>12. Contact</h2>
-      <p>
-        For any questions about these Terms:{' '}
-        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+        For inquiries regarding these Terms:<br />
+        Tibor Rames trading as DMForge<br />
+        Kemp House, 160 City Road, London, EC1V 2NX, United Kingdom<br />
+        Email: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
       </p>
 
       <p className="text-sm text-white/50 mt-12">
-        Last updated: {EFFECTIVE_DATE} · DMForge is operated by a UK sole trader.
+        Last updated: {EFFECTIVE_DATE} · Tibor Rames trading as DMForge
       </p>
     </main>
   );

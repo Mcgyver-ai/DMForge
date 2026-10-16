@@ -1,12 +1,13 @@
 // Firestore Security Rules for DMForge
 // All writes go through our server (admin SDK bypasses these rules).
-// Clients only READ public collections (results for share pages).
+// Share pages (/r/[id]) read results server-side via the admin SDK, so
+// clients get no direct access: a public read rule would let anyone list
+// every lead transcript with the (public) Firebase web config.
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /results/{id} {
-      allow read: if true;
-      allow write: if false;
+      allow read, write: if false;
     }
     match /agents/{id} {
       allow read: if request.auth != null && resource.data.ownerUid == request.auth.uid;
