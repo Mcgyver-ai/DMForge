@@ -39,6 +39,25 @@ Claude Code Grep/Read ─▶ .claude/settings.json PreToolUse "graphify hook-gua
   (after deleting code or adding ignore rules), otherwise graphify refuses to shrink it.
 - Doc-only changes are skipped by the hook. Run `/graphify --update` for those.
 
+### Committing the graph
+
+`graphify-out/` is committed on purpose (see `.gitignore`). The post-commit hook rebuilds
+it *after* a code commit, so the working tree shows `graphify-out/*` as modified right
+after you commit code. That is expected, not drift:
+
+1. Commit your code as usual.
+2. Wait for the background rebuild (`tail ~/.cache/graphify-rebuild.log` → "updated in graphify-out").
+3. `git add -u graphify-out && git commit -m "chore(graphify): refresh knowledge graph"`.
+
+The rebuild is deterministic (the hook pins `PYTHONHASHSEED=0`), so committing the
+refresh leaves the tree clean. Set `GRAPHIFY_SKIP_HOOK=1` to skip a rebuild, e.g. during
+a long rebase series.
+
+**Merge conflicts:** `.gitattributes` maps `graphify-out/graph.json` to the `graphify`
+union merge driver. Each machine needs the driver in its git config once:
+`graphify hook install` (installs the hooks too). On a machine without it, git falls
+back to a normal text merge, and you resolve with `graphify update . --force`.
+
 ### What is excluded (`.graphifyignore`)
 
 Uses gitignore syntax. Besides build output, it excludes `.claude/`, `.agents/` and
@@ -106,18 +125,13 @@ not a sentence. Use `explain`/`affected` for precise answers and `query` for ori
 |-------------|---------------|-----|
 | **MCP server** | Live `query_graph`, `get_node`, `get_neighbors`, `shortest_path`, `god_nodes` tools for any agent | `python -m graphify.serve graphify-out/graph.json` with the absolute interpreter path in the MCP config |
 | **Feedback loop** | Records which nodes answered a question, so later queries prefer them | `graphify save-result --question Q --answer A --nodes N1 N2 --outcome useful\|dead_end\|corrected`, then `graphify reflect` |
-| **Merge driver** | Union-merges `graph.json` when two branches both rebuilt it | `graphify hook status` shows "merge driver: not registered" |
 | **Cross-repo graph** | One graph across DMForge and `functions/` or another repo | `graphify merge-graphs g1.json g2.json` |
 
 ## Recommendations
 
-1. **Register the merge driver.** `graph.json` is tracked and roughly 2 MB, and the
-   post-commit hook rewrites it on every commit. Parallel branches and worktrees (common
-   in this repo) will conflict on it. The merge driver resolves those conflicts
-   automatically.
-2. **Ask with symbols.** Update agent prompts and skills to pass symbol or file labels to
+1. **Ask with symbols.** Update agent prompts and skills to pass symbol or file labels to
    `graphify query`, and to prefer `explain`/`affected` for impact questions.
-3. **Re-label communities** after big ignore or refactor changes: `graphify label .`
+2. **Re-label communities** after big ignore or refactor changes: `graphify label .`
    (needs an LLM backend). Thirty communities are currently named after their hub file.
-4. **Don't trust "no edge" for data flow.** For Firestore collections, Stripe API calls
+3. **Don't trust "no edge" for data flow.** For Firestore collections, Stripe API calls
    and env vars, grep is the source of truth (see Blind spots).
