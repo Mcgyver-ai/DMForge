@@ -79,7 +79,9 @@ yarn emulators
 yarn dev:emulated
 
 # terminal 3: forward Stripe test-mode events, then fire one
-stripe listen --project-name dmforge \n  --events checkout.session.completed,customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,invoice.paid,invoice.payment_failed \n  --forward-to localhost:3000/api/stripe/webhook
+stripe listen --project-name dmforge \
+  --events checkout.session.completed,customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,invoice.paid,invoice.payment_failed \
+  --forward-to localhost:3000/api/stripe/webhook
 stripe trigger --project-name dmforge checkout.session.completed
 ```
 
