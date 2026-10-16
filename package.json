@@ -13,6 +13,8 @@
   },
   "scripts": {
     "dev": "cross-env NODE_ENV=development NODE_OPTIONS=--max-old-space-size=512 next dev --hostname 0.0.0.0 --port 3000",
+    "dev:emulated": "cross-env NODE_ENV=development NODE_OPTIONS=--max-old-space-size=512 FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 NEXT_PUBLIC_FIREBASE_USE_EMULATORS=true next dev --hostname 0.0.0.0 --port 3000",
+    "emulators": "firebase emulators:start --only auth,firestore --project dmforge-1df2e",
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
