@@ -1511,7 +1511,13 @@ Rules:
       // 2. Erase all Firestore data, subcollections included. On failure, stop
       // before deleting the Auth user so the request can be retried.
       try {
-        await eraseUserData({ db, FieldValue, uid, email: decoded.email });
+        await eraseUserData({
+          db,
+          FieldValue,
+          uid,
+          email: decoded.email,
+          emailVerified: decoded.email_verified,
+        });
       } catch (err) {
         logError("account deletion: firestore erasure failed", err);
         return handleCORS(
