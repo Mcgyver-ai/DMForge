@@ -469,3 +469,18 @@ No Stripe Connect code exists anywhere in the repo yet — `lib/stripe.js` only 
   - `lib/__tests__/rateLimit.test.js`: 12/12 unit tests passing (4 new assertions covering isolation, token independence, and Meta webhook ceilings).
   - Full Vitest suite: 19/19 test files passed, 137/137 tests green (`yarn --ignore-engines test`).
   - Production build: `yarn --ignore-engines build` exit code 0, 75 static/dynamic routes compiled cleanly in 78s.
+
+---
+
+## Session log (2026-10-17) — repo audit follow-ups (`fix/audit-followups`)
+
+- ✅ **Live SMS sender honours STOP** — the Firebase `sendReminders` function (the only live reminder sender since July) never read `smsSuppressed`. It now normalizes the number to E.164, fails non-E.164 numbers (`invalid number`) and skips opted-out leads (`functions/smsGuard.js`). **Needs a redeploy:** `firebase deploy --only functions:sendReminders`.
+- ✅ **Double "booked" no longer double-fires** — `updateProspect` reads and writes in one transaction, so only one of two concurrent booked updates fires webhooks, reminders and the GHL appointment.
+- ✅ **No duplicate prospects from back-to-back replies** — `ingestInboundReply` matches-or-creates inside a transaction.
+- ✅ **Long threads can be deleted** — `deleteProspect` uses `recursiveDelete` (single batches cap at 500 writes).
+- ✅ **Outreach `to` is one address** — a comma list let an unsubscribed address past the suppression check (`outreachRecipientSchema`).
+
+### Still open (from the same audit)
+- [ ] `onProspectBooked` stores `prospect.phone` as typed; non-E.164 reminders now fail visibly instead of sending. Normalize at prospect save once #41's `normalizeE164` lands.
+- [ ] Delete `functions/yarn.lock` or `package-lock.json` — they already disagree on `firebase-functions` (7.4.0 vs 7.3.2).
+- [ ] In-memory rate-limit buckets (`lib/rateLimit.js`) never evict keys when Upstash is unset.

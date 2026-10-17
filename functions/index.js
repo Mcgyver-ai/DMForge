@@ -10,6 +10,7 @@ const { defineSecret } = require('firebase-functions/params')
 const { initializeApp, getApp } = require('firebase-admin/app')
 const { getFirestore, FieldValue } = require('firebase-admin/firestore')
 const crypto = require('crypto')
+const { checkRecipient } = require('./smsGuard')
 
 initializeApp()
 
@@ -125,13 +126,20 @@ exports.sendReminders = onSchedule({
     if (!claimed) continue
 
     try {
+      // Never text a lead who replied STOP, or a number no opt-out could match.
+      const { to, stop } = await checkRecipient(db, r.uid, r.to)
+      if (stop) {
+        if (stop.status === 'failed') failed++
+        await doc.ref.update(stop)
+        continue
+      }
       const chSnap = await db
         .collection('users').doc(r.uid)
         .collection('channels').doc('sms')
         .get()
       if (!chSnap.exists || !chSnap.data().connected) throw new Error('sms channel not connected')
       const creds = JSON.parse(decrypt(chSnap.data().encryptedCreds, encKey, prevKey))
-      await sendSMS(creds, r.to, r.body)
+      await sendSMS(creds, to, r.body)
       sent++
     } catch (err) {
       failed++

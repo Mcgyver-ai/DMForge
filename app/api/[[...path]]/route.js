@@ -64,6 +64,7 @@ import { PROSPECT_CHANNELS } from "@/lib/prospects";
 import { deriveResultState } from "@/lib/resultState";
 import { findPlaceholders } from "@/lib/scriptText";
 import { getBaseUrl } from "@/lib/baseUrl";
+import { outreachRecipientSchema } from "@/lib/schemas";
 
 // Cross-origin callers must be on the allow-list; same-origin requests never
 // need CORS headers. Override via CORS_ORIGINS (comma-separated) — the old
@@ -985,8 +986,8 @@ Rules:
           request,
           NextResponse.json({ error: "invalid JSON body" }, { status: 400 }),
         );
-      const { to, subject, body: text } = body;
-      if (!to || typeof to !== "string" || !subject || !text) {
+      const { subject, body: text } = body;
+      if (!body.to || typeof body.to !== "string" || !subject || !text) {
         return handleCORS(
           request,
           NextResponse.json(
@@ -995,6 +996,17 @@ Rules:
           ),
         );
       }
+      const recipient = outreachRecipientSchema.safeParse(body.to);
+      if (!recipient.success) {
+        return handleCORS(
+          request,
+          NextResponse.json(
+            { error: "to must be a single email address" },
+            { status: 400 },
+          ),
+        );
+      }
+      const to = recipient.data;
       const channelSnap = await db
         .collection("users")
         .doc(decoded.uid)
