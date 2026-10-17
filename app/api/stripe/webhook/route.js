@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { getAdminDb, getAdminFieldValue } from "@/lib/firebaseAdmin";
 import { logError } from "@/lib/logger";
+import { findSubscriberDocId } from "@/lib/services/billingService";
 
 export const dynamic = "force-dynamic";
 
@@ -64,8 +65,9 @@ export async function POST(request) {
         : await stripe.subscriptions.retrieve(subOrSession.subscription);
     const docId =
       uid ||
-      (await db.collection("users").where("email", "==", email).limit(1).get())
-        .docs[0]?.id ||
+      (email &&
+        (await db.collection("users").where("email", "==", email).limit(1).get())
+          .docs[0]?.id) ||
       sub.customer;
     await db
       .collection("users")
@@ -106,29 +108,32 @@ export async function POST(request) {
       }
       case "customer.subscription.deleted": {
         const sub = event.data.object;
-        const uid = sub.metadata?.uid;
-        const email = sub.metadata?.email;
-        const docId =
-          uid ||
-          (
-            await db
-              .collection("users")
-              .where("email", "==", email)
-              .limit(1)
-              .get()
-          ).docs[0]?.id;
-        if (docId)
-          await db
-            .collection("users")
-            .doc(docId)
-            .set(
-              {
-                status: "canceled",
-                plan: "free",
-                updatedAt: FV.serverTimestamp(),
-              },
-              { merge: true },
-            );
+        const docId = await findSubscriberDocId({
+          db,
+          uid: sub.metadata?.uid,
+          email: sub.metadata?.email,
+          customerId: sub.customer,
+        });
+        // No user to downgrade: retrying can never succeed, so log and 200.
+        if (!docId) {
+          logError(
+            "subscription.deleted: no user found",
+            new Error("unmatched subscription"),
+            { subscriptionId: sub.id, customerId: sub.customer },
+          );
+          break;
+        }
+        await db
+          .collection("users")
+          .doc(docId)
+          .set(
+            {
+              status: "canceled",
+              plan: "free",
+              updatedAt: FV.serverTimestamp(),
+            },
+            { merge: true },
+          );
         break;
       }
       case "invoice.paid":
