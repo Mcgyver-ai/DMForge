@@ -1464,7 +1464,7 @@
       "file_type": "code",
       "norm_label": "cancelsubscriptionbeforeerasure()",
       "source_file": "lib/services/accountService.js",
-      "source_location": "L94"
+      "source_location": "L95"
     },
     {
       "id": "lib_services_accountservice_eraseuserdata",
@@ -1476,7 +1476,7 @@
       "file_type": "code",
       "norm_label": "eraseuserdata()",
       "source_file": "lib/services/accountService.js",
-      "source_location": "L37"
+      "source_location": "L38"
     },
     {
       "id": "lib_services_agencyservice_acceptagencyinvite",
@@ -2004,7 +2004,7 @@
       "file_type": "code",
       "norm_label": "resolveseats()",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L1554"
+      "source_location": "L1560"
     },
     {
       "id": "lib_ghl_ghlcreateappointment",
@@ -13113,7 +13113,7 @@
       "file_type": "code",
       "norm_label": "delete",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2682"
+      "source_location": "L2688"
     },
     {
       "id": "app_api_path_route_empty_chat_state",
@@ -13135,7 +13135,7 @@
       "file_type": "code",
       "norm_label": "get",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2679"
+      "source_location": "L2685"
     },
     {
       "id": "app_api_path_route_patch",
@@ -13146,7 +13146,7 @@
       "file_type": "code",
       "norm_label": "patch",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2683"
+      "source_location": "L2689"
     },
     {
       "id": "app_api_path_route_post",
@@ -13157,7 +13157,7 @@
       "file_type": "code",
       "norm_label": "post",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2680"
+      "source_location": "L2686"
     },
     {
       "id": "app_api_path_route_put",
@@ -13168,7 +13168,7 @@
       "file_type": "code",
       "norm_label": "put",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2681"
+      "source_location": "L2687"
     },
     {
       "id": "lib_email",
@@ -14843,7 +14843,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L1528",
+      "source_location": "L1534",
       "weight": 1.0
     },
     {
@@ -14855,7 +14855,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L1624",
+      "source_location": "L1630",
       "weight": 1.0
     },
     {
@@ -14867,7 +14867,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L1877",
+      "source_location": "L1883",
       "weight": 1.0
     },
     {
@@ -14879,7 +14879,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L1948",
+      "source_location": "L1954",
       "weight": 1.0
     },
     {
@@ -14891,7 +14891,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2065",
+      "source_location": "L2071",
       "weight": 1.0
     },
     {
@@ -14932,18 +14932,6 @@
     },
     {
       "source": "app_api_path_route_handleroute",
-      "target": "lib_ghl_ghlvalidate",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2188",
-      "weight": 1.0
-    },
-    {
-      "source": "app_api_path_route_handleroute",
       "target": "lib_ratelimit_checkratelimit",
       "relation": "calls",
       "_origin": "ast",
@@ -14952,6 +14940,18 @@
       "context": "call",
       "source_file": "app/api/[[...path]]/route.js",
       "source_location": "L219",
+      "weight": 1.0
+    },
+    {
+      "source": "app_api_path_route_handleroute",
+      "target": "lib_ghl_ghlvalidate",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "app/api/[[...path]]/route.js",
+      "source_location": "L2194",
       "weight": 1.0
     },
     {
@@ -14987,7 +14987,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2294",
+      "source_location": "L2300",
       "weight": 1.0
     },
     {
@@ -14999,7 +14999,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2296",
+      "source_location": "L2302",
       "weight": 1.0
     },
     {
@@ -15011,7 +15011,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2304",
+      "source_location": "L2310",
       "weight": 1.0
     },
     {
@@ -15035,7 +15035,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2405",
+      "source_location": "L2411",
       "weight": 1.0
     },
     {
@@ -15047,7 +15047,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2417",
+      "source_location": "L2423",
       "weight": 1.0
     },
     {
@@ -15059,7 +15059,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2428",
+      "source_location": "L2434",
       "weight": 1.0
     },
     {
@@ -15071,7 +15071,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2440",
+      "source_location": "L2446",
       "weight": 1.0
     },
     {
@@ -15083,7 +15083,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2454",
+      "source_location": "L2460",
       "weight": 1.0
     },
     {
@@ -15095,7 +15095,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2470",
+      "source_location": "L2476",
       "weight": 1.0
     },
     {
@@ -15107,7 +15107,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2482",
+      "source_location": "L2488",
       "weight": 1.0
     },
     {
@@ -15131,7 +15131,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2617",
+      "source_location": "L2623",
       "weight": 1.0
     },
     {
@@ -15143,7 +15143,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2627",
+      "source_location": "L2633",
       "weight": 1.0
     },
     {
@@ -15155,7 +15155,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2635",
+      "source_location": "L2641",
       "weight": 1.0
     },
     {
@@ -15347,7 +15347,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L1558",
+      "source_location": "L1564",
       "weight": 1.0
     },
     {
@@ -15359,7 +15359,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L1564",
+      "source_location": "L1570",
       "weight": 1.0
     },
     {
@@ -20447,7 +20447,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "lib/services/accountService.js",
-      "source_location": "L102",
+      "source_location": "L103",
       "weight": 1.0
     },
     {
@@ -20459,7 +20459,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "lib/services/accountService.js",
-      "source_location": "L38",
+      "source_location": "L39",
       "weight": 1.0
     },
     {
@@ -22403,7 +22403,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L1554",
+      "source_location": "L1560",
       "weight": 1.0
     },
     {
@@ -36657,7 +36657,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2679",
+      "source_location": "L2685",
       "weight": 1.0
     },
     {
@@ -36668,7 +36668,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2680",
+      "source_location": "L2686",
       "weight": 1.0
     },
     {
@@ -36679,7 +36679,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2681",
+      "source_location": "L2687",
       "weight": 1.0
     },
     {
@@ -36690,7 +36690,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2682",
+      "source_location": "L2688",
       "weight": 1.0
     },
     {
@@ -36701,7 +36701,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "app/api/[[...path]]/route.js",
-      "source_location": "L2683",
+      "source_location": "L2689",
       "weight": 1.0
     },
     {
@@ -43136,7 +43136,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/services/accountService.js",
-      "source_location": "L37",
+      "source_location": "L38",
       "weight": 1.0
     },
     {
@@ -43158,7 +43158,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/services/accountService.js",
-      "source_location": "L94",
+      "source_location": "L95",
       "weight": 1.0
     },
     {
@@ -47593,5 +47593,5 @@
       "source_file": "FIGMA-DESIGN-SYSTEM.md"
     }
   ],
-  "built_at_commit": "6b12678d3b53316ae7fe6140bb166b296c818c71"
+  "built_at_commit": "22d8157d0d00e49f3270793aaff2218020075744"
 }

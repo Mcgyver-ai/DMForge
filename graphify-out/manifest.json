@@ -6,9 +6,9 @@
     "semantic_hash": ""
   },
   "app/api/[[...path]]/route.js": {
-    "mtime": 1792241177.936139,
-    "seen": 1792241231.102828,
-    "ast_hash": "9886c1a1e083715ef055639ed0f01482",
+    "mtime": 1792241369.35391,
+    "seen": 1792241426.178552,
+    "ast_hash": "af03ca293adab1b7c91036c236083078",
     "semantic_hash": ""
   },
   "app/api/stripe/webhook/route.js": {
@@ -1260,9 +1260,9 @@
     "semantic_hash": ""
   },
   "lib/__tests__/accountService.test.js": {
-    "mtime": 1792241177.937138,
-    "seen": 1792241231.103018,
-    "ast_hash": "d9c5ae9d445821ef09f429375336fc14",
+    "mtime": 1792241369.35491,
+    "seen": 1792241426.1787486,
+    "ast_hash": "aabdf9e1adf99edd40a792d5b6db44e0",
     "semantic_hash": ""
   },
   "lib/__tests__/auditLog.test.js": {
@@ -1284,9 +1284,9 @@
     "semantic_hash": ""
   },
   "lib/services/accountService.js": {
-    "mtime": 1792241177.9341412,
-    "seen": 1792241231.1030917,
-    "ast_hash": "4ec25a4f7114c2836607caffd7a2d8ed",
+    "mtime": 1792241369.3509102,
+    "seen": 1792241426.1788297,
+    "ast_hash": "5370f6b9e614562ea9d5333f76cd309a",
     "semantic_hash": ""
   },
   "project-tasks/inbound-rate-limit-tasklist.md": {
