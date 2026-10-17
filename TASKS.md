@@ -469,3 +469,22 @@ No Stripe Connect code exists anywhere in the repo yet — `lib/stripe.js` only 
   - `lib/__tests__/rateLimit.test.js`: 12/12 unit tests passing (4 new assertions covering isolation, token independence, and Meta webhook ceilings).
   - Full Vitest suite: 19/19 test files passed, 137/137 tests green (`yarn --ignore-engines test`).
   - Production build: `yarn --ignore-engines build` exit code 0, 75 static/dynamic routes compiled cleanly in 78s.
+
+---
+
+## Session log (2026-10-17) — audit fixes: authz + SSRF holes (`fix/authz-ssrf`)
+
+Audit against `e493421`. Every fix that touches auth/money/PII has a test in `lib/__tests__/`.
+
+- ✅ **Webhook SSRF** — `POST /api/webhooks` now goes through `createWebhook` (`isPublicHttpsUrl` rejects private/loopback/link-local/metadata hosts); `lib/webhooks.js` delivers with `redirect: 'manual'` and logs any 3xx as a failed delivery.
+- ✅ **Agency remove** — transactional; 404 `member not found` unless `memberUid` is in the owner's `memberUids` (and isn't the owner). A non-member's user doc is never written. Live route now calls `removeAgencyMember`.
+- ✅ **Agency accept** — requires `email_verified`, a present + case-insensitively matching email, and a <7-day-old invite (older → `status: "expired"`, 400). Live route now calls `acceptAgencyInvite`.
+- ✅ **GET `/agents/:id/sequences`** — owner check (`listAgentSequences`), 404/403; anonymous agents stay open. **PUT `.../sequences/:seqId`** — 404 instead of a 500 on a missing sequence.
+- ✅ **Billing checkout** — identity only from the verified token (`uid` + `email`); body `email` fallback and schema field removed. Pricing UI already opens `AuthModal` when logged out.
+- ✅ **Stripe `customer.subscription.deleted`** — resolves uid → email → `stripeCustomerId` (`findSubscriberDocId`), never passes `undefined` to `.where()`; unmatched → `logError` + 200. `syncSubscription` email lookup guarded the same way.
+- ✅ **`/agent/chat` lost update** — LLM call stays outside; the turn is written in a transaction that 409s `conversation changed, retry` if `messages.length` moved since the first read.
+
+### Still open
+- [ ] **Wire or delete dead services: agency/integration/reminder** — `integrationService.js` and `reminderService.js` are still not imported by `app/api/[[...path]]/route.js`; `agencyService.js` is now partly wired (accept/remove only — invite/details/white-label still duplicated inline).
+- [ ] **Agency invite link can't work as sent** — the emailed URL is a bare `GET /api/agency/accept?token=` opened in a browser with no `Authorization` header, so it always 401s. Needs an `/agency/accept` page that signs the user in and calls the API with their token.
+- [ ] **No email verification flow** — nothing calls `sendEmailVerification`, so email/password users can never satisfy the new `email_verified` check on invite accept (Google sign-in users can).

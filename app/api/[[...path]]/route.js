@@ -9,8 +9,17 @@ import { NextResponse, after } from "next/server";
 import { logError } from "@/lib/logger";
 import { AppError } from "@/lib/errors";
 import { buildOpenApiSpec } from "@/lib/openapi";
-import { createAgent, isAgentAccessDenied } from "@/lib/services/agentService";
+import {
+  createAgent,
+  isAgentAccessDenied,
+  listAgentSequences,
+} from "@/lib/services/agentService";
 import { eraseUserData } from "@/lib/services/accountService";
+import {
+  acceptAgencyInvite,
+  removeAgencyMember,
+} from "@/lib/services/agencyService";
+import { createWebhook } from "@/lib/services/webhookService";
 import {
   createCheckoutSession,
   createPortalSession,
@@ -448,12 +457,38 @@ Return JSON matching the required schema:
           : [],
       };
       // Persist the reply, so the transcript deriveResultState later reads holds
-      // exactly what the lead saw.
-      await convRef.update({
-        messages: [...history, userTurn, { role: "assistant", content: reply }],
-        state,
-        updatedAt: FieldValue.serverTimestamp(),
+      // exactly what the lead saw. The LLM call stays outside the transaction;
+      // a turn written concurrently since our read means our history is stale,
+      // and writing it would silently drop the other turn.
+      const written = await db.runTransaction(async (tx) => {
+        const fresh = await tx.get(convRef);
+        const freshMessages = fresh.data()?.messages;
+        if (
+          (Array.isArray(freshMessages) ? freshMessages.length : 0) !==
+          history.length
+        ) {
+          return false;
+        }
+        tx.update(convRef, {
+          messages: [
+            ...history,
+            userTurn,
+            { role: "assistant", content: reply },
+          ],
+          state,
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+        return true;
       });
+      if (!written) {
+        return handleCORS(
+          request,
+          NextResponse.json(
+            { error: "conversation changed, retry" },
+            { status: 409 },
+          ),
+        );
+      }
       return handleCORS(
         request,
         NextResponse.json({ conversationId, reply, state }),
@@ -805,15 +840,11 @@ Rules:
       path.length === 3 &&
       method === "GET"
     ) {
-      const id = path[1];
-      const qs = await db
-        .collection("agents")
-        .doc(id)
-        .collection("sequences")
-        .get();
-      const sequence = qs.docs
-        .map((d) => d.data())
-        .sort((a, b) => a.dayOffset - b.dayOffset);
+      const sequence = await listAgentSequences({
+        db,
+        agentId: path[1],
+        user: decoded,
+      });
       return handleCORS(request, NextResponse.json({ sequence }));
     }
 
@@ -856,12 +887,17 @@ Rules:
           request,
           NextResponse.json({ error: "nothing to update" }, { status: 400 }),
         );
-      await db
+      const seqRef = db
         .collection("agents")
         .doc(id)
         .collection("sequences")
-        .doc(seqId)
-        .update(updates);
+        .doc(seqId);
+      if (!(await seqRef.get()).exists)
+        return handleCORS(
+          request,
+          NextResponse.json({ error: "sequence not found" }, { status: 404 }),
+        );
+      await seqRef.update(updates);
       return handleCORS(request, NextResponse.json({ ok: true }));
     }
 
@@ -1621,107 +1657,23 @@ Rules:
 
     // GET /api/agency/accept?token= — invitee accepts (must be signed in)
     if (route === "/agency/accept" && method === "GET") {
-      const token = new URL(request.url).searchParams.get("token");
-      if (!token)
-        return handleCORS(
-          request,
-          NextResponse.json({ error: "token required" }, { status: 400 }),
-        );
-      if (!decoded)
-        return handleCORS(
-          request,
-          NextResponse.json(
-            { error: "sign in to accept the invite" },
-            { status: 401 },
-          ),
-        );
-
-      const inviteRef = db.collection("invites").doc(token);
-      const inviteSnap = await inviteRef.get();
-      if (!inviteSnap.exists || inviteSnap.data().status !== "pending") {
-        return handleCORS(
-          request,
-          NextResponse.json(
-            { error: "invite invalid or already used" },
-            { status: 400 },
-          ),
-        );
-      }
-      const { agencyId, email: inviteEmail } = inviteSnap.data();
-      // Verify the accepting user was the intended recipient.
-      if (
-        inviteEmail &&
-        decoded.email &&
-        decoded.email.toLowerCase() !== inviteEmail.toLowerCase()
-      ) {
-        return handleCORS(
-          request,
-          NextResponse.json(
-            { error: "this invite was sent to a different email address" },
-            { status: 403 },
-          ),
-        );
-      }
-      const agencyRef = db.collection("agencies").doc(agencyId);
-      const result = await db.runTransaction(async (tx) => {
-        const agency = await tx.get(agencyRef);
-        if (!agency.exists) return { error: "agency not found" };
-        const data = agency.data();
-        const members = data.memberUids || [];
-        if (members.includes(decoded.uid)) return { ok: true, agencyId };
-        if (members.length >= (data.seats || 0))
-          return { error: "seat limit reached" };
-        tx.update(agencyRef, { memberUids: [...members, decoded.uid] });
-        tx.set(
-          db.collection("users").doc(decoded.uid),
-          { role: "member", agencyId },
-          { merge: true },
-        );
-        tx.update(inviteRef, { status: "accepted", acceptedBy: decoded.uid });
-        return { ok: true, agencyId };
+      const result = await acceptAgencyInvite({
+        db,
+        token: new URL(request.url).searchParams.get("token"),
+        user: decoded,
       });
-      if (result.error)
-        return handleCORS(
-          request,
-          NextResponse.json({ error: result.error }, { status: 400 }),
-        );
-      return handleCORS(request, NextResponse.json({ ok: true, agencyId }));
+      return handleCORS(request, NextResponse.json(result));
     }
 
     // POST /api/agency/remove — owner removes a member
     if (route === "/agency/remove" && method === "POST") {
-      if (!decoded)
-        return handleCORS(
-          request,
-          NextResponse.json({ error: "unauthorized" }, { status: 401 }),
-        );
-      const body = await request.json().catch(() => null);
-      const memberUid = body?.memberUid;
-      if (!memberUid)
-        return handleCORS(
-          request,
-          NextResponse.json({ error: "memberUid required" }, { status: 400 }),
-        );
-      const agencyRef = db.collection("agencies").doc(decoded.uid);
-      const agencySnap = await agencyRef.get();
-      if (!agencySnap.exists)
-        return handleCORS(
-          request,
-          NextResponse.json({ error: "no agency found" }, { status: 404 }),
-        );
-      await agencyRef.update({
-        memberUids: (agencySnap.data().memberUids || []).filter(
-          (u) => u !== memberUid,
-        ),
+      const result = await removeAgencyMember({
+        db,
+        FieldValue,
+        user: decoded,
+        body: await request.json().catch(() => null),
       });
-      await db
-        .collection("users")
-        .doc(memberUid)
-        .set(
-          { role: "member", agencyId: FieldValue.delete() },
-          { merge: true },
-        );
-      return handleCORS(request, NextResponse.json({ ok: true }));
+      return handleCORS(request, NextResponse.json(result));
     }
 
     // GET /api/agency — agency view for the current user (owner or member)
@@ -2480,66 +2432,14 @@ Rules:
 
     // POST /api/webhooks — register a webhook (auth required)
     if (route === "/webhooks" && method === "POST") {
-      if (!decoded)
-        return handleCORS(
-          request,
-          NextResponse.json({ error: "unauthorized" }, { status: 401 }),
-        );
-      const body = await request.json().catch(() => null);
-      if (!body)
-        return handleCORS(
-          request,
-          NextResponse.json({ error: "invalid JSON body" }, { status: 400 }),
-        );
-      const { url, events } = body;
-      if (!url || typeof url !== "string" || !/^https:\/\//.test(url)) {
-        return handleCORS(
-          request,
-          NextResponse.json(
-            { error: "valid https url required" },
-            { status: 400 },
-          ),
-        );
-      }
-      if (
-        !Array.isArray(events) ||
-        events.length === 0 ||
-        !events.every((e) => typeof e === "string")
-      ) {
-        return handleCORS(
-          request,
-          NextResponse.json(
-            { error: "events must be a non-empty array of strings" },
-            { status: 400 },
-          ),
-        );
-      }
-      const id = crypto.randomUUID();
-      const secret = crypto.randomBytes(32).toString("hex");
-      const webhook = {
-        id,
-        url: truncate(url, 500),
-        events: events.slice(0, 20),
-        secret,
-        active: true,
-        createdAt: FieldValue.serverTimestamp(),
-      };
-      await db
-        .collection("users")
-        .doc(decoded.uid)
-        .collection("webhooks")
-        .doc(id)
-        .set(webhook);
-      return handleCORS(
-        request,
-        NextResponse.json({
-          id,
-          url: webhook.url,
-          events: webhook.events,
-          active: true,
-          secret,
-        }),
-      );
+      // Service validates the URL resolves to a public https host (SSRF guard).
+      const webhook = await createWebhook({
+        db,
+        FieldValue,
+        user: decoded,
+        body: await request.json().catch(() => null),
+      });
+      return handleCORS(request, NextResponse.json(webhook));
     }
 
     // GET /api/webhooks — list user's webhooks (secret never returned after creation)
