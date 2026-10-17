@@ -1464,7 +1464,7 @@
       "file_type": "code",
       "norm_label": "cancelsubscriptionbeforeerasure()",
       "source_file": "lib/services/accountService.js",
-      "source_location": "L83"
+      "source_location": "L94"
     },
     {
       "id": "lib_services_accountservice_eraseuserdata",
@@ -1476,7 +1476,7 @@
       "file_type": "code",
       "norm_label": "eraseuserdata()",
       "source_file": "lib/services/accountService.js",
-      "source_location": "L35"
+      "source_location": "L37"
     },
     {
       "id": "lib_services_agencyservice_acceptagencyinvite",
@@ -20447,7 +20447,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "lib/services/accountService.js",
-      "source_location": "L91",
+      "source_location": "L102",
       "weight": 1.0
     },
     {
@@ -20459,7 +20459,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "lib/services/accountService.js",
-      "source_location": "L36",
+      "source_location": "L38",
       "weight": 1.0
     },
     {
@@ -43136,7 +43136,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/services/accountService.js",
-      "source_location": "L35",
+      "source_location": "L37",
       "weight": 1.0
     },
     {
@@ -43158,7 +43158,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/services/accountService.js",
-      "source_location": "L83",
+      "source_location": "L94",
       "weight": 1.0
     },
     {
@@ -47593,5 +47593,5 @@
       "source_file": "FIGMA-DESIGN-SYSTEM.md"
     }
   ],
-  "built_at_commit": "e493421c509de07abfe36cb527ce182ae2c519fc"
+  "built_at_commit": "6b12678d3b53316ae7fe6140bb166b296c818c71"
 }
