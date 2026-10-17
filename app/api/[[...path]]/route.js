@@ -10,7 +10,11 @@ import { logError } from "@/lib/logger";
 import { AppError } from "@/lib/errors";
 import { buildOpenApiSpec } from "@/lib/openapi";
 import { createAgent, isAgentAccessDenied } from "@/lib/services/agentService";
-import { eraseUserData } from "@/lib/services/accountService";
+import {
+  eraseUserData,
+  cancelSubscriptionBeforeErasure,
+  SUBSCRIPTION_CANCEL_FAILED_MESSAGE,
+} from "@/lib/services/accountService";
 import {
   createCheckoutSession,
   createPortalSession,
@@ -54,6 +58,7 @@ import { testConnection as testEmailConnection, sendEmail } from "@/lib/email";
 import { sendMail } from "@/lib/mail";
 
 import { testTwilio, sendSMS } from "@/lib/sms";
+import { normalizeE164, E164_ERROR } from "@/lib/services/reminderService";
 import {
   ghlValidate,
   ghlGetContact,
@@ -61,7 +66,7 @@ import {
   ghlCreateAppointment,
 } from "@/lib/ghl";
 import { PROSPECT_CHANNELS } from "@/lib/prospects";
-import { deriveResultState } from "@/lib/resultState";
+import { deriveResultState, toPublicResult } from "@/lib/resultState";
 import { findPlaceholders } from "@/lib/scriptText";
 import { getBaseUrl } from "@/lib/baseUrl";
 
@@ -671,7 +676,7 @@ Rules:
           request,
           NextResponse.json({ error: "not found" }, { status: 404 }),
         );
-      return handleCORS(request, NextResponse.json(ser(snap)));
+      return handleCORS(request, NextResponse.json(toPublicResult(ser(snap))));
     }
 
     // GET /api/competitors
@@ -1483,22 +1488,36 @@ Rules:
       }
       const uid = decoded.uid;
 
-      // 1. Cancel Stripe subscription if active
+      // 1. Cancel Stripe subscription if active. A failure aborts the whole
+      // request before any erasure, so the user can safely retry.
+      const userDoc = await db.collection("users").doc(uid).get();
+      const subId = userDoc.data()?.stripeSubscriptionId;
       try {
-        const userDoc = await db.collection("users").doc(uid).get();
-        const subId = userDoc.data()?.stripeSubscriptionId;
-        if (subId) {
-          const stripe = getStripe();
-          await stripe.subscriptions.cancel(subId);
-        }
+        await cancelSubscriptionBeforeErasure({
+          stripe: subId ? getStripe() : null,
+          subscriptionId: subId,
+        });
       } catch (err) {
-        logError("account deletion: stripe cancel error", err);
+        logError("account deletion: stripe cancel failed", err, { uid });
+        return handleCORS(
+          request,
+          NextResponse.json(
+            { error: SUBSCRIPTION_CANCEL_FAILED_MESSAGE },
+            { status: 500 },
+          ),
+        );
       }
 
       // 2. Erase all Firestore data, subcollections included. On failure, stop
       // before deleting the Auth user so the request can be retried.
       try {
-        await eraseUserData({ db, uid });
+        await eraseUserData({
+          db,
+          FieldValue,
+          uid,
+          email: decoded.email,
+          emailVerified: decoded.email_verified,
+        });
       } catch (err) {
         logError("account deletion: firestore erasure failed", err);
         return handleCORS(
@@ -1922,15 +1941,21 @@ Rules:
           request,
           NextResponse.json({ error: "invalid JSON body" }, { status: 400 }),
         );
-      const { to, scheduledAt, leadName } = body;
+      const { scheduledAt, leadName } = body;
       const when = Date.parse(scheduledAt);
-      if (!to || !Number.isFinite(when))
+      if (!body.to || !Number.isFinite(when))
         return handleCORS(
           request,
           NextResponse.json(
             { error: "to and a valid scheduledAt are required" },
             { status: 400 },
           ),
+        );
+      const to = normalizeE164(body.to);
+      if (!to)
+        return handleCORS(
+          request,
+          NextResponse.json({ error: E164_ERROR }, { status: 400 }),
         );
 
       const pendingRef = db
@@ -1952,7 +1977,7 @@ Rules:
           pendingRef.doc(id).set({
             id,
             uid: decoded.uid,
-            to: truncate(String(to), 40),
+            to,
             body: `Hi ${name}, reminder: your call is in ${o.label}.`,
             sendAt: new Date(sendAt),
             status: "pending",
@@ -2013,11 +2038,19 @@ Rules:
         });
         if (!claimed) continue;
         try {
+          // Reminders queued before E.164 validation may hold numbers no
+          // opt-out can match; never send to those.
+          const to = normalizeE164(r.to);
+          if (!to) {
+            failed++;
+            await doc.ref.update({ status: "failed", error: "invalid number" });
+            continue;
+          }
           const suppressed = await db
             .collection("users")
             .doc(r.uid)
             .collection("smsSuppressed")
-            .doc(r.to)
+            .doc(to)
             .get();
           if (suppressed.exists) {
             await doc.ref.update({
@@ -2035,7 +2068,7 @@ Rules:
           if (!chSnap.exists || !chSnap.data().connected)
             throw new Error("sms channel not connected");
           const creds = JSON.parse(decrypt(chSnap.data().encryptedCreds));
-          await sendSMS(creds, r.to, r.body);
+          await sendSMS(creds, to, r.body);
           sent++;
         } catch (e) {
           failed++;
