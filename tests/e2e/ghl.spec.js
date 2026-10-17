@@ -6,9 +6,9 @@ test('GHL connect + sync require auth', async ({ request }) => {
   expect((await request.get('/api/integrations')).status()).toBe(401)
 })
 
-test('GHL inbound webhook is public but signature-gated when configured', async ({ request }) => {
-  // No auth header needed (GHL posts server-to-server). With GHL_WEBHOOK_SECRET
-  // set, a bad/absent x-ghl-signature returns 401; unset, it accepts and tallies.
+test('GHL inbound webhook is public but signature-gated', async ({ request }) => {
+  // No auth header needed (GHL posts server-to-server), but an absent
+  // X-GHL-Signature (Ed25519, GHL's published key) is always rejected.
   const res = await request.post('/api/integrations/ghl/webhook', { data: { type: 'AppointmentCreate', locationId: 'loc' } })
-  expect([200, 401]).toContain(res.status())
+  expect(res.status()).toBe(401)
 })
