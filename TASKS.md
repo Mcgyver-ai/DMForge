@@ -469,3 +469,9 @@ No Stripe Connect code exists anywhere in the repo yet — `lib/stripe.js` only 
   - `lib/__tests__/rateLimit.test.js`: 12/12 unit tests passing (4 new assertions covering isolation, token independence, and Meta webhook ceilings).
   - Full Vitest suite: 19/19 test files passed, 137/137 tests green (`yarn --ignore-engines test`).
   - Production build: `yarn --ignore-engines build` exit code 0, 75 static/dynamic routes compiled cleanly in 78s.
+
+---
+
+## Session log (2026-10-17) — GHL webhooks verified with the documented signature scheme (`fix/ghl-signature`)
+
+- ✅ **GHL inbound webhook signature** — GHL's [Webhook Integration Guide](https://marketplace.gohighlevel.com/docs/webhook/WebhookIntegrationGuide/) documents `X-GHL-Signature` as **Ed25519** (base64) over the raw body, verified with GHL's published public key; the legacy `X-WH-Signature` (RSA-SHA256) is past its deprecation date. HMAC with a shared secret is never documented, so the old `GHL_WEBHOOK_SECRET` check could never pass a real delivery. `/api/integrations/ghl/webhook` now always verifies with `verifyGhlSignature` (`lib/webhookAuth.js`); `GHL_WEBHOOK_SECRET` is retired (remove it from Vercel).
