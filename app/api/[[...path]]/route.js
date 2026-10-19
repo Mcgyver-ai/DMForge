@@ -806,6 +806,19 @@ Rules:
       method === "GET"
     ) {
       const id = path[1];
+      const agentSnap = await db.collection("agents").doc(id).get();
+      if (!agentSnap.exists)
+        return handleCORS(
+          request,
+          NextResponse.json({ error: "agent not found" }, { status: 404 }),
+        );
+      const agent = agentSnap.data();
+      if (agent.ownerUid && (!decoded || decoded.uid !== agent.ownerUid)) {
+        return handleCORS(
+          request,
+          NextResponse.json({ error: "forbidden" }, { status: 403 }),
+        );
+      }
       const qs = await db
         .collection("agents")
         .doc(id)
