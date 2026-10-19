@@ -6,3 +6,9 @@ dist/
 graphify-out/
 test-results/
 
+
+# Agent/skill persona prompts: ~1,480 nodes of markdown that crowd app code out
+# of query results. CI workflows under .github/workflows stay in the graph.
+.claude/
+.agents/
+.github/agents/

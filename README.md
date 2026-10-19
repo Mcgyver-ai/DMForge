@@ -62,6 +62,36 @@ yarn dev
 
 Open <http://localhost:3000>
 
+> **`yarn dev` talks to whatever Firebase project `.env.local` points at.** If that is
+> production, every API call, wizard run and Stripe webhook test writes real documents.
+> Use the emulated mode below for anything that writes.
+
+### Local dev against the Firebase emulators (safe for webhook tests)
+
+Needs the Firebase CLI (`npm i -g firebase-tools`) and Java 11+. Ports: Firestore `8085`,
+Auth `9099`, Emulator UI `4000` (see `emulators` in `firebase.json`).
+
+```bash
+# terminal 1: Auth + Firestore emulators, UI at http://127.0.0.1:4000
+yarn emulators
+
+# terminal 2: Next.js wired to the emulators
+yarn dev:emulated
+
+# terminal 3: forward Stripe test-mode events, then fire one
+stripe listen --project-name dmforge \
+  --events checkout.session.completed,customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,invoice.paid,invoice.payment_failed \
+  --forward-to localhost:3000/api/stripe/webhook
+stripe trigger --project-name dmforge checkout.session.completed
+```
+
+`dev:emulated` sets `FIRESTORE_EMULATOR_HOST`, `FIREBASE_AUTH_EMULATOR_HOST` and
+`NEXT_PUBLIC_FIREBASE_USE_EMULATORS=true`. With the emulator host set,
+`lib/firebaseAdmin.js` never loads the service account, so nothing can reach production
+Firestore. The named `dmforge` database is created on first write; the Emulator UI picks
+the database from the URL, so open <http://127.0.0.1:4000/firestore/dmforge/data>. Emulator data is in-memory and resets on restart.
+`STRIPE_WEBHOOK_SECRET` must be the `whsec_` that `stripe listen` prints.
+
 ### Running Tests
 
 ```bash

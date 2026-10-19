@@ -132,3 +132,8 @@ _disabled_skills/
 .agents/_disabled_skills/
 
 
+
+# Firebase emulator logs
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*

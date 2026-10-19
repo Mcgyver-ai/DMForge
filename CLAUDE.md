@@ -33,7 +33,7 @@ AI DM appointment-setter SaaS for online coaches. Next.js App Router serverless 
 
 ## graphify
 
-This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships. See [docs/GRAPHIFY.md](docs/GRAPHIFY.md) for which command answers which question, and its blind spots.
 
 Rules:
 
