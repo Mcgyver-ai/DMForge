@@ -1483,16 +1483,32 @@ Rules:
       }
       const uid = decoded.uid;
 
-      // 1. Cancel Stripe subscription if active
+      // 1. Cancel Stripe subscription if active. On failure, stop before erasing:
+      // a deleted user can't log in to cancel, so billing would run forever.
       try {
         const userDoc = await db.collection("users").doc(uid).get();
         const subId = userDoc.data()?.stripeSubscriptionId;
         if (subId) {
           const stripe = getStripe();
-          await stripe.subscriptions.cancel(subId);
+          const sub = await stripe.subscriptions.retrieve(subId);
+          if (!["canceled", "incomplete_expired"].includes(sub.status))
+            await stripe.subscriptions.cancel(subId);
         }
       } catch (err) {
-        logError("account deletion: stripe cancel error", err);
+        // A subscription Stripe no longer has can't bill anyone.
+        if (err?.code !== "resource_missing") {
+          logError("account deletion: stripe cancel error", err);
+          return handleCORS(
+            request,
+            NextResponse.json(
+              {
+                error:
+                  "Could not cancel your subscription. Please retry or contact support.",
+              },
+              { status: 502 },
+            ),
+          );
+        }
       }
 
       // 2. Erase all Firestore data, subcollections included. On failure, stop
