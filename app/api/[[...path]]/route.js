@@ -1622,7 +1622,8 @@ Rules:
           status: "pending",
           createdAt: FieldValue.serverTimestamp(),
         });
-      const acceptUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/agency/accept?token=${token}`;
+      // The /invite page signs the invitee in, then calls /api/agency/accept.
+      const acceptUrl = `${getBaseUrl()}/invite?token=${token}`;
       // fire-and-forget — invite link still returned so owner can share manually if email fails
       sendMail({
         to: inviteEmail,
