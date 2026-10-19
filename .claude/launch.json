@@ -5,6 +5,7 @@
       "name": "dev",
       "runtimeExecutable": "yarn",
       "runtimeArgs": [
+        "--ignore-engines",
         "run",
         "dev"
       ],
