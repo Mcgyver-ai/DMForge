@@ -1709,10 +1709,15 @@ Rules:
           request,
           NextResponse.json({ error: "no agency found" }, { status: 404 }),
         );
+      const memberUids = agencySnap.data().memberUids || [];
+      // Without this check an owner could reset any user's role and agencyId.
+      if (!memberUids.includes(memberUid))
+        return handleCORS(
+          request,
+          NextResponse.json({ error: "not a member" }, { status: 404 }),
+        );
       await agencyRef.update({
-        memberUids: (agencySnap.data().memberUids || []).filter(
-          (u) => u !== memberUid,
-        ),
+        memberUids: memberUids.filter((u) => u !== memberUid),
       });
       await db
         .collection("users")
