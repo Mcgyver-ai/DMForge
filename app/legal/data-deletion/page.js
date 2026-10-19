@@ -47,9 +47,11 @@ function DeletionStatusContent() {
             <p className="text-xs text-white/50">Retrieving status record...</p>
           ) : (
             <div className="text-xs text-emerald-400 mt-2 font-medium">
-              Status: {statusData?.status ? statusData.status.toUpperCase() : 'COMPLETED'}
+              Status: {(statusData?.status || 'pending').toUpperCase()}
               <p className="text-white/60 font-normal mt-1">
-                Your linked Meta ID and associated message transcripts have been deleted from our systems.
+                {statusData?.status === 'completed'
+                  ? 'Your linked Meta ID and associated message transcripts have been deleted from our systems.'
+                  : 'We have received your request and will delete your data within 30 days. Check back with this code for updates.'}
               </p>
             </div>
           )}

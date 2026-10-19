@@ -125,6 +125,15 @@ exports.sendReminders = onSchedule({
     if (!claimed) continue
 
     try {
+      // A lead who texted STOP is recorded by the Twilio webhook (route.js /webhooks/twilio).
+      const suppressed = await db
+        .collection('users').doc(r.uid)
+        .collection('smsSuppressed').doc(r.to)
+        .get()
+      if (suppressed.exists) {
+        await doc.ref.update({ status: 'skipped', error: 'recipient opted out' })
+        continue
+      }
       const chSnap = await db
         .collection('users').doc(r.uid)
         .collection('channels').doc('sms')

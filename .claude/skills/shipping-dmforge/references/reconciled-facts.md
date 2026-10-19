@@ -114,6 +114,7 @@ directly on their own machine.
 
   Tell the user this is a compile check, not a full build, and that they
   should run `yarn build` on their real machine before actually shipping.
+
 - **This VM's local git config has no `user.name`/`user.email`** (the global
   `.gitconfig` lives on the Windows side and isn't visible here) — first
   commit attempt fails with "Author identity unknown." Fix with a **local**
