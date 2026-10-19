@@ -1390,26 +1390,30 @@ Rules:
       const metaUserId = parsedPayload?.user_id || "unknown";
       const confirmationCode = `DMFORGE-DEL-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 
-      // Clean up any meta_channel_index doc mapping to this user
-      if (metaUserId && metaUserId !== "unknown") {
-        await db
-          .collection("meta_channel_index")
-          .doc(String(metaUserId))
-          .delete()
-          .catch(() => {});
-      }
-
-      // Record deletion status
+      // Meta sends an app-scoped user id. Channels connect with a pasted page
+      // token, so nothing stored is keyed by that id and it can't be erased
+      // automatically. Record it honestly as pending and route it to a human
+      // instead of claiming a deletion that never happened.
       await db
         .collection("meta_data_deletions")
         .doc(confirmationCode)
         .set({
           confirmationCode,
           metaUserId: String(metaUserId),
-          status: "completed",
+          status: "pending",
           requestedAt: FieldValue.serverTimestamp(),
-          completedAt: FieldValue.serverTimestamp(),
         });
+      after(() =>
+        sendMail({
+          to: "support@dmforge.org",
+          subject: `Meta data deletion request ${confirmationCode}`,
+          text: `Meta app-scoped user id: ${metaUserId}\nConfirmation code: ${confirmationCode}\n\nFind and erase this user's data, then set meta_data_deletions/${confirmationCode} status to "completed".`,
+        }).catch((err) =>
+          logError("Meta data deletion support email failed", err, {
+            confirmationCode,
+          }),
+        ),
+      );
 
       await recordAuditEvent({
         eventType: "meta.data_deletion",
@@ -1460,7 +1464,7 @@ Rules:
         request,
         NextResponse.json({
           confirmation_code: code,
-          status: data.status || "completed",
+          status: data.status || "pending",
           requestedAt: ser(data)?.requestedAt || null,
         }),
       );
