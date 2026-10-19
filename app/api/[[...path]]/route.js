@@ -657,23 +657,6 @@ Rules:
       );
     }
 
-    // GET /api/result/:id
-    if (route.startsWith("/result/") && method === "GET") {
-      const id = route.split("/")[2];
-      if (!id)
-        return handleCORS(
-          request,
-          NextResponse.json({ error: "result id required" }, { status: 400 }),
-        );
-      const snap = await db.collection("results").doc(id).get();
-      if (!snap.exists)
-        return handleCORS(
-          request,
-          NextResponse.json({ error: "not found" }, { status: 404 }),
-        );
-      return handleCORS(request, NextResponse.json(ser(snap)));
-    }
-
     // GET /api/competitors
     if (route === "/competitors" && method === "GET") {
       return handleCORS(request, NextResponse.json({ competitors }));
