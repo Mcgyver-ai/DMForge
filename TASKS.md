@@ -476,10 +476,11 @@ No Stripe Connect code exists anywhere in the repo yet — `lib/stripe.js` only 
 
 Audit against `e493421`. Tests in `lib/__tests__/`.
 
-- ✅ **Public result PII** — `GET /api/result/:id` strips `ownerEmail`/`ownerUid` (`toPublicResult`). `/my/results` unchanged; `app/r/[id]` reads Firestore directly and never used those fields.
+- ✅ **Public result PII** — superseded by #42, which deleted `GET /api/result/:id` outright (nothing called it). `toPublicResult` was dropped in the merge. `app/r/[id]` reads Firestore server-side and never renders the owner fields.
 - ⚠️ **Meta data-deletion callback — NOT fixed, blocked.** Meta's `user_id` is the app-scoped Facebook *user* ID, but the Instagram/Messenger connect flows only take a pasted *Page* access token and validate it with `GET /{id}?fields=id,name` — no call returns a user ID, so `metaUserId` can't be stored and the callback still matches nothing (and still records `status: "completed"`).
 - ✅ **Account erasure gaps** — `eraseUserData` also deletes `agencies/{uid}`, `inbound_tokens` (`uid`), `ghl_events` (`uid`), `invites` (`agencyId`), orphan `users` docs sharing the user's `stripeCustomerId`, and `arrayRemove`s the uid from another owner's agency `memberUids`.
-- ✅ **Stripe cancel no longer swallowed** — `DELETE /api/account` aborts with a 500 *before* any erasure unless the cancel succeeds, the sub is `resource_missing`, or it's already `canceled` (`cancelSubscriptionBeforeErasure`).
+- ✅ **Stripe cancel no longer swallowed** — `DELETE /api/account` aborts with a 502 *before* any erasure unless the cancel succeeds, Stripe returns `resource_missing`, or the sub is already `canceled`/`incomplete_expired` (`cancelSubscriptionBeforeErasure`, retrieve-first as in #42, now unit-tested). An `incomplete_expired` sub can't be cancelled, so the earlier cancel-first version would have blocked deletion for good.
+- ✅ **No zombie `users` doc after deletion** — the cancel fires `customer.subscription.deleted` right after erasure; the webhook used `set(merge)` and recreated `users/{uid}`. It now uses `update()` and ignores NOT_FOUND.
 - ✅ **SMS STOP bypass** — `/reminders/schedule` requires E.164 (spaces stripped, no country-code guessing); the cron fails any queued non-E.164 reminder (`invalid number`) and checks `smsSuppressed` against the normalized number. Same rule in `reminderService.js` (`normalizeE164`, shared by the live route).
 
 ### Still open
