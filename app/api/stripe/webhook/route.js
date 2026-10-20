@@ -6,6 +6,9 @@ import { logError } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
+// Firestore NOT_FOUND: update() on a doc that doesn't exist.
+const GRPC_NOT_FOUND = 5;
+
 export async function POST(request) {
   const sig = request.headers.get("stripe-signature");
   const body = await request.text();
@@ -117,18 +120,21 @@ export async function POST(request) {
               .limit(1)
               .get()
           ).docs[0]?.id;
+        // Account deletion cancels the subscription and then erases users/{uid},
+        // so this event usually lands after the doc is gone. Writing it with
+        // set+merge would recreate a doc for a deleted user; update() can't.
         if (docId)
           await db
             .collection("users")
             .doc(docId)
-            .set(
-              {
-                status: "canceled",
-                plan: "free",
-                updatedAt: FV.serverTimestamp(),
-              },
-              { merge: true },
-            );
+            .update({
+              status: "canceled",
+              plan: "free",
+              updatedAt: FV.serverTimestamp(),
+            })
+            .catch((err) => {
+              if (err?.code !== GRPC_NOT_FOUND) throw err;
+            });
         break;
       }
       case "invoice.paid":

@@ -469,3 +469,20 @@ No Stripe Connect code exists anywhere in the repo yet — `lib/stripe.js` only 
   - `lib/__tests__/rateLimit.test.js`: 12/12 unit tests passing (4 new assertions covering isolation, token independence, and Meta webhook ceilings).
   - Full Vitest suite: 19/19 test files passed, 137/137 tests green (`yarn --ignore-engines test`).
   - Production build: `yarn --ignore-engines build` exit code 0, 75 static/dynamic routes compiled cleanly in 78s.
+
+---
+
+## Session log (2026-10-17) — audit fixes: UK GDPR/PECR erasure, deletion callback, SMS opt-out (`fix/compliance`)
+
+Audit against `e493421`. Tests in `lib/__tests__/`.
+
+- ✅ **Public result PII** — superseded by #42, which deleted `GET /api/result/:id` outright (nothing called it). `toPublicResult` was dropped in the merge. `app/r/[id]` reads Firestore server-side and never renders the owner fields.
+- ⚠️ **Meta data-deletion callback — NOT fixed, blocked.** Meta's `user_id` is the app-scoped Facebook *user* ID, but the Instagram/Messenger connect flows only take a pasted *Page* access token and validate it with `GET /{id}?fields=id,name` — no call returns a user ID, so `metaUserId` can't be stored and the callback still matches nothing (and still records `status: "completed"`).
+- ✅ **Account erasure gaps** — `eraseUserData` also deletes `agencies/{uid}`, `inbound_tokens` (`uid`), `ghl_events` (`uid`), `invites` (`agencyId`), orphan `users` docs sharing the user's `stripeCustomerId`, and `arrayRemove`s the uid from another owner's agency `memberUids`.
+- ✅ **Stripe cancel no longer swallowed** — `DELETE /api/account` aborts with a 502 *before* any erasure unless the cancel succeeds, Stripe returns `resource_missing`, or the sub is already `canceled`/`incomplete_expired` (`cancelSubscriptionBeforeErasure`, retrieve-first as in #42, now unit-tested). An `incomplete_expired` sub can't be cancelled, so the earlier cancel-first version would have blocked deletion for good.
+- ✅ **No zombie `users` doc after deletion** — the cancel fires `customer.subscription.deleted` right after erasure; the webhook used `set(merge)` and recreated `users/{uid}`. It now uses `update()` and ignores NOT_FOUND.
+- ✅ **SMS STOP bypass** — `/reminders/schedule` requires E.164 (spaces stripped, no country-code guessing); the cron fails any queued non-E.164 reminder (`invalid number`) and checks `smsSuppressed` against the normalized number. Same rule in `reminderService.js` (`normalizeE164`, shared by the live route).
+
+### Still open
+- [ ] **Meta deletion callback: capture the Meta user ID** — add an OAuth (Facebook Login) connect flow or call `GET /debug_token` (needs an app access token: `META_APP_ID|META_APP_SECRET`) at connect time to store `metaUserId` on the channel doc, then match `collectionGroup('channels').where('metaUserId','==',user_id)` in the callback. Until then, don't report deletions as `completed`. Channels connected before that change will have no `metaUserId`.
+- [ ] **Pin canary/beta dependencies to stable releases** — React canary, Zod canary, Stripe beta, date-fns alpha.
