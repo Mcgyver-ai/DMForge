@@ -10,7 +10,11 @@ import { logError } from "@/lib/logger";
 import { AppError } from "@/lib/errors";
 import { buildOpenApiSpec } from "@/lib/openapi";
 import { createAgent, isAgentAccessDenied } from "@/lib/services/agentService";
-import { eraseUserData } from "@/lib/services/accountService";
+import {
+  eraseUserData,
+  cancelSubscriptionBeforeErasure,
+  SUBSCRIPTION_CANCEL_FAILED_MESSAGE,
+} from "@/lib/services/accountService";
 import {
   createCheckoutSession,
   createPortalSession,
@@ -1486,30 +1490,22 @@ Rules:
 
       // 1. Cancel Stripe subscription if active. On failure, stop before erasing:
       // a deleted user can't log in to cancel, so billing would run forever.
+      const userDoc = await db.collection("users").doc(uid).get();
+      const subId = userDoc.data()?.stripeSubscriptionId;
       try {
-        const userDoc = await db.collection("users").doc(uid).get();
-        const subId = userDoc.data()?.stripeSubscriptionId;
-        if (subId) {
-          const stripe = getStripe();
-          const sub = await stripe.subscriptions.retrieve(subId);
-          if (!["canceled", "incomplete_expired"].includes(sub.status))
-            await stripe.subscriptions.cancel(subId);
-        }
+        await cancelSubscriptionBeforeErasure({
+          stripe: subId ? getStripe() : null,
+          subscriptionId: subId,
+        });
       } catch (err) {
-        // A subscription Stripe no longer has can't bill anyone.
-        if (err?.code !== "resource_missing") {
-          logError("account deletion: stripe cancel error", err);
-          return handleCORS(
-            request,
-            NextResponse.json(
-              {
-                error:
-                  "Could not cancel your subscription. Please retry or contact support.",
-              },
-              { status: 502 },
-            ),
-          );
-        }
+        logError("account deletion: stripe cancel error", err, { uid });
+        return handleCORS(
+          request,
+          NextResponse.json(
+            { error: SUBSCRIPTION_CANCEL_FAILED_MESSAGE },
+            { status: 502 },
+          ),
+        );
       }
 
       // 2. Erase all Firestore data, subcollections included. On failure, stop
