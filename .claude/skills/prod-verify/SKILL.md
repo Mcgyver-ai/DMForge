@@ -44,7 +44,7 @@ that is the only thing that reflects what users experience. Unit tests, a green 
   args, echo them into logs, or commit them. Pipe secret values via stdin.
 - **Escalate what you genuinely can't reach.** Console-only actions (provider env vars, secret
   rotation, DNS, repo settings) may be outside your tools. When so, produce a precise,
-  self-contained handoff rather than pretending or stalling — but do everything you *can* reach first.
+  self-contained handoff rather than pretending or stalling — but do everything you _can_ reach first.
 
 ## Inputs to establish first
 
@@ -76,7 +76,7 @@ route; 500 = server fault to diagnose in phase 6.
 
 This is the part that finds real bugs. Register a genuine account via the platform's auth REST API,
 obtain a token, then exercise: user provisioning, an authed data read, the core feature
-(the thing the product is *for*), and billing entry points. Label the test account clearly so it's
+(the thing the product is _for_), and billing entry points. Label the test account clearly so it's
 easy to delete, and report it for cleanup. See `references/recipes.md` for the exact calls.
 
 ### 4. Real-browser pass (when click-driven flows matter)

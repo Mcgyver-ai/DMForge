@@ -10,11 +10,7 @@ import { logError } from "@/lib/logger";
 import { AppError } from "@/lib/errors";
 import { buildOpenApiSpec } from "@/lib/openapi";
 import { createAgent, isAgentAccessDenied } from "@/lib/services/agentService";
-import {
-  eraseUserData,
-  cancelSubscriptionBeforeErasure,
-  SUBSCRIPTION_CANCEL_FAILED_MESSAGE,
-} from "@/lib/services/accountService";
+import { eraseUserData } from "@/lib/services/accountService";
 import {
   createCheckoutSession,
   createPortalSession,
@@ -66,7 +62,7 @@ import {
   ghlCreateAppointment,
 } from "@/lib/ghl";
 import { PROSPECT_CHANNELS } from "@/lib/prospects";
-import { deriveResultState, toPublicResult } from "@/lib/resultState";
+import { deriveResultState } from "@/lib/resultState";
 import { findPlaceholders } from "@/lib/scriptText";
 import { getBaseUrl } from "@/lib/baseUrl";
 
@@ -662,23 +658,6 @@ Rules:
       );
     }
 
-    // GET /api/result/:id
-    if (route.startsWith("/result/") && method === "GET") {
-      const id = route.split("/")[2];
-      if (!id)
-        return handleCORS(
-          request,
-          NextResponse.json({ error: "result id required" }, { status: 400 }),
-        );
-      const snap = await db.collection("results").doc(id).get();
-      if (!snap.exists)
-        return handleCORS(
-          request,
-          NextResponse.json({ error: "not found" }, { status: 404 }),
-        );
-      return handleCORS(request, NextResponse.json(toPublicResult(ser(snap))));
-    }
-
     // GET /api/competitors
     if (route === "/competitors" && method === "GET") {
       return handleCORS(request, NextResponse.json({ competitors }));
@@ -811,6 +790,19 @@ Rules:
       method === "GET"
     ) {
       const id = path[1];
+      const agentSnap = await db.collection("agents").doc(id).get();
+      if (!agentSnap.exists)
+        return handleCORS(
+          request,
+          NextResponse.json({ error: "agent not found" }, { status: 404 }),
+        );
+      const agent = agentSnap.data();
+      if (agent.ownerUid && (!decoded || decoded.uid !== agent.ownerUid)) {
+        return handleCORS(
+          request,
+          NextResponse.json({ error: "forbidden" }, { status: 403 }),
+        );
+      }
       const qs = await db
         .collection("agents")
         .doc(id)
@@ -1399,26 +1391,30 @@ Rules:
       const metaUserId = parsedPayload?.user_id || "unknown";
       const confirmationCode = `DMFORGE-DEL-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 
-      // Clean up any meta_channel_index doc mapping to this user
-      if (metaUserId && metaUserId !== "unknown") {
-        await db
-          .collection("meta_channel_index")
-          .doc(String(metaUserId))
-          .delete()
-          .catch(() => {});
-      }
-
-      // Record deletion status
+      // Meta sends an app-scoped user id. Channels connect with a pasted page
+      // token, so nothing stored is keyed by that id and it can't be erased
+      // automatically. Record it honestly as pending and route it to a human
+      // instead of claiming a deletion that never happened.
       await db
         .collection("meta_data_deletions")
         .doc(confirmationCode)
         .set({
           confirmationCode,
           metaUserId: String(metaUserId),
-          status: "completed",
+          status: "pending",
           requestedAt: FieldValue.serverTimestamp(),
-          completedAt: FieldValue.serverTimestamp(),
         });
+      after(() =>
+        sendMail({
+          to: "support@dmforge.org",
+          subject: `Meta data deletion request ${confirmationCode}`,
+          text: `Meta app-scoped user id: ${metaUserId}\nConfirmation code: ${confirmationCode}\n\nFind and erase this user's data, then set meta_data_deletions/${confirmationCode} status to "completed".`,
+        }).catch((err) =>
+          logError("Meta data deletion support email failed", err, {
+            confirmationCode,
+          }),
+        ),
+      );
 
       await recordAuditEvent({
         eventType: "meta.data_deletion",
@@ -1469,7 +1465,7 @@ Rules:
         request,
         NextResponse.json({
           confirmation_code: code,
-          status: data.status || "completed",
+          status: data.status || "pending",
           requestedAt: ser(data)?.requestedAt || null,
         }),
       );
@@ -1488,24 +1484,32 @@ Rules:
       }
       const uid = decoded.uid;
 
-      // 1. Cancel Stripe subscription if active. A failure aborts the whole
-      // request before any erasure, so the user can safely retry.
-      const userDoc = await db.collection("users").doc(uid).get();
-      const subId = userDoc.data()?.stripeSubscriptionId;
+      // 1. Cancel Stripe subscription if active. On failure, stop before erasing:
+      // a deleted user can't log in to cancel, so billing would run forever.
       try {
-        await cancelSubscriptionBeforeErasure({
-          stripe: subId ? getStripe() : null,
-          subscriptionId: subId,
-        });
+        const userDoc = await db.collection("users").doc(uid).get();
+        const subId = userDoc.data()?.stripeSubscriptionId;
+        if (subId) {
+          const stripe = getStripe();
+          const sub = await stripe.subscriptions.retrieve(subId);
+          if (!["canceled", "incomplete_expired"].includes(sub.status))
+            await stripe.subscriptions.cancel(subId);
+        }
       } catch (err) {
-        logError("account deletion: stripe cancel failed", err, { uid });
-        return handleCORS(
-          request,
-          NextResponse.json(
-            { error: SUBSCRIPTION_CANCEL_FAILED_MESSAGE },
-            { status: 500 },
-          ),
-        );
+        // A subscription Stripe no longer has can't bill anyone.
+        if (err?.code !== "resource_missing") {
+          logError("account deletion: stripe cancel error", err);
+          return handleCORS(
+            request,
+            NextResponse.json(
+              {
+                error:
+                  "Could not cancel your subscription. Please retry or contact support.",
+              },
+              { status: 502 },
+            ),
+          );
+        }
       }
 
       // 2. Erase all Firestore data, subcollections included. On failure, stop
@@ -1625,7 +1629,8 @@ Rules:
           status: "pending",
           createdAt: FieldValue.serverTimestamp(),
         });
-      const acceptUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/agency/accept?token=${token}`;
+      // The /invite page signs the invitee in, then calls /api/agency/accept.
+      const acceptUrl = `${getBaseUrl()}/invite?token=${token}`;
       // fire-and-forget — invite link still returned so owner can share manually if email fails
       sendMail({
         to: inviteEmail,
@@ -1728,10 +1733,15 @@ Rules:
           request,
           NextResponse.json({ error: "no agency found" }, { status: 404 }),
         );
+      const memberUids = agencySnap.data().memberUids || [];
+      // Without this check an owner could reset any user's role and agencyId.
+      if (!memberUids.includes(memberUid))
+        return handleCORS(
+          request,
+          NextResponse.json({ error: "not a member" }, { status: 404 }),
+        );
       await agencyRef.update({
-        memberUids: (agencySnap.data().memberUids || []).filter(
-          (u) => u !== memberUid,
-        ),
+        memberUids: memberUids.filter((u) => u !== memberUid),
       });
       await db
         .collection("users")

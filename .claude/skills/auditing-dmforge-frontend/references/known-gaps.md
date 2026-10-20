@@ -116,6 +116,7 @@ machine (corepack shim points at a missing
    don't flag missing `next/image` usage as high-priority; it buys less here than usual.
 
 **Confirmed resolved from earlier sessions (don't re-flag):**
+
 - `.env.local` is ASCII, not UTF-16LE — the local-build-breaking encoding issue from the
   2026-07-12 session log is gone.
 
