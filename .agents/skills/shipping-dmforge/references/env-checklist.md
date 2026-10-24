@@ -21,7 +21,6 @@ one question fast: **"is X actually configured, or silently disabled?"**
 | Var | Feature it unlocks | Missing behavior |
 |---|---|---|
 | `META_VERIFY_TOKEN`/`META_APP_SECRET` | Meta Webhook challenge verification & signature check | Unset = webhook challenge fails or payload signature unverified |
-| `GHL_WEBHOOK_SECRET` | GoHighLevel inbound webhook signature check | Unset = signature check skipped (works, but unverified) |
 | `CRON_SECRET` | Secures `/api/cron/send-reminders` | Unset = endpoint open; also note this route may be deprecated in favor of Firebase Cloud Scheduler — check `references/reconciled-facts.md` |
 | `SENTRY_DSN` | Error monitoring | Unset = SDK no-ops, silent, no crash |
 | `NEXT_PUBLIC_POSTHOG_KEY` (+ `_HOST`) | Product analytics | Unset = no-op |

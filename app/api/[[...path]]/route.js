@@ -3,6 +3,7 @@ import {
   safeEqual,
   verifyMetaSignature,
   parseMetaSignedRequest,
+  verifyGhlSignature,
 } from "@/lib/webhookAuth";
 import * as Sentry from "@sentry/nextjs";
 import { NextResponse, after } from "next/server";
@@ -2318,7 +2319,7 @@ Rules:
       }
     }
 
-    // POST /api/integrations/ghl/webhook — inbound GHL events (HMAC verified)
+    // POST /api/integrations/ghl/webhook — inbound GHL events (Ed25519 verified)
     if (
       path[0] === "integrations" &&
       path[1] === "ghl" &&
@@ -2326,34 +2327,11 @@ Rules:
       method === "POST"
     ) {
       const raw = await request.text();
-      if (
-        !process.env.GHL_WEBHOOK_SECRET &&
-        process.env.NODE_ENV === "production"
-      ) {
+      if (!verifyGhlSignature(raw, request.headers.get("x-ghl-signature")))
         return handleCORS(
           request,
           NextResponse.json({ error: "invalid signature" }, { status: 401 }),
         );
-      }
-      if (process.env.GHL_WEBHOOK_SECRET) {
-        const sig = request.headers.get("x-ghl-signature") || "";
-        const expected = crypto
-          .createHmac("sha256", process.env.GHL_WEBHOOK_SECRET)
-          .update(raw)
-          .digest("hex");
-        // Constant-time compare — a plain !== leaks timing info an attacker
-        // can use to forge a valid signature one byte at a time.
-        const sigBuf = Buffer.from(sig);
-        const expectedBuf = Buffer.from(expected);
-        const validSig =
-          sigBuf.length === expectedBuf.length &&
-          crypto.timingSafeEqual(sigBuf, expectedBuf);
-        if (!validSig)
-          return handleCORS(
-            request,
-            NextResponse.json({ error: "invalid signature" }, { status: 401 }),
-          );
-      }
       let payload;
       try {
         payload = JSON.parse(raw);
