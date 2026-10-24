@@ -5982,10 +5982,10 @@ strip-indent@^3.0.0:
   dependencies:
     min-indent "^1.0.0"
 
-stripe@^22.4.0-beta.1:
-  version "22.4.0-beta.1"
-  resolved "https://registry.yarnpkg.com/stripe/-/stripe-22.4.0-beta.1.tgz#a85e0c4ef4a9550fdf65c59cb9df2d6bb7c01813"
-  integrity sha512-tuV9BlNQhEpxscZpADb8VavhM5lONFk3qZ5CbbnVe5H8VISIzhUbKTGX7qeZAmWXVeoiavHizEOhWyKnyGgZ+g==
+stripe@^23.0.0:
+  version "23.0.0"
+  resolved "https://registry.yarnpkg.com/stripe/-/stripe-23.0.0.tgz#4730d07671871986e6e5b31e018668e9743676da"
+  integrity sha512-MDE2A5ZVVluYURORaZEVghSmnLJc3w6aHAlZSxDQMsOjOb3V0O6ro/CiaeFlJS4N7uIVmsg98ocRsPmUK6YfyA==
 
 strnum@^2.4.2:
   version "2.4.2"
