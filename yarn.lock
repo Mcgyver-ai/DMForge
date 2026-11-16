@@ -276,9 +276,9 @@
   integrity sha512-IcpW84uEn3N7ETtNZMlxKhfl6Pec8rUNGOTBtWbK1FKhJxIFAptZyVrvVRVBimAJxJCgc3PxepxkdWWG4DVzfA==
 
 "@fastify/busboy@^3.0.0":
-  version "3.2.0"
-  resolved "https://registry.yarnpkg.com/@fastify/busboy/-/busboy-3.2.0.tgz#13ed8212f3b9ba697611529d15347f8528058cea"
-  integrity sha512-m9FVDXU3GT2ITSe0UaMA5rU3QkfC/UXtCU8y0gSN/GugTqtVldOBWIB5V6V3sbmenVZUIpU6f+mPEO2+m5iTaA==
+  version "3.2.6"
+  resolved "https://registry.yarnpkg.com/@fastify/busboy/-/busboy-3.2.6.tgz#6a40992c41ccdc666dc80ff502858883cf7e63a8"
+  integrity sha512-UPXdyAMbz/gNvjS8HONpJR2TDaHM3wQKMtSRPFkoh2LTeRRtnm+ICVYKgBYkTwlPOVzDNynOd34EH8qapwfelQ==
 
 "@firebase/ai@2.13.1":
   version "2.13.1"
